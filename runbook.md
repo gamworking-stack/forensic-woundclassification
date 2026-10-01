@@ -66,3 +66,15 @@ for p in full roi; do
   sbatch -J "cnn_svm_$p" --time=04:00:00 --export=ALL,FAMILY=cnn_svm,INPUT_PATH=$p scripts/slurm/train_single.sbatch
 done
 ```
+
+## Watching jobs live
+
+`scripts/hpc/watch_jobs.sh` follows the `.out` and `.err` logs as they are written and stops when the jobs finish (Ctrl+C stops watching only).
+```bash
+bash scripts/hpc/watch_jobs.sh                 # all your queued and running jobs
+bash scripts/hpc/watch_jobs.sh 221593 221594   # specific jobs
+# submit and watch in one go
+ids=(); for p in full roi; do
+  ids+=("$(sbatch --parsable -J "cnn_svm_$p" --time=04:00:00 --export=ALL,FAMILY=cnn_svm,INPUT_PATH=$p scripts/slurm/train_single.sbatch)")
+done; bash scripts/hpc/watch_jobs.sh "${ids[@]}"
+```

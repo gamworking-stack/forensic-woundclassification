@@ -36,6 +36,7 @@ case "$INPUT_PATH" in
 esac
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/$FAMILY}"
 export TORCH_HOME="$PROJECT_ROOT/torch_cache"
+export PYTHONUNBUFFERED=1  # log lines reach the .out/.err files immediately
 
 cd "$REPO_DIR"
 echo "Job $SLURM_JOB_ID on $(hostname) at $(date -Is)"
