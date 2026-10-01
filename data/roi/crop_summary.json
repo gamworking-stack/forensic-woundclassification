@@ -1,0 +1,148 @@
+{
+  "source_manifest": "/Users/preenapunsaokhieo/Desktop/[Thesis] Wound classification/forensic-woundclassification/data/splits/case_level_split_manifest.csv",
+  "image_root": null,
+  "output_dir": "/Users/preenapunsaokhieo/Desktop/[Thesis] Wound classification/forensic-woundclassification/data/roi",
+  "annotation_exports": [
+    "task_12_annotations_2026_09_30_16_02_03_yolo 1.1.zip",
+    "task_14_annotations_2026_09_30_16_00_10_yolo 1.1.zip",
+    "task_15_annotations_2026_09_30_15_39_29_yolo 1.1.zip",
+    "task_16_annotations_2026_09_30_15_34_41_yolo 1.1.zip",
+    "task_17_annotations_2026_09_30_15_31_44_yolo 1.1.zip",
+    "task_18_annotations_2026_09_30_15_17_53_yolo 1.1.zip",
+    "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+  ],
+  "duplicate_exports_skipped": [
+    "task_17_annotations_2026_09_30_15_31_44_yolo 1.1 (1).zip",
+    "task_17_annotations_2026_09_30_15_31_44_yolo 1.1 (2).zip"
+  ],
+  "crop_mode": "union",
+  "padding_ratio": 0.08,
+  "min_size": 8,
+  "dry_run": true,
+  "counts": {
+    "annotation_not_in_manifest": 4,
+    "crops_created": 1100,
+    "dropped_no_annotation": 6,
+    "invalid_annotation_lines": 0,
+    "manifest_rows": 1106,
+    "manifest_rows_without_usable_annotation": 6
+  },
+  "unique_cases": 418,
+  "cases_by_split": {
+    "train": 294,
+    "validation": 62,
+    "test": 62
+  },
+  "crops_by_split": {
+    "validation": 164,
+    "train": 779,
+    "test": 157
+  },
+  "crops_by_class": {
+    "cut wound": 90,
+    "gunshot wound": 310,
+    "contusion": 184,
+    "laceration": 130,
+    "scratch": 65,
+    "penetration wound": 52,
+    "graze wound": 269
+  },
+  "crops_by_split_and_class": {
+    "train": {
+      "contusion": 130,
+      "cut wound": 61,
+      "graze wound": 182,
+      "gunshot wound": 228,
+      "laceration": 91,
+      "penetration wound": 37,
+      "scratch": 50
+    },
+    "validation": {
+      "contusion": 28,
+      "cut wound": 15,
+      "graze wound": 44,
+      "gunshot wound": 40,
+      "laceration": 19,
+      "penetration wound": 8,
+      "scratch": 10
+    },
+    "test": {
+      "contusion": 26,
+      "cut wound": 14,
+      "graze wound": 43,
+      "gunshot wound": 42,
+      "laceration": 20,
+      "penetration wound": 7,
+      "scratch": 5
+    }
+  },
+  "unannotated_records_count": 6,
+  "unannotated_records": [
+    {
+      "pseudonimized_id": "94",
+      "filename": "ZZ140321.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "validation",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "167",
+      "filename": "ZZ310855.JPG",
+      "canonical_wound_label": "contusion",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "220",
+      "filename": "PC235480.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "validation",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "353",
+      "filename": "P1070307.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "test",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "388",
+      "filename": "IMG_3520.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "415",
+      "filename": "P1071425",
+      "canonical_wound_label": "cut wound",
+      "split": "train",
+      "reason": "no_annotation"
+    }
+  ],
+  "skipped_records": [],
+  "annotations_not_in_manifest": [
+    {
+      "stem": "IMG_2836",
+      "label": "graze wound",
+      "annotation_export": "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+    },
+    {
+      "stem": "ZZ020100 (2)",
+      "label": "graze wound",
+      "annotation_export": "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+    },
+    {
+      "stem": "ZZ071873",
+      "label": "graze wound",
+      "annotation_export": "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+    },
+    {
+      "stem": "ZZ105045",
+      "label": "graze wound",
+      "annotation_export": "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+    }
+  ],
+  "invalid_annotation_lines": []
+}

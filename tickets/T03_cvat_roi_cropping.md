@@ -3,7 +3,7 @@
 - **Ticket ID**: `T03`
 - **Phase**: Phase 2 (ROI Preprocessing)
 - **Spec Reference**: [specs/phase2_roi_preprocessing.md](file:///Users/preenapunsaokhieo/Desktop/%5BThesis%5D%20Wound%20classification/forensic-woundclassification/specs/phase2_roi_preprocessing.md)
-- **Status**: Open / Ready for Implementation
+- **Status**: Completed
 
 ---
 
@@ -65,6 +65,7 @@ python3 src/data/create_roi_dataset.py \
 
 1. Script runs and exits with code 0.
 2. Resulting manifest `data/roi/roi_manifest.csv` contains exactly **1,100 rows** across **420 cases**.
+   - *Implementation note*: the observed count is **418 cases**, not 420. Three of the 6 unannotated images are the only image of their case (220 `PC235480.JPG`, 353 `P1070307.JPG`, 415 `P1071425`), so 421 − 3 = 418. The earlier HPC reference run (`Researcher_ROI_results`) also has 418. The 420 in this ticket, the Phase 2 spec and T04 needs confirming.
 3. Zero leakage assertion passes: train, val, and test case sets are mutually disjoint.
 4. All 7 canonical classes are present in `train` (779), `validation` (164), and `test` (157).
 5. `data/roi/crop_summary.json` lists 6 unannotated records, matching the known dataset profile.
