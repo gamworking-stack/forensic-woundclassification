@@ -59,3 +59,10 @@ tail -f logs/t11_efficientnet_b0_roi_<jobid>.out
 ```
 
 T11 passed on 2026-10-01: jobs `221591` (full) and `221592` (roi), EfficientNet-B0, 2 epochs on an H100, 779/164/157 images on both paths, about 3-5 s per epoch.
+
+CNN-SVM (S13 full, S14 roi): same job script with `FAMILY=cnn_svm`. Features are cached in `<output>/features/`, so a rerun only refits the SVM.
+```bash
+for p in full roi; do
+  sbatch -J "cnn_svm_$p" --time=04:00:00 --export=ALL,FAMILY=cnn_svm,INPUT_PATH=$p scripts/slurm/train_single.sbatch
+done
+```

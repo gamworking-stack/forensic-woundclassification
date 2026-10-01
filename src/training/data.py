@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence, Tuple
 
 import pandas as pd
 from PIL import Image, ImageFile, ImageOps
 from torch.utils.data import Dataset
 
 from src.data.create_roi_dataset import find_source_image, verify_no_case_leakage
-from src.training.config import RunConfig
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -28,20 +27,26 @@ def read_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, dtype=str, keep_default_na=False)
 
 
-def load_manifest(cfg: RunConfig) -> pd.DataFrame:
-    """Read the scenario's manifest, apply the full-image scope, and check leakage and classes."""
-    df = read_csv(cfg.manifest)
+def load_manifest(
+    manifest: Path,
+    input_path: str,
+    full_scope: str = "matched",
+    roi_manifest: Path = Path("data/roi/roi_manifest.csv"),
+    smoke: bool = False,
+) -> pd.DataFrame:
+    """Read a scenario's manifest, apply the full-image scope, and check leakage and classes."""
+    df = read_csv(manifest)
     df["split"] = df["split"].str.strip().str.lower()
     unknown = sorted(set(df["split"]) - set(SPLIT_NAMES))
     if unknown:
-        raise ValueError(f"Unexpected split values in {cfg.manifest}: {unknown}")
+        raise ValueError(f"Unexpected split values in {manifest}: {unknown}")
 
-    if cfg.input_path == "full" and cfg.full_scope == "matched":
-        roi_paths = set(read_csv(cfg.roi_manifest)["relative_path"])
+    if input_path == "full" and full_scope == "matched":
+        roi_paths = set(read_csv(roi_manifest)["relative_path"])
         df = df[df["relative_path"].isin(roi_paths)].reset_index(drop=True)
 
     verify_no_case_leakage(df.to_dict("records"), GROUP_COLUMN)
-    if cfg.smoke:
+    if smoke:
         df = df.groupby(["split", LABEL_COLUMN], sort=False).head(2).reset_index(drop=True)
     check_class_coverage(df)
     return df
@@ -79,6 +84,18 @@ def resolve_image_paths(df: pd.DataFrame, input_path: str, image_root: Path) -> 
     if missing:
         raise FileNotFoundError(f"{len(missing)} images not found under {image_root}: {missing}")
     return paths
+
+
+def prepare_rows(df: pd.DataFrame, input_path: str, image_root: Path) -> Tuple[pd.DataFrame, List[str]]:
+    """Add resolved image paths and integer labels; return the rows and the class list."""
+    classes = class_names(df)
+    paths = resolve_image_paths(df, input_path, image_root)
+    df = df.assign(
+        image_path=paths,
+        image_relative_path=[p.relative_to(image_root).as_posix() for p in paths],
+        label_index=df[LABEL_COLUMN].map({name: i for i, name in enumerate(classes)}),
+    )
+    return df, classes
 
 
 def load_image(path: Path, max_side: Optional[int] = None) -> Image.Image:

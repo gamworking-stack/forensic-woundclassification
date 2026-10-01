@@ -1,5 +1,5 @@
 #!/bin/bash
-# Train one model family on one input path on one H100.
+# Train one model family (or FAMILY=cnn_svm) on one input path on one H100.
 # Submit from the repo root:
 #   sbatch -J S02_efficientnet_b0_roi --export=ALL,FAMILY=efficientnet_b0,INPUT_PATH=roi \
 #     scripts/slurm/train_single.sbatch
@@ -46,17 +46,22 @@ nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 module purge
 module load apptainer/1.3.5
 
+COMMON_ARGS=(
+  --input-path "$INPUT_PATH"
+  --manifest "$MANIFEST"
+  --image-root "$IMAGE_ROOT"
+  --output-dir "$OUTPUT_DIR"
+  --num-workers $(( SLURM_CPUS_PER_TASK - 2 ))
+)
+if [[ "$FAMILY" == cnn_svm ]]; then
+  ENTRY=(src/training/cnn_svm.py)
+else
+  ENTRY=(src/training/train.py --family "$FAMILY" --resume)
+fi
+
 # EXTRA_ARGS is split into words on purpose.
 # shellcheck disable=SC2086
 apptainer exec --nv --bind "$PROJECT_ROOT" --pwd "$REPO_DIR" "$SIF" \
-  python src/training/train.py \
-    --family "$FAMILY" \
-    --input-path "$INPUT_PATH" \
-    --manifest "$MANIFEST" \
-    --image-root "$IMAGE_ROOT" \
-    --output-dir "$OUTPUT_DIR" \
-    --num-workers $(( SLURM_CPUS_PER_TASK - 2 )) \
-    --resume \
-    $EXTRA_ARGS
+  python "${ENTRY[@]}" "${COMMON_ARGS[@]}" $EXTRA_ARGS
 
 echo "Done at $(date -Is)"

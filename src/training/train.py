@@ -10,9 +10,6 @@ prediction files (T08).
 from __future__ import annotations
 
 import json
-import os
-import platform
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -22,21 +19,24 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import torch
-import torchvision
 from torch import nn
 from torch.utils.data import DataLoader
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-from src.training.config import RunConfig, parse_args  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.training.common import (  # noqa: E402
+    Logger,
+    environment_info,
+    git_state,
+    prediction_frame,
+    resolve_device,
+)
+from src.training.config import parse_args  # noqa: E402
 from src.training.data import (  # noqa: E402
     GROUP_COLUMN,
-    LABEL_COLUMN,
     SPLIT_NAMES,
     ManifestImageDataset,
-    class_names,
     load_manifest,
-    resolve_image_paths,
+    prepare_rows,
 )
 from src.training.engine import (  # noqa: E402
     EarlyStopping,
@@ -62,68 +62,11 @@ HISTORY_COLUMNS = [
 ]
 
 
-class Logger:
-    """Print to stdout and append to train.log."""
-
-    def __init__(self, path: Path) -> None:
-        self.path = path
-
-    def __call__(self, message: str) -> None:
-        print(message, flush=True)
-        with self.path.open("a", encoding="utf-8") as f:
-            f.write(message + "\n")
-
-
-def resolve_device(name: str) -> torch.device:
-    if name == "auto":
-        name = "cuda" if torch.cuda.is_available() else "cpu"
-    if name == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("--device cuda requested but CUDA is not available")
-    return torch.device(name)
-
-
-def git_state() -> Dict[str, Any]:
-    def git(*args: str) -> Optional[str]:
-        result = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
-        return result.stdout.strip() if result.returncode == 0 else None
-
-    commit = git("rev-parse", "HEAD")
-    status = git("status", "--porcelain")
-    return {"git_commit": commit, "git_dirty": None if status is None else bool(status)}
-
-
-def environment_info(device: torch.device) -> Dict[str, Any]:
-    return {
-        "python": platform.python_version(),
-        "torch": torch.__version__,
-        "torchvision": torchvision.__version__,
-        "cuda": torch.version.cuda,
-        "device": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
-        "hostname": platform.node(),
-        "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
-    }
-
-
 def compute_class_weights(train_labels: np.ndarray, num_classes: int) -> torch.Tensor:
     """Inverse class frequency on the train split, normalized to mean 1."""
     counts = np.bincount(train_labels, minlength=num_classes).astype(float)
     inverse = 1.0 / counts
     return torch.tensor(inverse / inverse.mean(), dtype=torch.float32)
-
-
-def prediction_frame(
-    rows: pd.DataFrame, labels: np.ndarray, probs: np.ndarray, classes: List[str]
-) -> pd.DataFrame:
-    frame = pd.DataFrame({
-        "relative_path": rows["image_relative_path"].to_numpy(),
-        "pseudonimized_id": rows[GROUP_COLUMN].to_numpy(),
-        "split": rows["split"].to_numpy(),
-        "true_class": [classes[i] for i in labels],
-        "predicted_class": [classes[i] for i in probs.argmax(axis=1)],
-    })
-    for j, name in enumerate(classes):
-        frame[f"prob_{name.replace(' ', '_')}"] = probs[:, j]
-    return frame
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -136,12 +79,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(cfg.device)
     image_size = cfg.image_size or input_size(cfg.family)
 
-    df = load_manifest(cfg)
-    classes = class_names(df)
-    paths = resolve_image_paths(df, cfg.input_path, cfg.image_root)
-    df["image_path"] = paths
-    df["image_relative_path"] = [p.relative_to(cfg.image_root).as_posix() for p in paths]
-    df["label_index"] = df[LABEL_COLUMN].map({name: i for i, name in enumerate(classes)})
+    df = load_manifest(cfg.manifest, cfg.input_path, cfg.full_scope, cfg.roi_manifest, cfg.smoke)
+    df, classes = prepare_rows(df, cfg.input_path, cfg.image_root)
 
     train_labels = df.loc[df["split"] == "train", "label_index"].to_numpy()
     class_weights = compute_class_weights(train_labels, len(classes))
