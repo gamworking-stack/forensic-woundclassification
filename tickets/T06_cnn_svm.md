@@ -4,7 +4,7 @@
 - **Phase**: Phase 3 (Training Code)
 - **Spec Reference**: [specs/phase3_training_code.md](../specs/phase3_training_code.md) §5
 - **Scenarios**: S13 (full), S14 (ROI)
-- **Status**: In Progress
+- **Status**: Completed
 
 ---
 
@@ -76,3 +76,17 @@ python src/training/cnn_svm.py \
 1. `pytest tests/` passes, including the existing T05 tests after the refactor.
 2. On Raptor, `train_single.sbatch` with `FAMILY=cnn_svm` finishes for `full` and `roi` and writes all outputs. Its best validation macro-F1 on the full path is in the EXP003 range (about 0.55).
 3. Tick T06 in `ROADMAP.md` §9.
+
+---
+
+## 6. HPC Run (final, 29-point grid)
+
+- **Date**: 2026-10-01, jobs `221604` (full) and `221605` (ROI), cached features reused, about 1 min each.
+- **Outputs**: `/project/a260012_FORWCL/experiments/main/<full|roi>/cnn_svm/`.
+
+| Path | Chosen SVM | Validation macro-F1 | On grid limit |
+|---|---|---|---|
+| Full | RBF, C 100, gamma 1e-6 | 0.596 | gamma (lower limit) |
+| ROI | RBF, C 10, gamma 1e-5 | 0.753 | no |
+
+- **Decision (2026-10-01)**: keep this result and freeze the grid. The full-image optimum sits on the lower gamma limit. At such small gamma the RBF SVM is close to a linear SVM with effective C ≈ 2·gamma·C ≈ 2e-4, below the smallest linear C tried (1e-3), which suggests a near-linear boundary. The grid is not widened further, to avoid repeated tuning against the same 164 validation images. Report this in the thesis methods: the grid was extended once on validation evidence and the full-image best setting remains on its limit.
