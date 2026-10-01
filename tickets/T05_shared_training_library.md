@@ -3,7 +3,7 @@
 - **Ticket ID**: `T05`
 - **Phase**: Phase 3 (Training Code)
 - **Spec Reference**: [specs/phase3_training_code.md](../specs/phase3_training_code.md)
-- **Status**: In Progress
+- **Status**: Completed (local CPU tests; first real-data run is T11)
 
 ---
 

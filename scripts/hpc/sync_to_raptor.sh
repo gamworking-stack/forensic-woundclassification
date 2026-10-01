@@ -20,7 +20,7 @@ for task in 12 14 15 16 17 18 19; do
   exports+=("${match[0]}")
 done
 
-rsync -av --exclude '.git/' --exclude '__pycache__/' --exclude '.venv/' --exclude '.DS_Store' \
+rsync -av --exclude '__pycache__/' --exclude '.venv/' --exclude '.DS_Store' \
   "$REPO_ROOT/" "$DEST:$REMOTE_REPO/"
 
 ssh "$DEST" "mkdir -p '$REMOTE_EXPORTS'"

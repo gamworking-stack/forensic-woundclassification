@@ -24,3 +24,21 @@
 
 Crops are written to `/project/a260012_FORWCL/derived_data/roi_union_p008/<split>/<class>/` and stay on the HPC.
 Override paths with `IMAGE_ROOT`, `EXPORTS_DIR` or `OUTPUT_DIR`, e.g. `sbatch --export=ALL,OUTPUT_DIR=/path ...`.
+
+## T05 training library
+
+Pretrained weights are downloaded once on the login node (compute nodes may have no internet) into the shared cache:
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+export TORCH_HOME=/project/a260012_FORWCL/torch_cache
+apptainer exec --bind /project/a260012_FORWCL /common/sif/pytorch-24.11-py3.sif python -c \
+  "from src.training.config import FAMILIES; from src.training.models import build_model; [build_model(f) for f in FAMILIES]"
+```
+Every training job must `export TORCH_HOME=/project/a260012_FORWCL/torch_cache` before `apptainer exec` (Apptainer passes the host environment through).
+
+Tests (synthetic images, CPU, no downloads; about 15 minutes):
+```bash
+srun -p compute -c 4 --mem=16G -t 1:00:00 \
+  apptainer exec /common/sif/pytorch-24.11-py3.sif python -m pytest -q tests/test_training.py
+```
