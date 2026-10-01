@@ -160,7 +160,7 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [ ] T09b cluster environment (micromamba, GPU check)
 - [ ] T09c data transfer with rsync
 - [ ] T10 runbook.md
-- [ ] T11 HPC smoke test
+- [x] T11 HPC smoke test
 - [ ] T12 16 scenarios (S01 to S16)
 - [ ] T13 ROC/AUC curves
 - [ ] T14 Grad-CAM

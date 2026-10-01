@@ -37,8 +37,25 @@ apptainer exec --bind /project/a260012_FORWCL /common/sif/pytorch-24.11-py3.sif 
 ```
 Every training job must `export TORCH_HOME=/project/a260012_FORWCL/torch_cache` before `apptainer exec` (Apptainer passes the host environment through).
 
-Tests (synthetic images, CPU, no downloads; about 15 minutes):
+Tests (synthetic images, CPU, no downloads; about 5 minutes). Every new login needs the `module load`:
 ```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
 srun -p compute -c 4 --mem=16G -t 1:00:00 \
   apptainer exec /common/sif/pytorch-24.11-py3.sif python -m pytest -q tests/test_training.py
 ```
+
+## Training jobs (one family x one input path per job)
+
+`scripts/slurm/train_single.sbatch` runs `src/training/train.py` on one H100 with `--resume`, so resubmitting the same job after a timeout continues from `last.pt`.
+Outputs go to `/project/a260012_FORWCL/experiments/<RUN_NAME>/<full|roi>/<family>/`.
+
+T11 smoke test (2 epochs on the real images, full and ROI):
+```bash
+cd ~/forensic-woundclassification
+bash scripts/hpc/submit_t11_smoke.sh efficientnet_b0
+squeue -u $USER
+tail -f logs/t11_efficientnet_b0_roi_<jobid>.out
+```
+
+T11 passed on 2026-10-01: jobs `221591` (full) and `221592` (roi), EfficientNet-B0, 2 epochs on an H100, 779/164/157 images on both paths, about 3-5 s per epoch.
