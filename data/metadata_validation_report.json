@@ -1,0 +1,90 @@
+{
+  "status": "passed",
+  "total_records": 1106,
+  "total_unique_cases": 421,
+  "canonical_classes_count": 7,
+  "canonical_classes": [
+    "contusion",
+    "cut wound",
+    "graze wound",
+    "gunshot wound",
+    "laceration",
+    "penetration wound",
+    "scratch"
+  ],
+  "per_class_image_counts": {
+    "gunshot wound": 310,
+    "graze wound": 269,
+    "contusion": 185,
+    "laceration": 130,
+    "cut wound": 91,
+    "scratch": 69,
+    "penetration wound": 52
+  },
+  "per_class_case_counts": {
+    "contusion": 93,
+    "cut wound": 44,
+    "graze wound": 129,
+    "gunshot wound": 129,
+    "laceration": 85,
+    "penetration wound": 32,
+    "scratch": 50
+  },
+  "multi_image_cases_count": 262,
+  "multi_label_cases_count": 112,
+  "missing_extensions_count": 61,
+  "duplicate_filenames": [
+    {
+      "filename": "ZZ260113.JPG",
+      "instances": [
+        {
+          "pseudonimized_id": 123,
+          "wound_id": 4.0,
+          "wound_label": "graze"
+        },
+        {
+          "pseudonimized_id": 139,
+          "wound_id": 6.0,
+          "wound_label": "laceration"
+        }
+      ]
+    },
+    {
+      "filename": "P5270099.JPG",
+      "instances": [
+        {
+          "pseudonimized_id": 265,
+          "wound_id": 2.0,
+          "wound_label": "laceration"
+        },
+        {
+          "pseudonimized_id": 266,
+          "wound_id": 2.0,
+          "wound_label": "contusion"
+        }
+      ]
+    },
+    {
+      "filename": "P6293420.JPG",
+      "instances": [
+        {
+          "pseudonimized_id": 268,
+          "wound_id": 1.0,
+          "wound_label": "graze"
+        },
+        {
+          "pseudonimized_id": 268,
+          "wound_id": 2.0,
+          "wound_label": "laceration"
+        }
+      ]
+    }
+  ],
+  "image_root_checked": false,
+  "missing_images_count": 0,
+  "warnings": [
+    "61 filenames lack a file extension (e.g. ['P1280417', 'P1280426', 'P5140027', 'P5140035', 'P5140037']).",
+    "Found 3 duplicate filename occurrences across rows (3 unique filenames). Some images depict multiple wounds or share filenames."
+  ],
+  "errors": []
+}

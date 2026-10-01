@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Heavy data and weights (keep patient images and model checkpoints off git)
+*.jpg
+*.jpeg
+*.JPG
+*.png
+*.zip
+*.pt
+*.pth
+*.sif
+raw_data/
+derived_data/
+logs/*.log
+logs/*.out
+logs/*.err
