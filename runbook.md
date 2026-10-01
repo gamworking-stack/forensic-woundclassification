@@ -78,3 +78,13 @@ ids=(); for p in full roi; do
   ids+=("$(sbatch --parsable -J "cnn_svm_$p" --time=04:00:00 --export=ALL,FAMILY=cnn_svm,INPUT_PATH=$p scripts/slurm/train_single.sbatch)")
 done; bash scripts/hpc/watch_jobs.sh "${ids[@]}"
 ```
+
+## AlexNet ensemble (S15 full, S16 roi)
+
+Three AlexNet members (seeds 43, 44, 45) on GPU, then a CPU job that soft-votes them once all three succeed (it is cancelled if a member fails).
+Outputs: `/project/a260012_FORWCL/experiments/main/<full|roi>/alexnet_ensemble/` with `member_01..03/`.
+```bash
+cd ~/forensic-woundclassification
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_alexnet_ensemble.sh full)
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_alexnet_ensemble.sh roi)
+```
