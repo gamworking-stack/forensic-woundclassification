@@ -4,7 +4,7 @@
 - **Phase**: Phase 3 (Training Code)
 - **Spec Reference**: [specs/phase3_training_code.md](../specs/phase3_training_code.md) §5
 - **Scenarios**: all (S01–S16)
-- **Status**: In Progress (code and tests done; Raptor run pending)
+- **Status**: Completed
 
 ---
 
@@ -91,3 +91,12 @@ srun -p compute -c 2 --mem=8G -t 0:30:00 apptainer exec --bind /project/a260012_
 2. On Raptor, `--experiments-root .../experiments/main` evaluates every scenario finished so far, lists the rest as `missing`, and passes the fairness check (157 test images, 62 cases on both paths).
 3. Sanity check against the earlier runs: the CNN-SVM full-image test metrics computed here are in the range of EXP003. This is a range check only: EXP003 used all 1,106 images and a different grid.
 4. Tick T08 in `ROADMAP.md` §9.
+
+---
+
+## 6. First HPC Run
+
+- **Date**: 2026-10-01, `--experiments-root /project/a260012_FORWCL/experiments/main`: 4 scenarios evaluated, 12 missing, fairness check passed.
+- Test macro-F1 [95% case-bootstrap CI]: S13 CNN-SVM full 0.585 [0.479, 0.667], S14 CNN-SVM ROI 0.725 [0.605, 0.823], S15 AlexNet ensemble full 0.662 [0.553, 0.748], S16 AlexNet ensemble ROI 0.728 [0.607, 0.817].
+- Range check passed: S13 0.585 vs EXP003 0.580 (EXP003 used all 1,106 images and a smaller grid).
+- From here on no setting of these scenarios is changed, because their test results have been seen.

@@ -100,3 +100,11 @@ srun -p compute -c 2 --mem=8G -t 0:30:00 apptainer exec --bind /project/a260012_
 column -s, -t < /project/a260012_FORWCL/experiments/main/evaluation_index.csv | cut -c1-150
 ```
 Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`.
+
+## Submit everything (S01-S16)
+
+`scripts/hpc/submit_all.sh [run_name]` submits every scenario that has no `test_predictions.csv` and is not already queued (job names `S01_efficientnet_b0_full`, ...). Unfinished runs resume from `last.pt`, so it is safe to rerun after a timeout or failure.
+```bash
+cd ~/forensic-woundclassification
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)
+```

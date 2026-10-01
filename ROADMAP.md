@@ -154,7 +154,7 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T05 shared training library
 - [x] T06 CNN-SVM
 - [ ] T07 AlexNet ensemble
-- [ ] T08 evaluation module
+- [x] T08 evaluation module
 - [ ] T08b hyperparameter tuning (and optional CV)
 - [ ] T09 SLURM templates
 - [ ] T09b cluster environment (micromamba, GPU check)
