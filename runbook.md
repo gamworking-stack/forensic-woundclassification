@@ -88,3 +88,15 @@ cd ~/forensic-woundclassification
 bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_alexnet_ensemble.sh full)
 bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_alexnet_ensemble.sh roi)
 ```
+
+## Evaluation (T08)
+
+Scores every finished scenario in a run from its prediction files, checks that all were tested on the same images, and writes `evaluation_index.csv` (missing scenarios are listed as `missing`). Rerun it whenever more scenarios finish.
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 0:30:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/evaluate.py --experiments-root /project/a260012_FORWCL/experiments/main
+column -s, -t < /project/a260012_FORWCL/experiments/main/evaluation_index.csv | cut -c1-150
+```
+Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`.
