@@ -46,8 +46,8 @@ from src.training.transforms import build_transforms  # noqa: E402
 
 DEFAULT_EXTRACTORS = ("vgg16", "resnet152", "efficientnet_b0")
 EXTRACTOR_CHOICES = tuple(f for f in FAMILIES if f != "vit_b16")  # one shared 384 px input
-RBF_C = (0.1, 1.0, 10.0, 100.0)
-RBF_GAMMA = ("scale", 1e-5, 1e-4, 1e-3)
+RBF_C = (0.1, 1.0, 10.0, 100.0, 1000.0)
+RBF_GAMMA = ("scale", 1e-6, 1e-5, 1e-4, 1e-3)
 LINEAR_C = (0.001, 0.01, 0.1, 1.0)
 
 
@@ -55,6 +55,16 @@ def svm_grid() -> List[Dict[str, Any]]:
     grid: List[Dict[str, Any]] = [{"kernel": "rbf", "C": c, "gamma": g} for c in RBF_C for g in RBF_GAMMA]
     grid += [{"kernel": "linear", "C": c} for c in LINEAR_C]
     return grid
+
+
+def grid_edges(params: Dict[str, Any]) -> List[str]:
+    """Grid limits the chosen setting sits on; a best value on the edge means the grid may be too narrow."""
+    c_values = RBF_C if params["kernel"] == "rbf" else LINEAR_C
+    edges = [f"C={params['C']}" for limit in (min(c_values), max(c_values)) if params["C"] == limit]
+    numeric_gammas = [g for g in RBF_GAMMA if g != "scale"]
+    if params["kernel"] == "rbf" and params["gamma"] in (min(numeric_gammas), max(numeric_gammas)):
+        edges.append(f"gamma={params['gamma']}")
+    return edges
 
 
 def make_svm(params: Dict[str, Any], seed: int, probability: bool = False) -> Pipeline:
@@ -194,6 +204,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     run_config["best_params"] = best
     run_config["best_validation_macro_f1"] = tuning[best_index]["validation_macro_f1"]
     log(f"Chosen SVM {best} (validation macro-F1={tuning[best_index]['validation_macro_f1']:.6f})")
+    edges = grid_edges(best)
+    if edges:
+        log(f"WARNING: chosen SVM is on the edge of the grid ({', '.join(edges)}); consider widening it")
 
     val_model = make_svm(best, args.seed, probability=True).fit(x_train, labels["train"])
     prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes) \

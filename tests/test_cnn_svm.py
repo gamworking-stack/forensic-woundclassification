@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.training.cnn_svm import DEFAULT_EXTRACTORS, main as svm_main, svm_grid
+from src.training.cnn_svm import DEFAULT_EXTRACTORS, grid_edges, main as svm_main, svm_grid
 from tests.synthetic_data import EXPECTED_PREDICTION_COLUMNS, IMAGES_PER_CLASS, RAW_FOLDERS, build_synthetic_dataset
 
 
@@ -50,7 +50,7 @@ def test_writes_all_outputs(svm_run):
             assert (out / "features" / f"{fam}_{split}.npz").is_file()
 
     tuning = pd.read_csv(out / "svm_validation_tuning.csv")
-    assert len(tuning) == len(svm_grid()) == 20
+    assert len(tuning) == len(svm_grid()) == 29
 
     config = json.loads((out / "run_config.json").read_text())
     assert config["feature_dim"] == 4096 + 2048 + 1280
@@ -88,3 +88,10 @@ def test_rerun_reuses_cached_features(svm_run, tmp_path):
     assert [f.stat().st_mtime_ns for f in feature_files] == mtimes
     assert "Extracting" not in (out / "train.log").read_text()[log_size:]
     pd.testing.assert_frame_equal(pd.read_csv(out / "svm_validation_tuning.csv"), tuning_before)
+
+
+def test_grid_edges_flags_limits_only():
+    assert grid_edges({"kernel": "rbf", "C": 10.0, "gamma": 1e-5}) == []
+    assert grid_edges({"kernel": "rbf", "C": 1000.0, "gamma": 1e-6}) == ["C=1000.0", "gamma=1e-06"]
+    assert grid_edges({"kernel": "rbf", "C": 1.0, "gamma": "scale"}) == []
+    assert grid_edges({"kernel": "linear", "C": 0.001}) == ["C=0.001"]

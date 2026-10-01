@@ -26,7 +26,9 @@ Implement `src/training/cnn_svm.py`: extract frozen ImageNet features from **VGG
    - Test features are extracted only after the SVM has been chosen.
 3. **SVM tuning** (train fit, validation score):
    - `StandardScaler` then `SVC(class_weight="balanced")` in one `Pipeline`, so the scaler is fit only on the data the SVM is fit on.
-   - Grid: RBF with C ∈ {0.1, 1, 10, 100} × gamma ∈ {scale, 1e-5, 1e-4, 1e-3}, plus linear with C ∈ {0.001, 0.01, 0.1, 1}. This covers the EXP003 grid, whose best value sat on its edge (C 10, gamma 1e-4).
+   - Grid: RBF with C ∈ {0.1, 1, 10, 100, 1000} × gamma ∈ {scale, 1e-6, 1e-5, 1e-4, 1e-3}, plus linear with C ∈ {0.001, 0.01, 0.1, 1}: 29 settings. This covers the EXP003 grid, whose best value sat on its edge (C 10, gamma 1e-4).
+   - The log warns when the chosen setting is on a grid limit.
+   - *Implementation note*: the first Raptor run (jobs 221593/221594, 20-point grid) chose gamma 1e-5, its lower limit, on both paths. Gamma 1e-6 and C 1000 were added before any test metric was computed; selection stays validation-only.
    - Select on validation macro-F1. Ties go to the earlier grid entry (smaller C).
    - Write every grid point to `svm_validation_tuning.csv` (`kernel, C, gamma, validation_macro_f1, validation_balanced_accuracy`).
 4. **Final model**:
@@ -37,7 +39,7 @@ Implement `src/training/cnn_svm.py`: extract frozen ImageNet features from **VGG
 5. **Outputs**: `run_config.json` (settings, grid, chosen parameters, feature dimensions, classes, git and environment info), `svm_validation_tuning.csv`, both prediction CSVs, `features/`, `train.log`.
 6. **Shared code**: move `Logger`, `resolve_device`, `git_state`, `environment_info` and `prediction_frame` out of `train.py` into `src/training/common.py`, and add the row preparation to `data.py`, so both entry points use one implementation.
 7. **Automated Testing** (`tests/test_cnn_svm.py`, synthetic images, CPU, `--no-pretrained`):
-   - Writes all outputs. The tuning table has 20 rows. Prediction CSV columns equal T05's, and probabilities sum to 1.
+   - Writes all outputs. The tuning table has 29 rows. Prediction CSV columns equal T05's, and probabilities sum to 1.
    - Rerun reuses cached features: no new `.npz` files, same tuning table.
    - Test features do not exist when tuning starts (checked through the order in `train.log`).
 
