@@ -69,3 +69,13 @@ python3 src/data/create_roi_dataset.py \
 3. Zero leakage assertion passes: train, val, and test case sets are mutually disjoint.
 4. All 7 canonical classes are present in `train` (779), `validation` (164), and `test` (157).
 5. `data/roi/crop_summary.json` lists 6 unannotated records, matching the known dataset profile.
+
+---
+
+## 6. HPC Live Run
+
+- **Date**: 2026-10-01, SLURM job `221586` on Raptor (`compute` partition), `COMPLETED 0:0` in 3 min 31 s.
+- **Command**: `sbatch scripts/slurm/t03_roi_crops.sbatch` (steps in `runbook.md`).
+- **Inputs**: raw images `/project/a260012_FORWCL/raw_data/wound_ml_7classes`, the 7 CVAT exports of 30 Sep 2026 in `/project/a260012_FORWCL/annotations/cvat_yolo_2026_09_30/`.
+- **Output**: 1,100 ROI crops in `/project/a260012_FORWCL/derived_data/roi_union_p008/<split>/<class>/` (kept on the HPC, not in Git).
+- **Result**: `src/data/compare_roi_manifests.py` passed. Every live crop matches the committed dry-run `data/roi/roi_manifest.csv` in case, split, source dimensions and box coordinates.
