@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd
 from PIL import Image
+from src.data.audit_full_vs_roi import audit_full_vs_roi, audit_problems
 from src.data.create_roi_dataset import (
     build_roi_records,
     compute_union_box,
@@ -235,6 +236,111 @@ def test_parse_yolo_export_normalizes_labels_and_skips_invalid_lines():
     ]
 
 
+AUDIT_FULL = pd.DataFrame([
+    manifest_row("1", "A.JPG", "cut", "cut wound", "train"),
+    manifest_row("1", "B.JPG", "cut", "cut wound", "train"),
+    manifest_row("2", "C", "scratch", "scratch", "test"),
+    manifest_row("3", "D.JPG", "scratch", "scratch", "validation"),
+])
+
+
+def roi_rows(*filenames):
+    return AUDIT_FULL[AUDIT_FULL["filename"].isin(filenames)].copy()
+
+
+def test_audit_identifies_full_images_missing_from_roi():
+    audit = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "B.JPG", "D.JPG"))
+
+    assert [(m["pseudonimized_id"], m["filename"], m["split"]) for m in audit.missing_from_roi] == [
+        ("2", "C", "test")
+    ]
+    # Case 2 had only this image, so the whole case leaves the ROI path.
+    assert audit.missing_from_roi[0]["case_lost_entirely"] is True
+
+    partial = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "C", "D.JPG"))
+    assert [(m["filename"], m["case_lost_entirely"]) for m in partial.missing_from_roi] == [("B.JPG", False)]
+
+
+def test_audit_explains_each_missing_image_with_its_crop_drop_reason():
+    drop_reasons = {("scratch", "C"): "no_annotation"}
+    audit = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "D.JPG"), drop_reasons=drop_reasons)
+
+    assert sorted((m["filename"], m["reason"]) for m in audit.missing_from_roi) == [
+        ("B.JPG", "unexplained"),
+        ("C", "no_annotation"),
+    ]
+
+
+def test_audit_problems_flags_unexplained_losses_but_accepts_explained_ones():
+    roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
+    explained = audit_full_vs_roi(AUDIT_FULL, roi, drop_reasons={("scratch", "C"): "no_annotation"})
+    unexplained = audit_full_vs_roi(AUDIT_FULL, roi)
+
+    assert not any("drop reason" in p for p in audit_problems(explained))
+    assert any("drop reason" in p and "C" in p for p in audit_problems(unexplained))
+
+
+def test_audit_rejects_manifest_with_unknown_split():
+    bad_roi = roi_rows("A.JPG")
+    bad_roi["split"] = "holdout"
+    try:
+        audit_full_vs_roi(AUDIT_FULL, bad_roi)
+    except ValueError as error:
+        assert "holdout" in str(error)
+    else:
+        raise AssertionError("Expected ValueError for unknown split")
+
+
+def test_audit_table_compares_images_and_cases_per_split_and_class():
+    table = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "B.JPG", "D.JPG")).table
+    rows = {(r["split"], r["canonical_wound_label"]): r for r in table.to_dict("records")}
+    columns = ["full_images", "roi_images", "image_retention_pct", "full_cases", "roi_cases", "case_retention_pct"]
+
+    def counts(split, label):
+        return tuple(rows[(split, label)][c] for c in columns)
+
+    assert counts("train", "cut wound") == (2, 2, 100.0, 1, 1, 100.0)
+    assert counts("test", "scratch") == (1, 0, 0.0, 1, 0, 0.0)
+    assert counts("all", "scratch") == (2, 1, 50.0, 2, 1, 50.0)
+    assert counts("all", "all") == (4, 3, 75.0, 3, 2, 66.67)
+    # Classes absent from a split still get a row so the table is a complete grid.
+    assert counts("validation", "cut wound")[:2] == (0, 0)
+    assert pd.isna(rows[("validation", "cut wound")]["image_retention_pct"])
+
+
+def test_audit_reports_roi_rows_that_break_split_inheritance():
+    roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
+    roi.loc[roi["filename"] == "D.JPG", "split"] = "train"
+    roi.loc[roi["filename"] == "B.JPG", "pseudonimized_id"] = "9"
+    stray = pd.DataFrame([manifest_row("4", "E.JPG", "cut", "cut wound", "test")])
+
+    audit = audit_full_vs_roi(AUDIT_FULL, pd.concat([roi, stray], ignore_index=True))
+
+    assert sorted((d["filename"], d["type"]) for d in audit.discrepancies) == [
+        ("B.JPG", "case_mismatch"),
+        ("D.JPG", "split_mismatch"),
+        ("E.JPG", "not_in_full_manifest"),
+    ]
+
+
+def test_audit_has_no_discrepancies_for_faithful_roi_subset():
+    assert audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "B.JPG", "D.JPG")).discrepancies == []
+
+
+def test_audit_coverage_reports_missing_classes_and_case_leakage_per_path():
+    leaky_roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
+    leaky_roi.loc[leaky_roi["filename"] == "B.JPG", "split"] = "test"
+
+    coverage = audit_full_vs_roi(AUDIT_FULL, leaky_roi).coverage
+
+    assert coverage["full"]["leaked_cases"] == []
+    assert coverage["full"]["missing_classes"] == {
+        "train": ["scratch"], "validation": ["cut wound"], "test": ["cut wound"],
+    }
+    assert coverage["roi"]["leaked_cases"] == ["1"]
+    assert coverage["roi"]["missing_classes"]["test"] == ["scratch"]
+
+
 def test_roi_manifest_integrity():
     manifest_path = Path("data/roi/roi_manifest.csv")
     assert manifest_path.exists(), "data/roi/roi_manifest.csv must exist"
@@ -296,6 +402,59 @@ def test_crop_summary_json():
         ("388", "IMG_3520.JPG", "train"),
         ("415", "P1071425", "train"),
     }
+
+
+def test_full_vs_roi_audit_report():
+    report_path = Path("data/audits/full_vs_roi_audit_report.json")
+    assert report_path.exists(), "data/audits/full_vs_roi_audit_report.json must exist"
+    with open(report_path) as f:
+        report = json.load(f)
+
+    missing = {(m["pseudonimized_id"], m["filename"], m["canonical_wound_label"], m["split"])
+               for m in report["missing_from_roi"]}
+    assert missing == {
+        ("94", "ZZ140321.JPG", "scratch", "validation"),
+        ("167", "ZZ310855.JPG", "contusion", "train"),
+        ("220", "PC235480.JPG", "scratch", "validation"),
+        ("353", "P1070307.JPG", "scratch", "test"),
+        ("388", "IMG_3520.JPG", "scratch", "train"),
+        ("415", "P1071425", "cut wound", "train"),
+    }
+    assert report["audit_passed"] is True and report["problems"] == []
+    assert {m["reason"] for m in report["missing_from_roi"]} == {"no_annotation"}
+    assert report["discrepancies"] == []
+    assert report["images_by_split"]["test"] == {"full": 158, "roi": 157}
+
+    for path_name in ("full", "roi"):
+        coverage = report["coverage"][path_name]
+        assert coverage["leaked_cases"] == [], path_name
+        assert all(not classes for classes in coverage["missing_classes"].values()), path_name
+
+    # Retention rates as stated in specs/phase2_roi_preprocessing.md section 3.2.
+    expected_retention = {
+        "gunshot wound": 100.0, "graze wound": 100.0, "laceration": 100.0, "contusion": 99.5,
+        "cut wound": 98.9, "penetration wound": 100.0, "scratch": 94.2,
+    }
+    observed = {label: round(r["image_retention_pct"], 1) for label, r in report["retention_by_class"].items()}
+    assert observed == expected_retention
+
+
+def test_full_vs_roi_audit_table_matches_manifests():
+    full = pd.read_csv("data/splits/case_level_split_manifest.csv", dtype=str)
+    roi = pd.read_csv("data/roi/roi_manifest.csv", dtype=str)
+    table = pd.read_csv("data/audits/full_vs_roi_audit_table.csv")
+
+    overall = table[(table["split"] == "all") & (table["canonical_wound_label"] == "all")].iloc[0]
+    assert (overall["full_images"], overall["roi_images"]) == (len(full), len(roi))
+    assert (overall["full_cases"], overall["roi_cases"]) == (
+        full["pseudonimized_id"].nunique(), roi["pseudonimized_id"].nunique()
+    )
+
+    grid = table[(table["split"] != "all") & (table["canonical_wound_label"] != "all")]
+    for path, df in (("full", full), ("roi", roi)):
+        expected = df.groupby(["split", "canonical_wound_label"]).size()
+        observed = grid.set_index(["split", "canonical_wound_label"])[f"{path}_images"]
+        assert observed[observed > 0].sort_index().equals(expected.sort_index()), path
 
 
 if __name__ == "__main__":

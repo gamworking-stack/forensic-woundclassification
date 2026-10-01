@@ -3,7 +3,7 @@
 - **Ticket ID**: `T04`
 - **Phase**: Phase 2 (ROI Preprocessing)
 - **Spec Reference**: [specs/phase2_roi_preprocessing.md](file:///Users/preenapunsaokhieo/Desktop/%5BThesis%5D%20Wound%20classification/forensic-woundclassification/specs/phase2_roi_preprocessing.md)
-- **Status**: Open / Blocked on T03
+- **Status**: Completed
 
 ---
 
@@ -63,6 +63,7 @@ python3 src/data/audit_full_vs_roi.py \
 
 1. Script executes and exits with code 0.
 2. Identifies exactly the 6 unannotated records.
+   - *Implementation note*: the ROI dataset spans **418 cases**, not the 420 stated in §1. Cases 220, 353 and 415 each had only their one unannotated image, so the whole case drops out of the ROI path (`case_lost_entirely` in the report). See the T03 implementation note.
 3. Produces `data/audits/full_vs_roi_audit_table.csv` and `data/audits/full_vs_roi_audit_report.json`.
 4. Run `python3 tests/test_roi_preprocessing.py`:
    - All tests pass with exit code 0.

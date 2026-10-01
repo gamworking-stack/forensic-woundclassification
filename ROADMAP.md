@@ -150,7 +150,7 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T01 metadata validation
 - [x] T02 case-level split
 - [x] T03 ROI crops
-- [ ] T04 full vs ROI audit
+- [x] T04 full vs ROI audit
 - [ ] T05 shared training library
 - [ ] T06 CNN-SVM
 - [ ] T07 AlexNet ensemble

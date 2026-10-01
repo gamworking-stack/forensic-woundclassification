@@ -1,0 +1,130 @@
+{
+  "full_manifest": "data/splits/case_level_split_manifest.csv",
+  "roi_manifest": "data/roi/roi_manifest.csv",
+  "crop_summary": "data/roi/crop_summary.json",
+  "audit_passed": true,
+  "problems": [],
+  "totals": {
+    "full_images": 1106,
+    "roi_images": 1100,
+    "images_lost": 6,
+    "full_cases": 421,
+    "roi_cases": 418,
+    "cases_lost": 3
+  },
+  "missing_from_roi_count": 6,
+  "missing_from_roi": [
+    {
+      "pseudonimized_id": "94",
+      "filename": "ZZ140321.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "validation",
+      "reason": "no_annotation",
+      "case_lost_entirely": false
+    },
+    {
+      "pseudonimized_id": "167",
+      "filename": "ZZ310855.JPG",
+      "canonical_wound_label": "contusion",
+      "split": "train",
+      "reason": "no_annotation",
+      "case_lost_entirely": false
+    },
+    {
+      "pseudonimized_id": "220",
+      "filename": "PC235480.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "validation",
+      "reason": "no_annotation",
+      "case_lost_entirely": true
+    },
+    {
+      "pseudonimized_id": "353",
+      "filename": "P1070307.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "test",
+      "reason": "no_annotation",
+      "case_lost_entirely": true
+    },
+    {
+      "pseudonimized_id": "388",
+      "filename": "IMG_3520.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation",
+      "case_lost_entirely": false
+    },
+    {
+      "pseudonimized_id": "415",
+      "filename": "P1071425",
+      "canonical_wound_label": "cut wound",
+      "split": "train",
+      "reason": "no_annotation",
+      "case_lost_entirely": true
+    }
+  ],
+  "retention_by_class": {
+    "contusion": {
+      "image_retention_pct": 99.46,
+      "case_retention_pct": 98.92
+    },
+    "cut wound": {
+      "image_retention_pct": 98.9,
+      "case_retention_pct": 97.73
+    },
+    "graze wound": {
+      "image_retention_pct": 100.0,
+      "case_retention_pct": 100.0
+    },
+    "gunshot wound": {
+      "image_retention_pct": 100.0,
+      "case_retention_pct": 100.0
+    },
+    "laceration": {
+      "image_retention_pct": 100.0,
+      "case_retention_pct": 100.0
+    },
+    "penetration wound": {
+      "image_retention_pct": 100.0,
+      "case_retention_pct": 100.0
+    },
+    "scratch": {
+      "image_retention_pct": 94.2,
+      "case_retention_pct": 92.0
+    }
+  },
+  "images_by_split": {
+    "train": {
+      "full": 782,
+      "roi": 779
+    },
+    "validation": {
+      "full": 166,
+      "roi": 164
+    },
+    "test": {
+      "full": 158,
+      "roi": 157
+    }
+  },
+  "coverage": {
+    "full": {
+      "leaked_cases": [],
+      "missing_classes": {
+        "train": [],
+        "validation": [],
+        "test": []
+      }
+    },
+    "roi": {
+      "leaked_cases": [],
+      "missing_classes": {
+        "train": [],
+        "validation": [],
+        "test": []
+      }
+    }
+  },
+  "discrepancies": [],
+  "table_notes": "Per-class cases_lost counts cases with no ROI image of that class; such a case may survive through other classes. The all-class rows count cases lost entirely."
+}
