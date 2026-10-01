@@ -148,7 +148,7 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 
 - [ ] T00 skeleton
 - [x] T01 metadata validation
-- [ ] T02 case-level split
+- [x] T02 case-level split
 - [ ] T03 ROI crops
 - [ ] T04 full vs ROI audit
 - [ ] T05 shared training library

@@ -3,7 +3,7 @@
 - **Ticket ID**: `T02`
 - **Phase**: Phase 1 (Dataset and Split)
 - **Spec Reference**: [specs/phase1_dataset_and_split.md](file:///Users/preenapunsaokhieo/Desktop/%5BThesis%5D%20Wound%20classification/forensic-woundclassification/specs/phase1_dataset_and_split.md)
-- **Status**: Open / Blocked on T01
+- **Status**: Completed
 
 ---
 

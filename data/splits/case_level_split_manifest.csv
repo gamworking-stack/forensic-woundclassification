@@ -1,0 +1,1107 @@
+pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_path,split
+1,1.0,P1010419.JPG,gsw,gunshot wound,gunshot wound/P1010419.JPG,validation
+2,1.0,P1060499.JPG,gsw,gunshot wound,gunshot wound/P1060499.JPG,validation
+3,1.0,P1280417,cut,cut wound,cut wound/P1280417,train
+3,2.0,P1280426,cut,cut wound,cut wound/P1280426,train
+3,3.0,P1280309.JPG,gsw,gunshot wound,gunshot wound/P1280309.JPG,train
+3,4.0,P1280312.JPG,gsw,gunshot wound,gunshot wound/P1280312.JPG,train
+3,5.0,P1280360.JPG,gsw,gunshot wound,gunshot wound/P1280360.JPG,train
+3,6.0,P1280370.JPG,gsw,gunshot wound,gunshot wound/P1280370.JPG,train
+3,7.0,P1280376.JPG,gsw,gunshot wound,gunshot wound/P1280376.JPG,train
+3,8.0,P1280387.JPG,gsw,gunshot wound,gunshot wound/P1280387.JPG,train
+3,9.0,P1280389.JPG,gsw,gunshot wound,gunshot wound/P1280389.JPG,train
+4,1.0,P1280072.JPG,gsw,gunshot wound,gunshot wound/P1280072.JPG,train
+4,2.0,P1280074.JPG,gsw,gunshot wound,gunshot wound/P1280074.JPG,train
+4,3.0,P1280103.JPG,gsw,gunshot wound,gunshot wound/P1280103.JPG,train
+4,4.0,P1280107.JPG,gsw,gunshot wound,gunshot wound/P1280107.JPG,train
+4,5.0,P1280124.JPG,gsw,gunshot wound,gunshot wound/P1280124.JPG,train
+4,6.0,P1280144.JPG,gsw,gunshot wound,gunshot wound/P1280144.JPG,train
+4,7.0,P1280147.JPG,gsw,gunshot wound,gunshot wound/P1280147.JPG,train
+4,8.0,P1280167.JPG,gsw,gunshot wound,gunshot wound/P1280167.JPG,train
+4,9.0,P1280191.JPG,gsw,gunshot wound,gunshot wound/P1280191.JPG,train
+5,1.0,P2130252.JPG,gsw,gunshot wound,gunshot wound/P2130252.JPG,test
+5,2.0,P2130310.JPG,gsw,gunshot wound,gunshot wound/P2130310.JPG,test
+5,3.0,P2130528.JPG,gsw,gunshot wound,gunshot wound/P2130528.JPG,test
+6,1.0,P2220060.JPG,gsw,gunshot wound,gunshot wound/P2220060.JPG,train
+6,2.0,P2220064.JPG,gsw,gunshot wound,gunshot wound/P2220064.JPG,train
+7,1.0,P2270285.JPG,gsw,gunshot wound,gunshot wound/P2270285.JPG,train
+7,2.0,P2270305.JPG,gsw,gunshot wound,gunshot wound/P2270305.JPG,train
+7,3.0,P2270353.JPG,gsw,gunshot wound,gunshot wound/P2270353.JPG,train
+8,1.0,P3070108.JPG,gsw,gunshot wound,gunshot wound/P3070108.JPG,train
+9,1.0,P4140227.JPG,gsw,gunshot wound,gunshot wound/P4140227.JPG,train
+9,2.0,P4140240.JPG,gsw,gunshot wound,gunshot wound/P4140240.JPG,train
+9,3.0,P4140280.JPG,gsw,gunshot wound,gunshot wound/P4140280.JPG,train
+10,1.0,P5140027,cut,cut wound,cut wound/P5140027,train
+10,2.0,P5140035,cut,cut wound,cut wound/P5140035,train
+10,3.0,P5140037,cut,cut wound,cut wound/P5140037,train
+10,4.0,P5140050.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P5140050.JPG,train
+11,1.0,P5220272.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P5220272.JPG,train
+12,1.0,P5260045.JPG,gsw,gunshot wound,gunshot wound/P5260045.JPG,train
+13,1.0,P5310064.JPG,gsw,gunshot wound,gunshot wound/P5310064.JPG,train
+13,2.0,P5310093.JPG,gsw,gunshot wound,gunshot wound/P5310093.JPG,train
+13,3.0,P5310105.JPG,gsw,gunshot wound,gunshot wound/P5310105.JPG,train
+14,1.0,P6060175.JPG,gsw,gunshot wound,gunshot wound/P6060175.JPG,train
+15,1.0,P6280480.JPG,gsw,gunshot wound,gunshot wound/P6280480.JPG,train
+16,1.0,P8230496.JPG,gsw,gunshot wound,gunshot wound/P8230496.JPG,train
+17,1.0,P8270059.JPG,gsw,gunshot wound,gunshot wound/P8270059.JPG,test
+17,2.0,P8270067.JPG,gsw,gunshot wound,gunshot wound/P8270067.JPG,test
+18,1.0,P9060465.JPG,gsw,gunshot wound,gunshot wound/P9060465.JPG,train
+19,1.0,PA230094.JPG,gsw,gunshot wound,gunshot wound/PA230094.JPG,train
+20,1.0,PB100026.JPG,gsw,gunshot wound,gunshot wound/PB100026.JPG,validation
+20,2.0,PB100029.JPG,gsw,gunshot wound,gunshot wound/PB100029.JPG,validation
+21,1.0,#C070461.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/#C070461.JPG,train
+22,1.0,PC130611.JPG,cut,cut wound,cut wound/PC130611.JPG,train
+22,2.0,PC130689.JPG,cut,cut wound,cut wound/PC130689.JPG,train
+22,3.0,PC130729.JPG,cut,cut wound,cut wound/PC130729.JPG,train
+22,4.0,PC130737.JPG,cut,cut wound,cut wound/PC130737.JPG,train
+22,5.0,PC130576.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC130576.JPG,train
+23,1.0,P1020436,cut,cut wound,cut wound/P1020436,test
+24,1.0,P3040301,cut,cut wound,cut wound/P3040301,train
+24,2.0,P3040306,cut,cut wound,cut wound/P3040306,train
+24,3.0,P3040398.JPG,gsw,gunshot wound,gunshot wound/P3040398.JPG,train
+25,1.0,P3061408.JPG,gsw,gunshot wound,gunshot wound/P3061408.JPG,validation
+25,2.0,P3061415.JPG,gsw,gunshot wound,gunshot wound/P3061415.JPG,validation
+26,1.0,P3061741.JPG,gsw,gunshot wound,gunshot wound/P3061741.JPG,train
+27,1.0,P3300138.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P3300138.JPG,test
+28,1.0,P4100127.JPG,gsw,gunshot wound,gunshot wound/P4100127.JPG,test
+29,1.0,P4140059.JPG,gsw,gunshot wound,gunshot wound/P4140059.JPG,train
+30,1.0,P5230126.JPG,gsw,gunshot wound,gunshot wound/P5230126.JPG,validation
+31,1.0,P5290285.JPG,gsw,gunshot wound,gunshot wound/P5290285.JPG,train
+32,1.0,P6050069.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6050069.JPG,test
+33,1.0,P6290081,cut,cut wound,cut wound/P6290081,train
+33,2.0,P6290452.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6290452.JPG,train
+34,1.0,P7141187.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P7141187.JPG,test
+34,2.0,P7141255.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P7141255.JPG,test
+35,1.0,NK210882.JPG,gsw,gunshot wound,gunshot wound/NK210882.JPG,train
+35,2.0,NK210895.JPG,gsw,gunshot wound,gunshot wound/NK210895.JPG,train
+36,1.0,P8030489.JPG,gsw,gunshot wound,gunshot wound/P8030489.JPG,train
+37,1.0,P8260607.JPG,gsw,gunshot wound,gunshot wound/P8260607.JPG,validation
+37,2.0,P8260686.JPG,gsw,gunshot wound,gunshot wound/P8260686.JPG,validation
+38,1.0,P2060209,cut,cut wound,cut wound/P2060209,test
+39,1.0,P2141208.JPG,gsw,gunshot wound,gunshot wound/P2141208.JPG,train
+40,1.0,P2250640.JPG,gsw,gunshot wound,gunshot wound/P2250640.JPG,test
+40,2.0,P2250646.JPG,gsw,gunshot wound,gunshot wound/P2250646.JPG,test
+40,3.0,P2250648.JPG,gsw,gunshot wound,gunshot wound/P2250648.JPG,test
+40,4.0,P2250654.JPG,gsw,gunshot wound,gunshot wound/P2250654.JPG,test
+41,1.0,P3042130.JPG,gsw,gunshot wound,gunshot wound/P3042130.JPG,test
+42,1.0,P4150618,cut,cut wound,cut wound/P4150618,train
+42,2.0,P4150658,cut,cut wound,cut wound/P4150658,train
+43,1.0,P4200281.JPG,gsw,gunshot wound,gunshot wound/P4200281.JPG,train
+44,1.0,P4280130.JPG,gsw,gunshot wound,gunshot wound/P4280130.JPG,train
+44,2.0,P4280132.JPG,gsw,gunshot wound,gunshot wound/P4280132.JPG,train
+45,1.0,P4290132.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P4290132.JPG,validation
+45,2.0,P4290165.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P4290165.JPG,validation
+46,1.0,P5080486.JPG,gsw,gunshot wound,gunshot wound/P5080486.JPG,test
+46,2.0,P5080495.JPG,gsw,gunshot wound,gunshot wound/P5080495.JPG,test
+46,3.0,P5080516.JPG,gsw,gunshot wound,gunshot wound/P5080516.JPG,test
+46,4.0,P5080540.JPG,gsw,gunshot wound,gunshot wound/P5080540.JPG,test
+46,5.0,P5080606.JPG,gsw,gunshot wound,gunshot wound/P5080606.JPG,test
+47,1.0,P5141761.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P5141761.JPG,train
+48,1.0,P5260303,cut,cut wound,cut wound/P5260303,train
+48,2.0,P5260306,cut,cut wound,cut wound/P5260306,train
+48,3.0,P5260317.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P5260317.JPG,train
+49,1.0,P6040341,cut,cut wound,cut wound/P6040341,validation
+49,2.0,P6040375.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6040375.JPG,validation
+50,1.0,P6050739,cut,cut wound,cut wound/P6050739,train
+50,2.0,P6050756,cut,cut wound,cut wound/P6050756,train
+50,3.0,P6050762,cut,cut wound,cut wound/P6050762,train
+50,4.0,P6050770,cut,cut wound,cut wound/P6050770,train
+50,5.0,P6050791,cut,cut wound,cut wound/P6050791,train
+50,6.0,P6050782.JPG,gsw,gunshot wound,gunshot wound/P6050782.JPG,train
+51,1.0,P6130463.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6130463.JPG,train
+51,2.0,P6130479.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6130479.JPG,train
+51,3.0,P6130484.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6130484.JPG,train
+51,4.0,P6130505.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6130505.JPG,train
+52,1.0,P6160183,cut,cut wound,cut wound/P6160183,train
+52,2.0,P6160232,cut,cut wound,cut wound/P6160232,train
+52,3.0,P6160237,cut,cut wound,cut wound/P6160237,train
+53,1.0,P6190045.JPG,gsw,gunshot wound,gunshot wound/P6190045.JPG,train
+53,2.0,P6190092.JPG,gsw,gunshot wound,gunshot wound/P6190092.JPG,train
+54,1.0,P7300141.JPG,gsw,gunshot wound,gunshot wound/P7300141.JPG,validation
+55,1.0,P1012376.JPG,gsw,gunshot wound,gunshot wound/P1012376.JPG,train
+55,2.0,P1012377.JPG,gsw,gunshot wound,gunshot wound/P1012377.JPG,train
+55,3.0,P1012394.JPG,gsw,gunshot wound,gunshot wound/P1012394.JPG,train
+55,4.0,P1012398.JPG,gsw,gunshot wound,gunshot wound/P1012398.JPG,train
+55,5.0,P1012403.JPG,gsw,gunshot wound,gunshot wound/P1012403.JPG,train
+55,6.0,P1012414.JPG,gsw,gunshot wound,gunshot wound/P1012414.JPG,train
+55,7.0,P1012417.JPG,gsw,gunshot wound,gunshot wound/P1012417.JPG,train
+56,1.0,P8273033.JPG,gsw,gunshot wound,gunshot wound/P8273033.JPG,train
+56,2.0,P8273063.JPG,gsw,gunshot wound,gunshot wound/P8273063.JPG,train
+56,3.0,P8273065.JPG,gsw,gunshot wound,gunshot wound/P8273065.JPG,train
+57,1.0,P9026283.JPG,gsw,gunshot wound,gunshot wound/P9026283.JPG,train
+57,,P9026335.JPG,gsw,gunshot wound,gunshot wound/P9026335.JPG,train
+58,1.0,PA248072.JPG,gsw,gunshot wound,gunshot wound/PA248072.JPG,train
+58,2.0,PA248096.JPG,gsw,gunshot wound,gunshot wound/PA248096.JPG,train
+58,3.0,PA248112.JPG,gsw,gunshot wound,gunshot wound/PA248112.JPG,train
+58,4.0,PA248128.JPG,gsw,gunshot wound,gunshot wound/PA248128.JPG,train
+59,1.0,PB098846.JPG,cut,cut wound,cut wound/PB098846.JPG,train
+59,2.0,PB098804.JPG,gsw,gunshot wound,gunshot wound/PB098804.JPG,train
+59,3.0,PB098817.JPG,gsw,gunshot wound,gunshot wound/PB098817.JPG,train
+60,1.0,P4200343,cut,cut wound,cut wound/P4200343,train
+61,1.0,PC048455.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048455.JPG,train
+61,2.0,PC048462.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048462.JPG,train
+61,3.0,PC048464.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048464.JPG,train
+61,4.0,PC048513.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048513.JPG,train
+61,5.0,PC048525.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048525.JPG,train
+61,6.0,PC048546.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048546.JPG,train
+61,7.0,PC048564.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PC048564.JPG,train
+62,1.0,PB165228.JPG,gsw,gunshot wound,gunshot wound/PB165228.JPG,train
+63,1.0,PB274076.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PB274076.JPG,train
+64,1.0,PB274011.JPG,cut,cut wound,cut wound/PB274011.JPG,test
+64,2.0,PB274037.JPG,cut,cut wound,cut wound/PB274037.JPG,test
+64,3.0,PB274052.JPG,cut,cut wound,cut wound/PB274052.JPG,test
+64,4.0,PB274059.JPG,cut,cut wound,cut wound/PB274059.JPG,test
+64,5.0,PB274065.JPG,cut,cut wound,cut wound/PB274065.JPG,test
+65,1.0,PC037516.JPG,gsw,gunshot wound,gunshot wound/PC037516.JPG,train
+65,2.0,PC037529.JPG,gsw,gunshot wound,gunshot wound/PC037529.JPG,train
+66,1.0,PC072195.JPG,gsw,gunshot wound,gunshot wound/PC072195.JPG,train
+66,2.0,PC072196.JPG,gsw,gunshot wound,gunshot wound/PC072196.JPG,train
+67,1.0,PC311311.JPG,gsw,gunshot wound,gunshot wound/PC311311.JPG,train
+67,2.0,PC311315.JPG,gsw,gunshot wound,gunshot wound/PC311315.JPG,train
+68,1.0,P1021992.JPG,contusion,contusion,contusion/P1021992.JPG,train
+68,2.0,P1022030.JPG,contusion,contusion,contusion/P1022030.JPG,train
+68,3.0,P1021978.JPG,graze,graze wound,graze wound/P1021978.JPG,train
+68,4.0,P1022015.JPG,graze,graze wound,graze wound/P1022015.JPG,train
+68,5.0,P1022021.JPG,graze,graze wound,graze wound/P1022021.JPG,train
+68,6.0,P1022028.JPG,graze,graze wound,graze wound/P1022028.JPG,train
+68,7.0,P1021948.JPG,laceration,laceration,laceration/P1021948.JPG,train
+68,8.0,P1022011.JPG,scratch,scratch,scratch/P1022011.JPG,train
+69,1.0,P1022207.JPG,graze,graze wound,graze wound/P1022207.JPG,train
+69,2.0,P1022297.JPG,graze,graze wound,graze wound/P1022297.JPG,train
+69,3.0,P1022220.JPG,laceration,laceration,laceration/P1022220.JPG,train
+69,4.0,P1022228.JPG,laceration,laceration,laceration/P1022228.JPG,train
+70,1.0,P1071420,cut,cut wound,cut wound/P1071420,validation
+70,2.0,P1071551,cut,cut wound,cut wound/P1071551,validation
+70,3.0,P1071815,cut,cut wound,cut wound/P1071815,validation
+70,4.0,P1071365.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P1071365.JPG,validation
+70,5.0,P1071400.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P1071400.JPG,validation
+70,6.0,P1071404.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P1071404.JPG,validation
+71,1.0,P1103991.JPG,graze,graze wound,graze wound/P1103991.JPG,validation
+71,2.0,P1103999.JPG,graze,graze wound,graze wound/P1103999.JPG,validation
+71,3.0,P1103967.JPG,laceration,laceration,laceration/P1103967.JPG,validation
+71,4.0,P1103978.JPG,laceration,laceration,laceration/P1103978.JPG,validation
+72,1.0,P1114745,cut,cut wound,cut wound/P1114745,train
+72,2.0,P1114795.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P1114795.JPG,train
+73,1.0,P1151183.JPG,graze,graze wound,graze wound/P1151183.JPG,test
+73,2.0,P1151189.JPG,graze,graze wound,graze wound/P1151189.JPG,test
+73,3.0,P1151212.JPG,graze,graze wound,graze wound/P1151212.JPG,test
+73,4.0,P1151226.JPG,graze,graze wound,graze wound/P1151226.JPG,test
+73,5.0,P1151234.JPG,laceration,laceration,laceration/P1151234.JPG,test
+74,1.0,P1162903.JPG,graze,graze wound,graze wound/P1162903.JPG,test
+74,2.0,P1162948.JPG,graze,graze wound,graze wound/P1162948.JPG,test
+74,3.0,P1162958.JPG,graze,graze wound,graze wound/P1162958.JPG,test
+74,4.0,P1162961.JPG,graze,graze wound,graze wound/P1162961.JPG,test
+75,1.0,P1270368.JPG,gsw,gunshot wound,gunshot wound/P1270368.JPG,train
+76,1.0,P1280019.JPG,graze,graze wound,graze wound/P1280019.JPG,train
+76,2.0,P1280028.JPG,graze,graze wound,graze wound/P1280028.JPG,train
+76,3.0,P1280061.JPG,graze,graze wound,graze wound/P1280061.JPG,train
+77,1.0,P1290836.JPG,graze,graze wound,graze wound/P1290836.JPG,train
+78,1.0,P1301877.JPG,graze,graze wound,graze wound/P1301877.JPG,train
+78,2.0,P1301901.JPG,graze,graze wound,graze wound/P1301901.JPG,train
+78,3.0,P1301906.JPG,graze,graze wound,graze wound/P1301906.JPG,train
+79,1.0,P1301547.JPG,graze,graze wound,graze wound/P1301547.JPG,train
+79,2.0,P1301493.JPG,laceration,laceration,laceration/P1301493.JPG,train
+79,3.0,P1301511.JPG,laceration,laceration,laceration/P1301511.JPG,train
+79,4.0,P1301537.JPG,laceration,laceration,laceration/P1301537.JPG,train
+80,1.0,P1310043.JPG,laceration,laceration,laceration/P1310043.JPG,test
+80,2.0,P1310084.JPG,laceration,laceration,laceration/P1310084.JPG,test
+81,1.0,P2010508.JPG,gsw,gunshot wound,gunshot wound/P2010508.JPG,validation
+81,2.0,P2010617.JPG,gsw,gunshot wound,gunshot wound/P2010617.JPG,validation
+82,1.0,P2032539.JPG,graze,graze wound,graze wound/P2032539.JPG,train
+82,2.0,P2032545.JPG,graze,graze wound,graze wound/P2032545.JPG,train
+82,3.0,P2032557.JPG,laceration,laceration,laceration/P2032557.JPG,train
+83,1.0,ZZ070305.JPG,graze,graze wound,graze wound/ZZ070305.JPG,train
+83,2.0,ZZ070331.JPG,graze,graze wound,graze wound/ZZ070331.JPG,train
+84,1.0,P2084090.JPG,contusion,contusion,contusion/P2084090.JPG,train
+84,2.0,P2084135.JPG,laceration,laceration,laceration/P2084135.JPG,train
+85,1.0,ZZ120455.JPG,cut,cut wound,cut wound/ZZ120455.JPG,train
+85,2.0,ZZ120386.JPG,gsw,gunshot wound,gunshot wound/ZZ120386.JPG,train
+86,1.0,ZZ230092.JPG,graze,graze wound,graze wound/ZZ230092.JPG,test
+86,2.0,ZZ230110.JPG,graze,graze wound,graze wound/ZZ230110.JPG,test
+87,1.0,ZZ260308.JPG,scratch,scratch,scratch/ZZ260308.JPG,test
+88,1.0,ZZ020040.JPG,graze,graze wound,graze wound/ZZ020040.JPG,train
+88,2.0,ZZ020044.JPG,graze,graze wound,graze wound/ZZ020044.JPG,train
+88,3.0,ZZ020100.JPG,graze,graze wound,graze wound/ZZ020100.JPG,train
+88,4.0,ZZ020127.JPG,graze,graze wound,graze wound/ZZ020127.JPG,train
+88,5.0,ZZ020133.JPG,graze,graze wound,graze wound/ZZ020133.JPG,train
+89,1.0,ZZ040073.JPG,graze,graze wound,graze wound/ZZ040073.JPG,train
+89,2.0,ZZ040076.JPG,graze,graze wound,graze wound/ZZ040076.JPG,train
+89,3.0,ZZ040078.JPG,laceration,laceration,laceration/ZZ040078.JPG,train
+90,1.0,ZZ100179.JPG,contusion,contusion,contusion/ZZ100179.JPG,train
+90,2.0,ZZ100082.JPG,laceration,laceration,laceration/ZZ100082.JPG,train
+90,3.0,ZZ100164.JPG,laceration,laceration,laceration/ZZ100164.JPG,train
+90,4.0,ZZ100170.JPG,laceration,laceration,laceration/ZZ100170.JPG,train
+91,1.0,ZZ110037.JPG,graze,graze wound,graze wound/ZZ110037.JPG,train
+92,1.0,ZZ120405.JPG,graze,graze wound,graze wound/ZZ120405.JPG,train
+92,2.0,ZZ120427.JPG,graze,graze wound,graze wound/ZZ120427.JPG,train
+93,1.0,ZZ120894.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ120894.JPG,train
+94,1.0,ZZ140334.JPG,laceration,laceration,laceration/ZZ140334.JPG,validation
+94,2.0,ZZ140321.JPG,scratch,scratch,scratch/ZZ140321.JPG,validation
+95,1.0,ZZ200041.JPG,graze,graze wound,graze wound/ZZ200041.JPG,train
+95,2.0,ZZ200013.JPG,laceration,laceration,laceration/ZZ200013.JPG,train
+95,3.0,ZZ200022.JPG,laceration,laceration,laceration/ZZ200022.JPG,train
+95,4.0,ZZ200107.JPG,laceration,laceration,laceration/ZZ200107.JPG,train
+96,1.0,P3201828.JPG,laceration,laceration,laceration/P3201828.JPG,train
+96,2.0,P3201861.JPG,laceration,laceration,laceration/P3201861.JPG,train
+97,1.0,P3202047.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P3202047.JPG,train
+97,2.0,P3202103.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P3202103.JPG,train
+98,1.0,ZZ200025.JPG,graze,graze wound,graze wound/ZZ200025.JPG,train
+98,2.0,ZZ200060.JPG,graze,graze wound,graze wound/ZZ200060.JPG,train
+98,3.0,ZZ200061.JPG,graze,graze wound,graze wound/ZZ200061.JPG,train
+98,4.0,ZZ200070.JPG,graze,graze wound,graze wound/ZZ200070.JPG,train
+98,5.0,ZZ200084.JPG,graze,graze wound,graze wound/ZZ200084.JPG,train
+98,6.0,ZZ200091.JPG,graze,graze wound,graze wound/ZZ200091.JPG,train
+98,7.0,ZZ200094.JPG,graze,graze wound,graze wound/ZZ200094.JPG,train
+99,1.0,ZZ230168.JPG,cut,cut wound,cut wound/ZZ230168.JPG,train
+99,2.0,ZZ230193.JPG,cut,cut wound,cut wound/ZZ230193.JPG,train
+99,3.0,ZZ230209.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ230209.JPG,train
+99,4.0,ZZ230294.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ230294.JPG,train
+99,5.0,ZZ230393.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ230393.JPG,train
+100,1.0,ZZ261470.JPG,contusion,contusion,contusion/ZZ261470.JPG,train
+100,2.0,ZZ261474.JPG,contusion,contusion,contusion/ZZ261474.JPG,train
+100,3.0,ZZ261478.JPG,contusion,contusion,contusion/ZZ261478.JPG,train
+100,4.0,ZZ261457.JPG,laceration,laceration,laceration/ZZ261457.JPG,train
+101,1.0,ZZ310128.JPG,gsw,gunshot wound,gunshot wound/ZZ310128.JPG,train
+101,2.0,ZZ310148.JPG,gsw,gunshot wound,gunshot wound/ZZ310148.JPG,train
+101,3.0,ZZ310180.JPG,gsw,gunshot wound,gunshot wound/ZZ310180.JPG,train
+101,4.0,ZZ310193.JPG,gsw,gunshot wound,gunshot wound/ZZ310193.JPG,train
+101,5.0,ZZ310198.JPG,gsw,gunshot wound,gunshot wound/ZZ310198.JPG,train
+101,6.0,ZZ310226.JPG,gsw,gunshot wound,gunshot wound/ZZ310226.JPG,train
+102,1.0,ZZ010039.JPG,graze,graze wound,graze wound/ZZ010039.JPG,test
+102,2.0,ZZ010106.JPG,graze,graze wound,graze wound/ZZ010106.JPG,test
+103,1.0,ZZ030063.JPG,graze,graze wound,graze wound/ZZ030063.JPG,train
+104,1.0,ZZ080250.JPG,gsw,gunshot wound,gunshot wound/ZZ080250.JPG,validation
+104,2.0,ZZ080301.JPG,gsw,gunshot wound,gunshot wound/ZZ080301.JPG,validation
+105,1.0,ZZ080082.JPG,gsw,gunshot wound,gunshot wound/ZZ080082.JPG,train
+105,2.0,ZZ080230.JPG,gsw,gunshot wound,gunshot wound/ZZ080230.JPG,train
+106,1.0,P4105085.JPG,graze,graze wound,graze wound/P4105085.JPG,train
+107,1.0,ZZ110704.JPG,contusion,contusion,contusion/ZZ110704.JPG,train
+108,1.0,ZZ120116.JPG,contusion,contusion,contusion/ZZ120116.JPG,train
+108,2.0,ZZ120056.JPG,graze,graze wound,graze wound/ZZ120056.JPG,train
+109,1.0,ZZ140399.JPG,contusion,contusion,contusion/ZZ140399.JPG,test
+109,2.0,ZZ140439.JPG,contusion,contusion,contusion/ZZ140439.JPG,test
+109,3.0,ZZ140471.JPG,contusion,contusion,contusion/ZZ140471.JPG,test
+109,4.0,ZZ140499.JPG,contusion,contusion,contusion/ZZ140499.JPG,test
+109,5.0,ZZ140422.JPG,graze,graze wound,graze wound/ZZ140422.JPG,test
+109,6.0,ZZ140507.JPG,graze,graze wound,graze wound/ZZ140507.JPG,test
+109,7.0,ZZ140528.JPG,graze,graze wound,graze wound/ZZ140528.JPG,test
+110,1.0,ZZ160043.JPG,contusion,contusion,contusion/ZZ160043.JPG,validation
+110,2.0,ZZ160051.JPG,contusion,contusion,contusion/ZZ160051.JPG,validation
+110,3.0,ZZ160063.JPG,graze,graze wound,graze wound/ZZ160063.JPG,validation
+111,1.0,ZZ270113.JPG,gsw,gunshot wound,gunshot wound/ZZ270113.JPG,train
+111,2.0,ZZ270148.JPG,gsw,gunshot wound,gunshot wound/ZZ270148.JPG,train
+111,3.0,ZZ270151.JPG,gsw,gunshot wound,gunshot wound/ZZ270151.JPG,train
+111,4.0,ZZ270214.JPG,gsw,gunshot wound,gunshot wound/ZZ270214.JPG,train
+112,1.0,P4276810.JPG,gsw,gunshot wound,gunshot wound/P4276810.JPG,validation
+113,1.0,ZZ270618.JPG,contusion,contusion,contusion/ZZ270618.JPG,train
+113,2.0,ZZ270624.JPG,cut,cut wound,cut wound/ZZ270624.JPG,train
+114,1.0,ZZ300222.JPG,scratch,scratch,scratch/ZZ300222.JPG,train
+115,1.0,ZZ040035.JPG,graze,graze wound,graze wound/ZZ040035.JPG,train
+115,2.0,ZZ040042.JPG,graze,graze wound,graze wound/ZZ040042.JPG,train
+115,3.0,ZZ040087.JPG,graze,graze wound,graze wound/ZZ040087.JPG,train
+115,4.0,ZZ040092.JPG,graze,graze wound,graze wound/ZZ040092.JPG,train
+116,1.0,ZZ060332.JPG,laceration,laceration,laceration/ZZ060332.JPG,test
+116,2.0,ZZ060466.JPG,laceration,laceration,laceration/ZZ060466.JPG,test
+116,3.0,ZZ060501.JPG,laceration,laceration,laceration/ZZ060501.JPG,test
+117,1.0,P5098174.JPG,contusion,contusion,contusion/P5098174.JPG,test
+117,2.0,P4125897.JPG,graze,graze wound,graze wound/P4125897.JPG,test
+117,3.0,P5098156.JPG,graze,graze wound,graze wound/P5098156.JPG,test
+117,4.0,P5098182.JPG,graze,graze wound,graze wound/P5098182.JPG,test
+117,5.0,P5098130.JPG,laceration,laceration,laceration/P5098130.JPG,test
+118,1.0,ZZ110200.JPG,gsw,gunshot wound,gunshot wound/ZZ110200.JPG,train
+119,1.0,ZZ120109.JPG,graze,graze wound,graze wound/ZZ120109.JPG,train
+119,2.0,ZZ120120.JPG,graze,graze wound,graze wound/ZZ120120.JPG,train
+119,3.0,ZZ120118.JPG,laceration,laceration,laceration/ZZ120118.JPG,train
+120,1.0,ZZ130579.JPG,graze,graze wound,graze wound/ZZ130579.JPG,validation
+120,2.0,ZZ130589.JPG,graze,graze wound,graze wound/ZZ130589.JPG,validation
+120,3.0,ZZ130610.JPG,graze,graze wound,graze wound/ZZ130610.JPG,validation
+120,4.0,ZZ130655.JPG,graze,graze wound,graze wound/ZZ130655.JPG,validation
+120,5.0,ZZ130757.JPG,graze,graze wound,graze wound/ZZ130757.JPG,validation
+120,6.0,ZZ130625.JPG,laceration,laceration,laceration/ZZ130625.JPG,validation
+120,7.0,ZZ130677.JPG,laceration,laceration,laceration/ZZ130677.JPG,validation
+120,8.0,ZZ130706.JPG,scratch,scratch,scratch/ZZ130706.JPG,validation
+120,9.0,ZZ130717.JPG,scratch,scratch,scratch/ZZ130717.JPG,validation
+121,1.0,ZZ180109.JPG,graze,graze wound,graze wound/ZZ180109.JPG,train
+121,2.0,ZZ180214.JPG,laceration,laceration,laceration/ZZ180214.JPG,train
+122,1.0,ZZ260245.JPG,gsw,gunshot wound,gunshot wound/ZZ260245.JPG,test
+122,2.0,ZZ260263.JPG,gsw,gunshot wound,gunshot wound/ZZ260263.JPG,test
+122,3.0,ZZ260280.JPG,gsw,gunshot wound,gunshot wound/ZZ260280.JPG,test
+123,1.0,ZZ260038.JPG,graze,graze wound,graze wound/ZZ260038.JPG,train
+123,2.0,ZZ260072.JPG,graze,graze wound,graze wound/ZZ260072.JPG,train
+123,3.0,ZZ260107.JPG,graze,graze wound,graze wound/ZZ260107.JPG,train
+123,4.0,ZZ260113.JPG,graze,graze wound,graze wound/ZZ260113.JPG,train
+123,5.0,ZZ260050.JPG,laceration,laceration,laceration/ZZ260050.JPG,train
+123,6.0,ZZ260116.JPG,laceration,laceration,laceration/ZZ260116.JPG,train
+123,7.0,ZZ260140.JPG,laceration,laceration,laceration/ZZ260140.JPG,train
+124,1.0,ZZ270134.JPG,laceration,laceration,laceration/ZZ270134.JPG,train
+125,1.0,ZZ020505.JPG,laceration,laceration,laceration/ZZ020505.JPG,validation
+126,1.0,ZZ030938.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ030938.JPG,train
+127,1.0,ZZ030736.JPG,scratch,scratch,scratch/ZZ030736.JPG,train
+128,1.0,ZZ041516.JPG,gsw,gunshot wound,gunshot wound/ZZ041516.JPG,train
+129,1.0,ZZ041350.JPG,graze,graze wound,graze wound/ZZ041350.JPG,train
+130,1.0,ZZ090145.JPG,graze,graze wound,graze wound/ZZ090145.JPG,train
+130,2.0,ZZ090148.JPG,laceration,laceration,laceration/ZZ090148.JPG,train
+131,1.0,ZZ100174.JPG,contusion,contusion,contusion/ZZ100174.JPG,train
+131,2.0,ZZ100185.JPG,graze,graze wound,graze wound/ZZ100185.JPG,train
+131,3.0,ZZ100210.JPG,graze,graze wound,graze wound/ZZ100210.JPG,train
+131,4.0,ZZ100237.JPG,scratch,scratch,scratch/ZZ100237.JPG,train
+132,1.0,ZZ100834blunt.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ100834blunt.JPG,train
+132,2.0,ZZ100838blunt.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ100838blunt.JPG,train
+133,1.0,ZZ110087.JPG,contusion,contusion,contusion/ZZ110087.JPG,train
+133,2.0,ZZ110017.JPG,laceration,laceration,laceration/ZZ110017.JPG,train
+134,1.0,ZZ220302.JPG,gsw,gunshot wound,gunshot wound/ZZ220302.JPG,validation
+134,2.0,ZZ220438.JPG,gsw,gunshot wound,gunshot wound/ZZ220438.JPG,validation
+135,1.0,ZZ240132.JPG,contusion,contusion,contusion/ZZ240132.JPG,train
+135,2.0,ZZ240134.JPG,contusion,contusion,contusion/ZZ240134.JPG,train
+135,3.0,ZZ240142.JPG,contusion,contusion,contusion/ZZ240142.JPG,train
+135,4.0,ZZ240050.JPG,graze,graze wound,graze wound/ZZ240050.JPG,train
+135,5.0,ZZ240051.JPG,graze,graze wound,graze wound/ZZ240051.JPG,train
+135,6.0,ZZ240081.JPG,laceration,laceration,laceration/ZZ240081.JPG,train
+135,7.0,ZZ240090.JPG,laceration,laceration,laceration/ZZ240090.JPG,train
+135,8.0,ZZ240129.JPG,laceration,laceration,laceration/ZZ240129.JPG,train
+135,9.0,ZZ240135.JPG,laceration,laceration,laceration/ZZ240135.JPG,train
+135,10.0,ZZ240143.JPG,laceration,laceration,laceration/ZZ240143.JPG,train
+136,1.0,ZZ250328.JPG,contusion,contusion,contusion/ZZ250328.JPG,train
+136,2.0,ZZ250403.JPG,contusion,contusion,contusion/ZZ250403.JPG,train
+136,3.0,ZZ250182.JPG,graze,graze wound,graze wound/ZZ250182.JPG,train
+136,4.0,ZZ250321.JPG,graze,graze wound,graze wound/ZZ250321.JPG,train
+136,5.0,ZZ250340.JPG,graze,graze wound,graze wound/ZZ250340.JPG,train
+136,6.0,ZZ250347.JPG,graze,graze wound,graze wound/ZZ250347.JPG,train
+136,7.0,ZZ250397.JPG,graze,graze wound,graze wound/ZZ250397.JPG,train
+136,8.0,ZZ250391.JPG,scratch,scratch,scratch/ZZ250391.JPG,train
+137,1.0,ZZ250633.JPG,contusion,contusion,contusion/ZZ250633.JPG,train
+138,1.0,ZZ250906.JPG,contusion,contusion,contusion/ZZ250906.JPG,train
+138,2.0,ZZ250928.JPG,contusion,contusion,contusion/ZZ250928.JPG,train
+138,3.0,ZZ250934.JPG,contusion,contusion,contusion/ZZ250934.JPG,train
+138,4.0,ZZ250964.JPG,graze,graze wound,graze wound/ZZ250964.JPG,train
+139,1.0,ZZ260094.JPG,contusion,contusion,contusion/ZZ260094.JPG,validation
+139,2.0,ZZ260049.JPG,graze,graze wound,graze wound/ZZ260049.JPG,validation
+139,3.0,ZZ260118.JPG,graze,graze wound,graze wound/ZZ260118.JPG,validation
+139,4.0,ZZ260125.JPG,graze,graze wound,graze wound/ZZ260125.JPG,validation
+139,5.0,ZZ260106.JPG,laceration,laceration,laceration/ZZ260106.JPG,validation
+139,6.0,ZZ260113.JPG,laceration,laceration,laceration/ZZ260113.JPG,validation
+139,7.0,ZZ260076.JPG,scratch,scratch,scratch/ZZ260076.JPG,validation
+140,1.0,P7012717.JPG,graze,graze wound,graze wound/P7012717.JPG,train
+140,2.0,P7012741.JPG,graze,graze wound,graze wound/P7012741.JPG,train
+140,3.0,P7012784.JPG,laceration,laceration,laceration/P7012784.JPG,train
+141,1.0,ZZ020337.JPG,graze,graze wound,graze wound/ZZ020337.JPG,train
+141,2.0,ZZ020348.JPG,graze,graze wound,graze wound/ZZ020348.JPG,train
+141,3.0,ZZ020352.JPG,graze,graze wound,graze wound/ZZ020352.JPG,train
+141,4.0,ZZ020404.JPG,graze,graze wound,graze wound/ZZ020404.JPG,train
+141,5.0,ZZ020417.JPG,graze,graze wound,graze wound/ZZ020417.JPG,train
+142,1.0,ZZ020711.JPG,contusion,contusion,contusion/ZZ020711.JPG,train
+142,2.0,ZZ020661.JPG,graze,graze wound,graze wound/ZZ020661.JPG,train
+142,3.0,ZZ020674.JPG,graze,graze wound,graze wound/ZZ020674.JPG,train
+143,1.0,ZZ070066.JPG,graze,graze wound,graze wound/ZZ070066.JPG,train
+144,1.0,ZZ090194.JPG,graze,graze wound,graze wound/ZZ090194.JPG,train
+144,2.0,ZZ090290.JPG,graze,graze wound,graze wound/ZZ090290.JPG,train
+144,3.0,ZZ090291.JPG,graze,graze wound,graze wound/ZZ090291.JPG,train
+144,4.0,ZZ090319.JPG,graze,graze wound,graze wound/ZZ090319.JPG,train
+144,5.0,ZZ090339.JPG,graze,graze wound,graze wound/ZZ090339.JPG,train
+144,6.0,ZZ090345.JPG,graze,graze wound,graze wound/ZZ090345.JPG,train
+145,1.0,ZZ130044.JPG,graze,graze wound,graze wound/ZZ130044.JPG,train
+145,2.0,ZZ130048.JPG,graze,graze wound,graze wound/ZZ130048.JPG,train
+145,3.0,ZZ130054.JPG,graze,graze wound,graze wound/ZZ130054.JPG,train
+146,1.0,ZZ150048.JPG,graze,graze wound,graze wound/ZZ150048.JPG,train
+146,2.0,ZZ150066.JPG,graze,graze wound,graze wound/ZZ150066.JPG,train
+147,1.0,ZZ160024.JPG,graze,graze wound,graze wound/ZZ160024.JPG,train
+147,2.0,ZZ160104.JPG,graze,graze wound,graze wound/ZZ160104.JPG,train
+147,3.0,ZZ160117.JPG,graze,graze wound,graze wound/ZZ160117.JPG,train
+147,4.0,ZZ160121.JPG,graze,graze wound,graze wound/ZZ160121.JPG,train
+147,5.0,ZZ160059.JPG,laceration,laceration,laceration/ZZ160059.JPG,train
+148,1.0,ZZ160165.JPG,contusion,contusion,contusion/ZZ160165.JPG,train
+148,2.0,ZZ160169.JPG,contusion,contusion,contusion/ZZ160169.JPG,train
+148,3.0,ZZ160355.JPG,contusion,contusion,contusion/ZZ160355.JPG,train
+148,4.0,ZZ160349.JPG,graze,graze wound,graze wound/ZZ160349.JPG,train
+149,1.0,ZZ240113.JPG,laceration,laceration,laceration/ZZ240113.JPG,train
+150,1.0,ZZ250019.JPG,graze,graze wound,graze wound/ZZ250019.JPG,validation
+150,2.0,ZZ250033.JPG,graze,graze wound,graze wound/ZZ250033.JPG,validation
+150,3.0,ZZ250085.JPG,graze,graze wound,graze wound/ZZ250085.JPG,validation
+150,4.0,ZZ250042.JPG,laceration,laceration,laceration/ZZ250042.JPG,validation
+151,1.0,ZZ260520.JPG,contusion,contusion,contusion/ZZ260520.JPG,validation
+151,2.0,ZZ260574.JPG,contusion,contusion,contusion/ZZ260574.JPG,validation
+151,3.0,ZZ260588.JPG,contusion,contusion,contusion/ZZ260588.JPG,validation
+151,4.0,ZZ260596.JPG,contusion,contusion,contusion/ZZ260596.JPG,validation
+151,5.0,ZZ260599.JPG,contusion,contusion,contusion/ZZ260599.JPG,validation
+151,6.0,ZZ260634.JPG,contusion,contusion,contusion/ZZ260634.JPG,validation
+151,7.0,ZZ260524.JPG,graze,graze wound,graze wound/ZZ260524.JPG,validation
+151,8.0,ZZ260607.JPG,graze,graze wound,graze wound/ZZ260607.JPG,validation
+151,9.0,ZZ260516.JPG,laceration,laceration,laceration/ZZ260516.JPG,validation
+151,10.0,ZZ260557.JPG,laceration,laceration,laceration/ZZ260557.JPG,validation
+151,11.0,ZZ260545.JPG,scratch,scratch,scratch/ZZ260545.JPG,validation
+152,1.0,P7275767.JPG,graze,graze wound,graze wound/P7275767.JPG,train
+152,2.0,P7275780.JPG,laceration,laceration,laceration/P7275780.JPG,train
+152,3.0,P7275791.JPG,laceration,laceration,laceration/P7275791.JPG,train
+152,4.0,P7275813.JPG,scratch,scratch,scratch/P7275813.JPG,train
+153,1.0,ZZ290026.JPG,graze,graze wound,graze wound/ZZ290026.JPG,validation
+153,2.0,ZZ290072.JPG,laceration,laceration,laceration/ZZ290072.JPG,validation
+154,1.0,ZZ300588.JPG,graze,graze wound,graze wound/ZZ300588.JPG,validation
+154,2.0,ZZ300600.JPG,graze,graze wound,graze wound/ZZ300600.JPG,validation
+154,3.0,ZZ300609.JPG,graze,graze wound,graze wound/ZZ300609.JPG,validation
+154,4.0,ZZ300633.JPG,graze,graze wound,graze wound/ZZ300633.JPG,validation
+154,5.0,ZZ300651.JPG,graze,graze wound,graze wound/ZZ300651.JPG,validation
+154,6.0,ZZ300668.JPG,graze,graze wound,graze wound/ZZ300668.JPG,validation
+154,7.0,ZZ300594.JPG,scratch,scratch,scratch/ZZ300594.JPG,validation
+154,8.0,ZZ300642.JPG,scratch,scratch,scratch/ZZ300642.JPG,validation
+155,1.0,ZZ027743.JPG,gsw,gunshot wound,gunshot wound/ZZ027743.JPG,train
+156,1.0,ZZ020056.JPG,contusion,contusion,contusion/ZZ020056.JPG,test
+156,2.0,ZZ020080.JPG,cut,cut wound,cut wound/ZZ020080.JPG,test
+156,3.0,ZZ020050.JPG,graze,graze wound,graze wound/ZZ020050.JPG,test
+156,4.0,ZZ020064.JPG,graze,graze wound,graze wound/ZZ020064.JPG,test
+156,5.0,ZZ020071.JPG,graze,graze wound,graze wound/ZZ020071.JPG,test
+156,6.0,ZZ020106.JPG,graze,graze wound,graze wound/ZZ020106.JPG,test
+157,1.0,P8047992.JPG,graze,graze wound,graze wound/P8047992.JPG,train
+158,1.0,ZZ040593.JPG,contusion,contusion,contusion/ZZ040593.JPG,train
+158,2.0,ZZ040560.JPG,laceration,laceration,laceration/ZZ040560.JPG,train
+159,1.0,ZZ050021.JPG,graze,graze wound,graze wound/ZZ050021.JPG,train
+159,2.0,ZZ050024.JPG,graze,graze wound,graze wound/ZZ050024.JPG,train
+159,3.0,ZZ050027.JPG,graze,graze wound,graze wound/ZZ050027.JPG,train
+159,4.0,ZZ050073.JPG,graze,graze wound,graze wound/ZZ050073.JPG,train
+159,5.0,ZZ050035.JPG,laceration,laceration,laceration/ZZ050035.JPG,train
+159,6.0,ZZ050056.JPG,scratch,scratch,scratch/ZZ050056.JPG,train
+159,7.0,ZZ050145.JPG,scratch,scratch,scratch/ZZ050145.JPG,train
+160,1.0,ZZ080295.JPG,scratch,scratch,scratch/ZZ080295.JPG,train
+161,1.0,ZZ150180.JPG,cut,cut wound,cut wound/ZZ150180.JPG,train
+162,1.0,ZZ230504.JPG,contusion,contusion,contusion/ZZ230504.JPG,train
+162,2.0,ZZ230556.JPG,contusion,contusion,contusion/ZZ230556.JPG,train
+162,3.0,ZZ230567.JPG,graze,graze wound,graze wound/ZZ230567.JPG,train
+163,1.0,ZZ250070.JPG,laceration,laceration,laceration/ZZ250070.JPG,validation
+164,1.0,ZZ270187.JPG,graze,graze wound,graze wound/ZZ270187.JPG,train
+164,2.0,ZZ270212.JPG,graze,graze wound,graze wound/ZZ270212.JPG,train
+164,3.0,ZZ270320.JPG,graze,graze wound,graze wound/ZZ270320.JPG,train
+165,1.0,ZZ310556.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ310556.JPG,train
+166,1.0,ZZ310447.JPG,laceration,laceration,laceration/ZZ310447.JPG,train
+167,1.0,ZZ310855.JPG,contusion,contusion,contusion/ZZ310855.JPG,train
+167,2.0,ZZ310759.JPG,laceration,laceration,laceration/ZZ310759.JPG,train
+167,3.0,ZZ310776.JPG,scratch,scratch,scratch/ZZ310776.JPG,train
+168,1.0,ZZ095893.JPG,graze,graze wound,graze wound/ZZ095893.JPG,train
+169,1.0,ZZ106946.JPG,contusion,contusion,contusion/ZZ106946.JPG,train
+169,2.0,ZZ106943.JPG,graze,graze wound,graze wound/ZZ106943.JPG,train
+169,3.0,ZZ106897.JPG,laceration,laceration,laceration/ZZ106897.JPG,train
+170,1.0,ZZ127840.JPG,graze,graze wound,graze wound/ZZ127840.JPG,train
+171,1.0,ZZ122714.JPG,gsw,gunshot wound,gunshot wound/ZZ122714.JPG,train
+171,2.0,ZZ122745.JPG,gsw,gunshot wound,gunshot wound/ZZ122745.JPG,train
+172,1.0,ZZ164859.JPG,graze,graze wound,graze wound/ZZ164859.JPG,train
+172,2.0,ZZ164892.JPG,graze,graze wound,graze wound/ZZ164892.JPG,train
+172,3.0,ZZ164883.JPG,scratch,scratch,scratch/ZZ164883.JPG,train
+173,1.0,ZZ164654.JPG,laceration,laceration,laceration/ZZ164654.JPG,train
+174,1.0,ZZ175794.JPG,graze,graze wound,graze wound/ZZ175794.JPG,train
+174,2.0,ZZ1758591.JPG,graze,graze wound,graze wound/ZZ1758591.JPG,train
+174,3.0,ZZ175863.JPG,graze,graze wound,graze wound/ZZ175863.JPG,train
+175,1.0,ZZ196669.JPG,laceration,laceration,laceration/ZZ196669.JPG,train
+176,1.0,P9224679.JPG,contusion,contusion,contusion/P9224679.JPG,train
+177,1.0,ZZ260573.JPG,contusion,contusion,contusion/ZZ260573.JPG,train
+177,2.0,ZZ260637.JPG,contusion,contusion,contusion/ZZ260637.JPG,train
+177,3.0,ZZ260530.JPG,laceration,laceration,laceration/ZZ260530.JPG,train
+177,4.0,ZZ260590.JPG,scratch,scratch,scratch/ZZ260590.JPG,train
+177,5.0,ZZ260593.JPG,scratch,scratch,scratch/ZZ260593.JPG,train
+177,6.0,ZZ260605.JPG,scratch,scratch,scratch/ZZ260605.JPG,train
+178,1.0,PA047106.JPG,contusion,contusion,contusion/PA047106.JPG,train
+178,2.0,PA047131.JPG,contusion,contusion,contusion/PA047131.JPG,train
+179,1.0,ZZ079606.JPG,contusion,contusion,contusion/ZZ079606.JPG,validation
+179,2.0,ZZ079619.JPG,contusion,contusion,contusion/ZZ079619.JPG,validation
+179,3.0,ZZ079625.JPG,contusion,contusion,contusion/ZZ079625.JPG,validation
+179,4.0,ZZ079631.JPG,contusion,contusion,contusion/ZZ079631.JPG,validation
+179,5.0,ZZ079649.JPG,contusion,contusion,contusion/ZZ079649.JPG,validation
+179,6.0,ZZ079654.JPG,contusion,contusion,contusion/ZZ079654.JPG,validation
+179,7.0,ZZ079663.JPG,contusion,contusion,contusion/ZZ079663.JPG,validation
+179,8.0,ZZ079668.JPG,contusion,contusion,contusion/ZZ079668.JPG,validation
+180,1.0,ZZ070378.JPG,contusion,contusion,contusion/ZZ070378.JPG,test
+180,2.0,ZZ070445.JPG,graze,graze wound,graze wound/ZZ070445.JPG,test
+180,3.0,ZZ070449.JPG,graze,graze wound,graze wound/ZZ070449.JPG,test
+180,4.0,ZZ070355.JPG,laceration,laceration,laceration/ZZ070355.JPG,test
+181,1.0,ZZ070118.JPG,contusion,contusion,contusion/ZZ070118.JPG,train
+181,2.0,ZZ070124.JPG,contusion,contusion,contusion/ZZ070124.JPG,train
+181,3.0,ZZ070146.JPG,contusion,contusion,contusion/ZZ070146.JPG,train
+181,4.0,ZZ070217.JPG,contusion,contusion,contusion/ZZ070217.JPG,train
+181,5.0,ZZ070133.JPG,laceration,laceration,laceration/ZZ070133.JPG,train
+181,6.0,ZZ070173.JPG,laceration,laceration,laceration/ZZ070173.JPG,train
+181,7.0,ZZ070199.JPG,laceration,laceration,laceration/ZZ070199.JPG,train
+181,8.0,ZZ070233.JPG,laceration,laceration,laceration/ZZ070233.JPG,train
+181,9.0,ZZ070190.JPG,scratch,scratch,scratch/ZZ070190.JPG,train
+182,1.0,ZZ092021.JPG,cut,cut wound,cut wound/ZZ092021.JPG,validation
+182,2.0,ZZ092026.JPG,cut,cut wound,cut wound/ZZ092026.JPG,validation
+182,3.0,ZZ092029.JPG,cut,cut wound,cut wound/ZZ092029.JPG,validation
+182,4.0,ZZ092035.JPG,cut,cut wound,cut wound/ZZ092035.JPG,validation
+182,5.0,ZZ092053.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ092053.JPG,validation
+182,6.0,ZZ092313.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ092313.JPG,validation
+183,1.0,ZZ102591.JPG,graze,graze wound,graze wound/ZZ102591.JPG,validation
+183,2.0,ZZ102628.JPG,laceration,laceration,laceration/ZZ102628.JPG,validation
+183,,ZZ102649.JPG,laceration,laceration,laceration/ZZ102649.JPG,validation
+184,1.0,PA108725.JPG,contusion,contusion,contusion/PA108725.JPG,validation
+185,1.0,ZZ156137.JPG,graze,graze wound,graze wound/ZZ156137.JPG,train
+185,2.0,ZZ156059.JPG,laceration,laceration,laceration/ZZ156059.JPG,train
+185,3.0,ZZ156134.JPG,laceration,laceration,laceration/ZZ156134.JPG,train
+185,4.0,ZZ156135.JPG,laceration,laceration,laceration/ZZ156135.JPG,train
+185,5.0,ZZ156176.JPG,scratch,scratch,scratch/ZZ156176.JPG,train
+186,1.0,ZZ176832.JPG,contusion,contusion,contusion/ZZ176832.JPG,train
+187,1.0,ZZ230798.JPG,graze,graze wound,graze wound/ZZ230798.JPG,test
+187,2.0,ZZ230853.JPG,graze,graze wound,graze wound/ZZ230853.JPG,test
+187,3.0,ZZ230859.JPG,graze,graze wound,graze wound/ZZ230859.JPG,test
+187,4.0,ZZ230784.JPG,scratch,scratch,scratch/ZZ230784.JPG,test
+188,1.0,ZZ251740.JPG,laceration,laceration,laceration/ZZ251740.JPG,test
+189,1.0,ZZ283461.JPG,laceration,laceration,laceration/ZZ283461.JPG,train
+190,1.0,ZZ305380.JPG,scratch,scratch,scratch/ZZ305380.JPG,train
+191,1.0,ZZ306097.JPG,graze,graze wound,graze wound/ZZ306097.JPG,train
+191,2.0,ZZ306133.JPG,laceration,laceration,laceration/ZZ306133.JPG,train
+192,1.0,PB034980.JPG,graze,graze wound,graze wound/PB034980.JPG,test
+192,2.0,PB034986.JPG,laceration,laceration,laceration/PB034986.JPG,test
+192,3.0,PB035013.JPG,laceration,laceration,laceration/PB035013.JPG,test
+193,1.0,ZZ037598.JPG,graze,graze wound,graze wound/ZZ037598.JPG,validation
+194,1.0,ZZ082036.JPG,graze,graze wound,graze wound/ZZ082036.JPG,validation
+195,1.0,ZZ093918.JPG,graze,graze wound,graze wound/ZZ093918.JPG,train
+195,2.0,ZZ093926.JPG,laceration,laceration,laceration/ZZ093926.JPG,train
+195,3.0,ZZ093912.JPG,scratch,scratch,scratch/ZZ093912.JPG,train
+196,1.0,ZZ114446.JPG,cut,cut wound,cut wound/ZZ114446.JPG,train
+196,2.0,ZZ114386.JPG,laceration,laceration,laceration/ZZ114386.JPG,train
+196,3.0,ZZ114443.JPG,laceration,laceration,laceration/ZZ114443.JPG,train
+197,1.0,PB116226.JPG,contusion,contusion,contusion/PB116226.JPG,train
+198,1.0,PB116439.JPG,contusion,contusion,contusion/PB116439.JPG,validation
+198,2.0,PB116421.JPG,graze,graze wound,graze wound/PB116421.JPG,validation
+199,1.0,ZZ136341.JPG,graze,graze wound,graze wound/ZZ136341.JPG,train
+199,2.0,ZZ136363.JPG,graze,graze wound,graze wound/ZZ136363.JPG,train
+199,3.0,ZZ136384.JPG,laceration,laceration,laceration/ZZ136384.JPG,train
+200,1.0,ZZ136144.JPG,graze,graze wound,graze wound/ZZ136144.JPG,test
+201,1.0,ZZ170755.JPG,contusion,contusion,contusion/ZZ170755.JPG,train
+201,2.0,ZZ170796.JPG,contusion,contusion,contusion/ZZ170796.JPG,train
+201,3.0,ZZ170745.JPG,scratch,scratch,scratch/ZZ170745.JPG,train
+202,1.0,PB239542.JPG,contusion,contusion,contusion/PB239542.JPG,train
+203,1.0,ZZ255829.JPG,laceration,laceration,laceration/ZZ255829.JPG,train
+203,2.0,ZZ255833.JPG,laceration,laceration,laceration/ZZ255833.JPG,train
+204,1.0,ZZ255585.JPG,contusion,contusion,contusion/ZZ255585.JPG,train
+204,2.0,ZZ255591.JPG,contusion,contusion,contusion/ZZ255591.JPG,train
+205,1.0,ZZ276899.JPG,laceration,laceration,laceration/ZZ276899.JPG,train
+205,2.0,ZZ276991.JPG,laceration,laceration,laceration/ZZ276991.JPG,train
+206,1.0,PB290629.JPG,contusion,contusion,contusion/PB290629.JPG,train
+206,2.0,PB290653.JPG,scratch,scratch,scratch/PB290653.JPG,train
+207,1.0,ZZ299898.JPG,graze,graze wound,graze wound/ZZ299898.JPG,train
+208,1.0,ZZ010980.JPG,contusion,contusion,contusion/ZZ010980.JPG,test
+208,2.0,ZZ011019.JPG,laceration,laceration,laceration/ZZ011019.JPG,test
+208,3.0,ZZ010957.JPG,scratch,scratch,scratch/ZZ010957.JPG,test
+209,1.0,ZZ087928.JPG,graze,graze wound,graze wound/ZZ087928.JPG,train
+209,2.0,ZZ087949.JPG,scratch,scratch,scratch/ZZ087949.JPG,train
+210,1.0,ZZ098980.JPG,contusion,contusion,contusion/ZZ098980.JPG,train
+211,1.0,ZZ109461.JPG,scratch,scratch,scratch/ZZ109461.JPG,train
+212,1.0,ZZ110182.JPG,graze,graze wound,graze wound/ZZ110182.JPG,test
+213,1.0,ZZ119723.JPG,scratch,scratch,scratch/ZZ119723.JPG,train
+214,1.0,ZZ153048.JPG,gsw,gunshot wound,gunshot wound/ZZ153048.JPG,train
+214,2.0,ZZ153102.JPG,gsw,gunshot wound,gunshot wound/ZZ153102.JPG,train
+214,3.0,ZZ153120.JPG,gsw,gunshot wound,gunshot wound/ZZ153120.JPG,train
+214,4.0,ZZ153123.JPG,gsw,gunshot wound,gunshot wound/ZZ153123.JPG,train
+214,5.0,ZZ153128.JPG,gsw,gunshot wound,gunshot wound/ZZ153128.JPG,train
+214,6.0,ZZ153136.JPG,gsw,gunshot wound,gunshot wound/ZZ153136.JPG,train
+214,7.0,ZZ153195.JPG,gsw,gunshot wound,gunshot wound/ZZ153195.JPG,train
+214,8.0,ZZ153196.JPG,gsw,gunshot wound,gunshot wound/ZZ153196.JPG,train
+214,9.0,ZZ153200.JPG,gsw,gunshot wound,gunshot wound/ZZ153200.JPG,train
+215,1.0,PC203891.JPG,graze,graze wound,graze wound/PC203891.JPG,validation
+215,2.0,PC203901.JPG,graze,graze wound,graze wound/PC203901.JPG,validation
+216,1.0,ZZ206223.JPG,laceration,laceration,laceration/ZZ206223.JPG,train
+216,2.0,ZZ206256.JPG,laceration,laceration,laceration/ZZ206256.JPG,train
+217,1.0,PC214391.JPG,gsw,gunshot wound,gunshot wound/PC214391.JPG,validation
+217,2.0,PC214415.JPG,gsw,gunshot wound,gunshot wound/PC214415.JPG,validation
+218,1.0,ZZ217099.JPG,graze,graze wound,graze wound/ZZ217099.JPG,train
+218,2.0,ZZ217130.JPG,graze,graze wound,graze wound/ZZ217130.JPG,train
+219,1.0,PC235170.JPG,laceration,laceration,laceration/PC235170.JPG,train
+220,1.0,PC235480.JPG,scratch,scratch,scratch/PC235480.JPG,validation
+221,1.0,ZZ238735.JPG,contusion,contusion,contusion/ZZ238735.JPG,train
+222,1.0,ZZ249077.JPG,cut,cut wound,cut wound/ZZ249077.JPG,test
+222,2.0,ZZ249035.JPG,gsw,gunshot wound,gunshot wound/ZZ249035.JPG,test
+223,1.0,ZZ249320.JPG,gsw,gunshot wound,gunshot wound/ZZ249320.JPG,train
+223,2.0,ZZ249372.JPG,gsw,gunshot wound,gunshot wound/ZZ249372.JPG,train
+224,1.0,ZZ250056.JPG,contusion,contusion,contusion/ZZ250056.JPG,train
+224,2.0,ZZ250072.JPG,graze,graze wound,graze wound/ZZ250072.JPG,train
+224,3.0,ZZ250132.JPG,graze,graze wound,graze wound/ZZ250132.JPG,train
+225,1.0,ZZ250160.JPG,gsw,gunshot wound,gunshot wound/ZZ250160.JPG,train
+225,2.0,ZZ250162.JPG,gsw,gunshot wound,gunshot wound/ZZ250162.JPG,train
+226,1.0,PC266089.JPG,laceration,laceration,laceration/PC266089.JPG,test
+227,1.0,ZZ271000.JPG,laceration,laceration,laceration/ZZ271000.JPG,train
+228,1.0,ZZ292316.JPG,laceration,laceration,laceration/ZZ292316.JPG,train
+229,1.0,PC296843.JPG,scratch,scratch,scratch/PC296843.JPG,validation
+230,1.0,ZZ313436.JPG,graze,graze wound,graze wound/ZZ313436.JPG,validation
+231,1.0,P1027435.JPG,contusion,contusion,contusion/P1027435.JPG,train
+231,2.0,P1027442.JPG,contusion,contusion,contusion/P1027442.JPG,train
+232,1.0,ZZ068965.JPG,cut,cut wound,cut wound/ZZ068965.JPG,train
+232,2.0,ZZ069006.JPG,cut,cut wound,cut wound/ZZ069006.JPG,train
+232,3.0,ZZ069117.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ069117.JPG,train
+233,1.0,ZZ124214.JPG,gsw,gunshot wound,gunshot wound/ZZ124214.JPG,train
+234,1.0,ZZ145282.JPG,gsw,gunshot wound,gunshot wound/ZZ145282.JPG,train
+234,2.0,ZZ145325.JPG,gsw,gunshot wound,gunshot wound/ZZ145325.JPG,train
+234,3.0,ZZ149617.JPG,gsw,gunshot wound,gunshot wound/ZZ149617.JPG,train
+234,4.0,ZZ149624.JPG,gsw,gunshot wound,gunshot wound/ZZ149624.JPG,train
+235,1.0,P1167421.JPG,gsw,gunshot wound,gunshot wound/P1167421.JPG,train
+235,2.0,P1167478.JPG,gsw,gunshot wound,gunshot wound/P1167478.JPG,train
+236,1.0,ZZ275514.JPG,gsw,gunshot wound,gunshot wound/ZZ275514.JPG,train
+236,2.0,ZZ275518.JPG,gsw,gunshot wound,gunshot wound/ZZ275518.JPG,train
+237,1.0,ZZ307045.JPG,gsw,gunshot wound,gunshot wound/ZZ307045.JPG,train
+238,1.0,ZZ050905.JPG,graze,graze wound,graze wound/ZZ050905.JPG,test
+238,2.0,ZZ050973.JPG,graze,graze wound,graze wound/ZZ050973.JPG,test
+239,1.0,ZZ071792.JPG,graze,graze wound,graze wound/ZZ071792.JPG,train
+239,2.0,ZZ071838.JPG,graze,graze wound,graze wound/ZZ071838.JPG,train
+240,1.0,ZZ072249.JPG,graze,graze wound,graze wound/ZZ072249.JPG,test
+240,2.0,ZZ072258.JPG,graze,graze wound,graze wound/ZZ072258.JPG,test
+241,1.0,ZZ073076.JPG,graze,graze wound,graze wound/ZZ073076.JPG,train
+242,1.0,P2081246.JPG,gsw,gunshot wound,gunshot wound/P2081246.JPG,train
+242,2.0,P2081251.JPG,gsw,gunshot wound,gunshot wound/P2081251.JPG,train
+243,1.0,ZZ104541.JPG,contusion,contusion,contusion/ZZ104541.JPG,train
+243,2.0,ZZ104490.JPG,graze,graze wound,graze wound/ZZ104490.JPG,train
+244,1.0,ZZ105016.JPG,graze,graze wound,graze wound/ZZ105016.JPG,validation
+244,2.0,ZZ105035.JPG,graze,graze wound,graze wound/ZZ105035.JPG,validation
+244,3.0,ZZ105039.JPG,graze,graze wound,graze wound/ZZ105039.JPG,validation
+244,4.0,ZZ104969.JPG,laceration,laceration,laceration/ZZ104969.JPG,validation
+244,5.0,ZZ105048.JPG,scratch,scratch,scratch/ZZ105048.JPG,validation
+245,1.0,ZZ192322.JPG,gsw,gunshot wound,gunshot wound/ZZ192322.JPG,train
+245,2.0,ZZ192446.JPG,gsw,gunshot wound,gunshot wound/ZZ192446.JPG,train
+246,1.0,P2266560.JPG,gsw,gunshot wound,gunshot wound/P2266560.JPG,train
+247,1.0,ZZ298780.JPG,gsw,gunshot wound,gunshot wound/ZZ298780.JPG,validation
+247,2.0,ZZ298811.JPG,gsw,gunshot wound,gunshot wound/ZZ298811.JPG,validation
+247,3.0,ZZ298825.JPG,gsw,gunshot wound,gunshot wound/ZZ298825.JPG,validation
+247,4.0,ZZ298831.JPG,gsw,gunshot wound,gunshot wound/ZZ298831.JPG,validation
+247,5.0,ZZ298861.JPG,gsw,gunshot wound,gunshot wound/ZZ298861.JPG,validation
+247,6.0,ZZ298866.JPG,gsw,gunshot wound,gunshot wound/ZZ298866.JPG,validation
+247,7.0,ZZ298873.JPG,gsw,gunshot wound,gunshot wound/ZZ298873.JPG,validation
+248,1.0,ZZ288135.JPG,gsw,gunshot wound,gunshot wound/ZZ288135.JPG,train
+248,2.0,ZZ288139.JPG,gsw,gunshot wound,gunshot wound/ZZ288139.JPG,train
+248,3.0,ZZ288150.JPG,gsw,gunshot wound,gunshot wound/ZZ288150.JPG,train
+248,4.0,ZZ288183.JPG,gsw,gunshot wound,gunshot wound/ZZ288183.JPG,train
+248,5.0,ZZ288195.JPG,gsw,gunshot wound,gunshot wound/ZZ288195.JPG,train
+248,6.0,ZZ288200.JPG,gsw,gunshot wound,gunshot wound/ZZ288200.JPG,train
+248,7.0,ZZ288203.JPG,gsw,gunshot wound,gunshot wound/ZZ288203.JPG,train
+248,8.0,ZZ288208.JPG,gsw,gunshot wound,gunshot wound/ZZ288208.JPG,train
+248,9.0,ZZ288233.JPG,gsw,gunshot wound,gunshot wound/ZZ288233.JPG,train
+248,10.0,ZZ288237.JPG,gsw,gunshot wound,gunshot wound/ZZ288237.JPG,train
+248,11.0,ZZ288245.JPG,gsw,gunshot wound,gunshot wound/ZZ288245.JPG,train
+249,1.0,ZZ288520.JPG,gsw,gunshot wound,gunshot wound/ZZ288520.JPG,test
+249,2.0,ZZ288529.JPG,gsw,gunshot wound,gunshot wound/ZZ288529.JPG,test
+249,3.0,ZZ288536.JPG,gsw,gunshot wound,gunshot wound/ZZ288536.JPG,test
+249,4.0,ZZ288541.JPG,gsw,gunshot wound,gunshot wound/ZZ288541.JPG,test
+249,5.0,ZZ288544.JPG,gsw,gunshot wound,gunshot wound/ZZ288544.JPG,test
+249,6.0,ZZ288571.JPG,gsw,gunshot wound,gunshot wound/ZZ288571.JPG,test
+250,1.0,P3048681.JPG,graze,graze wound,graze wound/P3048681.JPG,train
+251,1.0,P3048964.JPG,graze,graze wound,graze wound/P3048964.JPG,train
+251,2.0,P3048957.JPG,laceration,laceration,laceration/P3048957.JPG,train
+252,1.0,P3254306.JPG,laceration,laceration,laceration/P3254306.JPG,train
+252,2.0,P3254311.JPG,laceration,laceration,laceration/P3254311.JPG,train
+252,3.0,P3254314.JPG,laceration,laceration,laceration/P3254314.JPG,train
+253,1.0,P3254400.JPG,graze,graze wound,graze wound/P3254400.JPG,validation
+254,1.0,ZZ013914.JPG,graze,graze wound,graze wound/ZZ013914.JPG,train
+254,2.0,ZZ013956.JPG,graze,graze wound,graze wound/ZZ013956.JPG,train
+254,3.0,ZZ013962.JPG,laceration,laceration,laceration/ZZ013962.JPG,train
+255,1.0,ZZ035655.JPG,gsw,gunshot wound,gunshot wound/ZZ035655.JPG,train
+255,2.0,ZZ035661.JPG,gsw,gunshot wound,gunshot wound/ZZ035661.JPG,train
+256,1.0,ZZ080112.JPG,gsw,gunshot wound,gunshot wound/ZZ080112.JPG,train
+256,2.0,ZZ080121.JPG,gsw,gunshot wound,gunshot wound/ZZ080121.JPG,train
+257,1.0,ZZ165120.JPG,laceration,laceration,laceration/ZZ165120.JPG,train
+258,1.0,P4245484,cut,cut wound,cut wound/P4245484,train
+258,2.0,P4245503,cut,cut wound,cut wound/P4245503,train
+258,3.0,P4245546,cut,cut wound,cut wound/P4245546,train
+259,1.0,ZZ252501.JPG,cut,cut wound,cut wound/ZZ252501.JPG,validation
+260,1.0,P5018774,cut,cut wound,cut wound/P5018774,train
+260,2.0,P5018780,cut,cut wound,cut wound/P5018780,train
+260,3.0,P5018761.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P5018761.JPG,train
+261,1.0,ZZ069372.JPG,contusion,contusion,contusion/ZZ069372.JPG,train
+261,2.0,ZZ069380.JPG,graze,graze wound,graze wound/ZZ069380.JPG,train
+262,1.0,P5112824.JPG,gsw,gunshot wound,gunshot wound/P5112824.JPG,train
+262,2.0,P5112835.JPG,gsw,gunshot wound,gunshot wound/P5112835.JPG,train
+263,1.0,P5130091.JPG,contusion,contusion,contusion/P5130091.JPG,train
+264,1.0,P5260061.JPG,contusion,contusion,contusion/P5260061.JPG,train
+264,2.0,P5260022.JPG,graze,graze wound,graze wound/P5260022.JPG,train
+264,3.0,P5260124.JPG,graze,graze wound,graze wound/P5260124.JPG,train
+264,4.0,P5260131.JPG,graze,graze wound,graze wound/P5260131.JPG,train
+264,5.0,P5260042.JPG,laceration,laceration,laceration/P5260042.JPG,train
+265,1.0,P5270109.JPG,graze,graze wound,graze wound/P5270109.JPG,train
+265,2.0,P5270099.JPG,laceration,laceration,laceration/P5270099.JPG,train
+266,1.0,P5270082.JPG,contusion,contusion,contusion/P5270082.JPG,train
+266,2.0,P5270099.JPG,contusion,contusion,contusion/P5270099.JPG,train
+267,1.0,P6170075.JPG,graze,graze wound,graze wound/P6170075.JPG,validation
+268,1.0,P6293420.JPG,graze,graze wound,graze wound/P6293420.JPG,train
+268,2.0,P6293420.JPG,laceration,laceration,laceration/P6293420.JPG,train
+269,1.0,P6300084.JPG,gsw,gunshot wound,gunshot wound/P6300084.JPG,train
+269,2.0,P6300098.JPG,gsw,gunshot wound,gunshot wound/P6300098.JPG,train
+269,3.0,P6300109.JPG,gsw,gunshot wound,gunshot wound/P6300109.JPG,train
+269,4.0,P6300111.JPG,gsw,gunshot wound,gunshot wound/P6300111.JPG,train
+269,5.0,P6300137.JPG,gsw,gunshot wound,gunshot wound/P6300137.JPG,train
+269,6.0,P6300145.JPG,gsw,gunshot wound,gunshot wound/P6300145.JPG,train
+269,7.0,P6300158.JPG,gsw,gunshot wound,gunshot wound/P6300158.JPG,train
+270,1.0,P7010043.JPG,laceration,laceration,laceration/P7010043.JPG,test
+270,2.0,P7010047.JPG,laceration,laceration,laceration/P7010047.JPG,test
+270,3.0,P7010134.JPG,laceration,laceration,laceration/P7010134.JPG,test
+271,1.0,P7098034.JPG,gsw,gunshot wound,gunshot wound/P7098034.JPG,train
+271,2.0,P7098104.JPG,gsw,gunshot wound,gunshot wound/P7098104.JPG,train
+272,1.0,P7120153,cut,cut wound,cut wound/P7120153,train
+272,2.0,P7120065.JPG,gsw,gunshot wound,gunshot wound/P7120065.JPG,train
+272,3.0,P7120086.JPG,gsw,gunshot wound,gunshot wound/P7120086.JPG,train
+273,1.0,P7273104,cut,cut wound,cut wound/P7273104,validation
+273,2.0,P7273112,cut,cut wound,cut wound/P7273112,validation
+273,3.0,P7273129,cut,cut wound,cut wound/P7273129,validation
+273,4.0,P7273173,cut,cut wound,cut wound/P7273173,validation
+273,5.0,P7273234,cut,cut wound,cut wound/P7273234,validation
+274,1.0,P7294704.JPG,contusion,contusion,contusion/P7294704.JPG,test
+275,1.0,P8046660.JPG,laceration,laceration,laceration/P8046660.JPG,train
+276,1.0,P8080084.JPG,gsw,gunshot wound,gunshot wound/P8080084.JPG,validation
+276,2.0,P8080093.JPG,gsw,gunshot wound,gunshot wound/P8080093.JPG,validation
+276,3.0,P8080112.JPG,gsw,gunshot wound,gunshot wound/P8080112.JPG,validation
+276,4.0,P8080117.JPG,gsw,gunshot wound,gunshot wound/P8080117.JPG,validation
+276,5.0,P8080145.JPG,gsw,gunshot wound,gunshot wound/P8080145.JPG,validation
+276,6.0,P8080160.JPG,gsw,gunshot wound,gunshot wound/P8080160.JPG,validation
+277,1.0,P8264352.JPG,laceration,laceration,laceration/P8264352.JPG,train
+277,2.0,P8264414.JPG,laceration,laceration,laceration/P8264414.JPG,train
+277,3.0,P8264446.JPG,laceration,laceration,laceration/P8264446.JPG,train
+278,1.0,P8260060,cut,cut wound,cut wound/P8260060,train
+278,2.0,P8260093,cut,cut wound,cut wound/P8260093,train
+278,3.0,P8260111,cut,cut wound,cut wound/P8260111,train
+278,4.0,P8260136,cut,cut wound,cut wound/P8260136,train
+278,5.0,P8260140,cut,cut wound,cut wound/P8260140,train
+278,6.0,P8260150,cut,cut wound,cut wound/P8260150,train
+278,7.0,P8260210,cut,cut wound,cut wound/P8260210,train
+278,8.0,P8260229,cut,cut wound,cut wound/P8260229,train
+278,9.0,P8260334,cut,cut wound,cut wound/P8260334,train
+279,1.0,P9050131.JPG,gsw,gunshot wound,gunshot wound/P9050131.JPG,train
+279,2.0,P9050143.JPG,gsw,gunshot wound,gunshot wound/P9050143.JPG,train
+280,1.0,P9058013.JPG,gsw,gunshot wound,gunshot wound/P9058013.JPG,train
+280,2.0,P9058045.JPG,gsw,gunshot wound,gunshot wound/P9058045.JPG,train
+280,3.0,P9058060.JPG,gsw,gunshot wound,gunshot wound/P9058060.JPG,train
+280,4.0,P9058063.JPG,gsw,gunshot wound,gunshot wound/P9058063.JPG,train
+280,5.0,P9058064.JPG,gsw,gunshot wound,gunshot wound/P9058064.JPG,train
+280,6.0,P9058066.JPG,gsw,gunshot wound,gunshot wound/P9058066.JPG,train
+280,7.0,P9058070.JPG,gsw,gunshot wound,gunshot wound/P9058070.JPG,train
+280,8.0,P9058084.JPG,gsw,gunshot wound,gunshot wound/P9058084.JPG,train
+280,9.0,P9058094.JPG,gsw,gunshot wound,gunshot wound/P9058094.JPG,train
+280,10.0,P9058098.JPG,gsw,gunshot wound,gunshot wound/P9058098.JPG,train
+281,1.0,P9068587.JPG,graze,graze wound,graze wound/P9068587.JPG,train
+281,2.0,P9068648.JPG,graze,graze wound,graze wound/P9068648.JPG,train
+282,1.0,P9130029.JPG,gsw,gunshot wound,gunshot wound/P9130029.JPG,test
+283,1.0,P9163013.JPG,gsw,gunshot wound,gunshot wound/P9163013.JPG,train
+283,2.0,P9163062.JPG,gsw,gunshot wound,gunshot wound/P9163062.JPG,train
+284,1.0,P9160070.JPG,gsw,gunshot wound,gunshot wound/P9160070.JPG,train
+285,1.0,P9194944.JPG,gsw,gunshot wound,gunshot wound/P9194944.JPG,test
+286,1.0,PA030147.JPG,gsw,gunshot wound,gunshot wound/PA030147.JPG,test
+287,1.0,PA104399.JPG,graze,graze wound,graze wound/PA104399.JPG,train
+287,2.0,PA104455.JPG,graze,graze wound,graze wound/PA104455.JPG,train
+287,3.0,PA104459.JPG,graze,graze wound,graze wound/PA104459.JPG,train
+287,4.0,PA104462.JPG,graze,graze wound,graze wound/PA104462.JPG,train
+288,1.0,PA110062.JPG,gsw,gunshot wound,gunshot wound/PA110062.JPG,train
+289,1.0,PA220050.JPG,gsw,gunshot wound,gunshot wound/PA220050.JPG,train
+290,1.0,PA250126.JPG,laceration,laceration,laceration/PA250126.JPG,train
+290,2.0,PA250130.JPG,laceration,laceration,laceration/PA250130.JPG,train
+291,1.0,PA260059.JPG,gsw,gunshot wound,gunshot wound/PA260059.JPG,validation
+291,2.0,PA260139.JPG,gsw,gunshot wound,gunshot wound/PA260139.JPG,validation
+292,1.0,PB106186.JPG,contusion,contusion,contusion/PB106186.JPG,train
+292,2.0,PB106231.JPG,graze,graze wound,graze wound/PB106231.JPG,train
+293,1.0,PB100109.JPG,gsw,gunshot wound,gunshot wound/PB100109.JPG,train
+293,2.0,PB100104.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PB100104.JPG,train
+294,1.0,PB110089.JPG,laceration,laceration,laceration/PB110089.JPG,validation
+295,1.0,PB120084.JPG,cut,cut wound,cut wound/PB120084.JPG,test
+295,2.0,PB120130.JPG,cut,cut wound,cut wound/PB120130.JPG,test
+296,1.0,PB150076.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PB150076.JPG,train
+296,2.0,PB150143.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/PB150143.JPG,train
+297,1.0,PB210115.JPG,cut,cut wound,cut wound/PB210115.JPG,train
+297,2.0,PB210118.JPG,cut,cut wound,cut wound/PB210118.JPG,train
+297,3.0,PB210020.JPG,gsw,gunshot wound,gunshot wound/PB210020.JPG,train
+297,4.0,PB210032.JPG,gsw,gunshot wound,gunshot wound/PB210032.JPG,train
+297,5.0,PB210090.JPG,gsw,gunshot wound,gunshot wound/PB210090.JPG,train
+297,6.0,PB210099.JPG,gsw,gunshot wound,gunshot wound/PB210099.JPG,train
+298,1.0,PB220099.JPG,gsw,gunshot wound,gunshot wound/PB220099.JPG,test
+299,1.0,PC303304.JPG,gsw,gunshot wound,gunshot wound/PC303304.JPG,test
+299,2.0,PC303342.JPG,gsw,gunshot wound,gunshot wound/PC303342.JPG,test
+300,1.0,PC300066.JPG,gsw,gunshot wound,gunshot wound/PC300066.JPG,train
+300,2.0,PC300092.JPG,gsw,gunshot wound,gunshot wound/PC300092.JPG,train
+301,1.0,P1040056.JPG,gsw,gunshot wound,gunshot wound/P1040056.JPG,validation
+302,1.0,P2050003 (2).JPG,gsw,gunshot wound,gunshot wound/P2050003 (2).JPG,train
+302,2.0,P2050096.JPG,gsw,gunshot wound,gunshot wound/P2050096.JPG,train
+303,1.0,P2110065.JPG,gsw,gunshot wound,gunshot wound/P2110065.JPG,train
+304,1.0,P2159579.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P2159579.JPG,test
+304,2.0,P2159668.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P2159668.JPG,test
+305,1.0,P2160042.JPG,gsw,gunshot wound,gunshot wound/P2160042.JPG,validation
+306,1.0,P2210092.JPG,gsw,gunshot wound,gunshot wound/P2210092.JPG,train
+306,2.0,P2210093.JPG,gsw,gunshot wound,gunshot wound/P2210093.JPG,train
+306,3.0,P2210123.JPG,gsw,gunshot wound,gunshot wound/P2210123.JPG,train
+306,4.0,P2210177.JPG,gsw,gunshot wound,gunshot wound/P2210177.JPG,train
+306,5.0,P2210190.JPG,gsw,gunshot wound,gunshot wound/P2210190.JPG,train
+306,6.0,P2210202.JPG,gsw,gunshot wound,gunshot wound/P2210202.JPG,train
+306,7.0,P2210206.JPG,gsw,gunshot wound,gunshot wound/P2210206.JPG,train
+306,8.0,P2210218.JPG,gsw,gunshot wound,gunshot wound/P2210218.JPG,train
+307,1.0,P3040034.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P3040034.JPG,train
+308,1.0,P3230045.JPG,gsw,gunshot wound,gunshot wound/P3230045.JPG,test
+308,2.0,P3230049.JPG,gsw,gunshot wound,gunshot wound/P3230049.JPG,test
+308,3.0,P3230050.JPG,gsw,gunshot wound,gunshot wound/P3230050.JPG,test
+308,4.0,P3230060.JPG,gsw,gunshot wound,gunshot wound/P3230060.JPG,test
+309,1.0,P3274863,cut,cut wound,cut wound/P3274863,train
+309,2.0,P3274900,cut,cut wound,cut wound/P3274900,train
+309,3.0,P3274813.JPG,gsw,gunshot wound,gunshot wound/P3274813.JPG,train
+309,4.0,P3274824.JPG,gsw,gunshot wound,gunshot wound/P3274824.JPG,train
+309,5.0,P3274825.JPG,gsw,gunshot wound,gunshot wound/P3274825.JPG,train
+309,6.0,P3274827.JPG,gsw,gunshot wound,gunshot wound/P3274827.JPG,train
+309,7.0,P3274829.JPG,gsw,gunshot wound,gunshot wound/P3274829.JPG,train
+309,8.0,P3274835.JPG,gsw,gunshot wound,gunshot wound/P3274835.JPG,train
+309,9.0,P3274837.JPG,gsw,gunshot wound,gunshot wound/P3274837.JPG,train
+309,10.0,P3274839.JPG,gsw,gunshot wound,gunshot wound/P3274839.JPG,train
+309,11.0,P3274850.JPG,gsw,gunshot wound,gunshot wound/P3274850.JPG,train
+309,12.0,P3274851.JPG,gsw,gunshot wound,gunshot wound/P3274851.JPG,train
+309,13.0,P3274860.JPG,gsw,gunshot wound,gunshot wound/P3274860.JPG,train
+309,14.0,P3274866.JPG,gsw,gunshot wound,gunshot wound/P3274866.JPG,train
+310,1.0,P3280056.JPG,gsw,gunshot wound,gunshot wound/P3280056.JPG,train
+310,2.0,P3280128.JPG,gsw,gunshot wound,gunshot wound/P3280128.JPG,train
+311,1.0,IMG_0021.JPG,gsw,gunshot wound,gunshot wound/IMG_0021.JPG,train
+311,2.0,IMG_0025.JPG,gsw,gunshot wound,gunshot wound/IMG_0025.JPG,train
+311,3.0,IMG_0036.JPG,gsw,gunshot wound,gunshot wound/IMG_0036.JPG,train
+312,1.0,P4119626.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P4119626.JPG,train
+313,1.0,P4254674.JPG,gsw,gunshot wound,gunshot wound/P4254674.JPG,test
+313,2.0,P4254688.JPG,gsw,gunshot wound,gunshot wound/P4254688.JPG,test
+314,1.0,IMG_2659,cut,cut wound,cut wound/IMG_2659,train
+314,2.0,IMG_2511.JPG,gsw,gunshot wound,gunshot wound/IMG_2511.JPG,train
+314,3.0,IMG_2533.JPG,gsw,gunshot wound,gunshot wound/IMG_2533.JPG,train
+314,4.0,IMG_2554.JPG,gsw,gunshot wound,gunshot wound/IMG_2554.JPG,train
+314,5.0,IMG_2559.JPG,gsw,gunshot wound,gunshot wound/IMG_2559.JPG,train
+314,6.0,IMG_2574.JPG,gsw,gunshot wound,gunshot wound/IMG_2574.JPG,train
+315,1.0,P4290024.JPG,gsw,gunshot wound,gunshot wound/P4290024.JPG,validation
+317,1.0,P4290058.JPG,gsw,gunshot wound,gunshot wound/P4290058.JPG,train
+318,1.0,P5250024.JPG,gsw,gunshot wound,gunshot wound/P5250024.JPG,train
+318,2.0,P5250030.JPG,gsw,gunshot wound,gunshot wound/P5250030.JPG,train
+319,1.0,P6294461.JPG,contusion,contusion,contusion/P6294461.JPG,train
+319,2.0,P6294487.JPG,contusion,contusion,contusion/P6294487.JPG,train
+319,3.0,P6294524.JPG,contusion,contusion,contusion/P6294524.JPG,train
+320,1.0,P6294838.JPG,scratch,scratch,scratch/P6294838.JPG,train
+321,1.0,P6305187.JPG,gsw,gunshot wound,gunshot wound/P6305187.JPG,train
+322,1.0,P7050054.JPG,contusion,contusion,contusion/P7050054.JPG,train
+323,1.0,IMG_9690.JPG,gsw,gunshot wound,gunshot wound/IMG_9690.JPG,train
+324,1.0,P7190411.JPG,contusion,contusion,contusion/P7190411.JPG,test
+324,2.0,P7190412.JPG,contusion,contusion,contusion/P7190412.JPG,test
+324,3.0,P7190351.JPG,graze,graze wound,graze wound/P7190351.JPG,test
+324,4.0,P7190311.JPG,laceration,laceration,laceration/P7190311.JPG,test
+324,5.0,P7190361.JPG,laceration,laceration,laceration/P7190361.JPG,test
+325,1.0,IMG_0914.JPG,gsw,gunshot wound,gunshot wound/IMG_0914.JPG,train
+326,1.0,IMG_0436.JPG,gsw,gunshot wound,gunshot wound/IMG_0436.JPG,validation
+327,1.0,P7280010.JPG,gsw,gunshot wound,gunshot wound/P7280010.JPG,train
+327,2.0,P7280015.JPG,gsw,gunshot wound,gunshot wound/P7280015.JPG,train
+328,1.0,IMG_2710.JPG,gsw,gunshot wound,gunshot wound/IMG_2710.JPG,train
+329,1.0,P9010836.JPG,gsw,gunshot wound,gunshot wound/P9010836.JPG,train
+330,1.0,P9174805.JPG,gsw,gunshot wound,gunshot wound/P9174805.JPG,train
+330,2.0,P9174807.JPG,gsw,gunshot wound,gunshot wound/P9174807.JPG,train
+331,1.0,P9206361.JPG,gsw,gunshot wound,gunshot wound/P9206361.JPG,train
+331,2.0,P9206366.JPG,gsw,gunshot wound,gunshot wound/P9206366.JPG,train
+331,3.0,P9206408.JPG,gsw,gunshot wound,gunshot wound/P9206408.JPG,train
+332,1.0,P9226768.JPG,gsw,gunshot wound,gunshot wound/P9226768.JPG,train
+333,1.0,P9268491.JPG,graze,graze wound,graze wound/P9268491.JPG,test
+333,2.0,P9268501.JPG,graze,graze wound,graze wound/P9268501.JPG,test
+334,1.0,IMG_8700.JPG,contusion,contusion,contusion/IMG_8700.JPG,test
+334,2.0,IMG_8726.JPG,contusion,contusion,contusion/IMG_8726.JPG,test
+334,3.0,IMG_8736.JPG,contusion,contusion,contusion/IMG_8736.JPG,test
+335,1.0,PA050132,cut,cut wound,cut wound/PA050132,test
+335,2.0,PA050141,cut,cut wound,cut wound/PA050141,test
+335,3.0,PA260142.JPG,cut,cut wound,cut wound/PA260142.JPG,test
+335,4.0,PA050089.JPG,gsw,gunshot wound,gunshot wound/PA050089.JPG,test
+335,5.0,PA050093.JPG,gsw,gunshot wound,gunshot wound/PA050093.JPG,test
+335,6.0,PA050099.JPG,gsw,gunshot wound,gunshot wound/PA050099.JPG,test
+335,7.0,PA050102.JPG,gsw,gunshot wound,gunshot wound/PA050102.JPG,test
+336,1.0,PA237236.JPG,contusion,contusion,contusion/PA237236.JPG,train
+336,2.0,PA237157.JPG,laceration,laceration,laceration/PA237157.JPG,train
+336,3.0,PA237218.JPG,laceration,laceration,laceration/PA237218.JPG,train
+336,4.0,PA237244.JPG,laceration,laceration,laceration/PA237244.JPG,train
+336,5.0,PA237230.JPG,scratch,scratch,scratch/PA237230.JPG,train
+337,1.0,PB123973.JPG,gsw,gunshot wound,gunshot wound/PB123973.JPG,train
+338,1.0,PB180076.JPG,contusion,contusion,contusion/PB180076.JPG,train
+338,2.0,PB180102.JPG,graze,graze wound,graze wound/PB180102.JPG,train
+339,1.0,PB210022.JPG,laceration,laceration,laceration/PB210022.JPG,test
+340,1.0,PB220038.JPG,gsw,gunshot wound,gunshot wound/PB220038.JPG,train
+341,1.0,PC010080.JPG,scratch,scratch,scratch/PC010080.JPG,train
+341,2.0,PC010081.JPG,scratch,scratch,scratch/PC010081.JPG,train
+341,3.0,PC010108.JPG,scratch,scratch,scratch/PC010108.JPG,train
+341,4.0,PC010109.JPG,scratch,scratch,scratch/PC010109.JPG,train
+342,1.0,PC090095.JPG,gsw,gunshot wound,gunshot wound/PC090095.JPG,validation
+342,2.0,PC090097.JPG,gsw,gunshot wound,gunshot wound/PC090097.JPG,validation
+343,1.0,PC094144.JPG,gsw,gunshot wound,gunshot wound/PC094144.JPG,train
+344,1.0,PC290074.JPG,laceration,laceration,laceration/PC290074.JPG,train
+344,2.0,PC290101.JPG,laceration,laceration,laceration/PC290101.JPG,train
+344,3.0,PC290112.JPG,laceration,laceration,laceration/PC290112.JPG,train
+345,1.0,PC290077.JPG,graze,graze wound,graze wound/PC290077.JPG,validation
+345,2.0,PC290082.JPG,graze,graze wound,graze wound/PC290082.JPG,validation
+345,3.0,PC290085.JPG,graze,graze wound,graze wound/PC290085.JPG,validation
+346,1.0,PC305331.JPG,laceration,laceration,laceration/PC305331.JPG,train
+347,1.0,PC305648.JPG,laceration,laceration,laceration/PC305648.JPG,validation
+348,1.0,PC300085.JPG,graze,graze wound,graze wound/PC300085.JPG,validation
+349,1.0,PC316056.JPG,gsw,gunshot wound,gunshot wound/PC316056.JPG,train
+349,2.0,PC316098.JPG,gsw,gunshot wound,gunshot wound/PC316098.JPG,train
+349,3.0,PC316104.JPG,gsw,gunshot wound,gunshot wound/PC316104.JPG,train
+350,1.0,P1070300.JPG,graze,graze wound,graze wound/P1070300.JPG,train
+350,2.0,P1070319.JPG,graze,graze wound,graze wound/P1070319.JPG,train
+351,1.0,P1070336.JPG,graze,graze wound,graze wound/P1070336.JPG,train
+351,2.0,P1070353.JPG,graze,graze wound,graze wound/P1070353.JPG,train
+351,3.0,P1070361.JPG,graze,graze wound,graze wound/P1070361.JPG,train
+351,4.0,P1070365.JPG,graze,graze wound,graze wound/P1070365.JPG,train
+351,5.0,P1070371.JPG,graze,graze wound,graze wound/P1070371.JPG,train
+351,6.0,P1070375.JPG,graze,graze wound,graze wound/P1070375.JPG,train
+351,7.0,P1070398.JPG,graze,graze wound,graze wound/P1070398.JPG,train
+352,1.0,P1070189.JPG,contusion,contusion,contusion/P1070189.JPG,train
+352,2.0,P1070184,cut,cut wound,cut wound/P1070184,train
+353,1.0,P1070307.JPG,scratch,scratch,scratch/P1070307.JPG,test
+354,1.0,P1070323.JPG,scratch,scratch,scratch/P1070323.JPG,test
+355,1.0,P1070601.JPG,contusion,contusion,contusion/P1070601.JPG,train
+355,2.0,P1070615.JPG,contusion,contusion,contusion/P1070615.JPG,train
+355,3.0,P1070622.JPG,contusion,contusion,contusion/P1070622.JPG,train
+355,4.0,P1070627.JPG,contusion,contusion,contusion/P1070627.JPG,train
+355,5.0,P1070637.JPG,contusion,contusion,contusion/P1070637.JPG,train
+355,6.0,P1070641.JPG,contusion,contusion,contusion/P1070641.JPG,train
+355,7.0,P1070658.JPG,contusion,contusion,contusion/P1070658.JPG,train
+355,8.0,P1070660.JPG,contusion,contusion,contusion/P1070660.JPG,train
+355,9.0,P1070668.JPG,contusion,contusion,contusion/P1070668.JPG,train
+356,1.0,P1070804.JPG,contusion,contusion,contusion/P1070804.JPG,test
+356,2.0,P1070812.JPG,contusion,contusion,contusion/P1070812.JPG,test
+357,1.0,P1070869.JPG,contusion,contusion,contusion/P1070869.JPG,train
+357,2.0,P1070871.JPG,contusion,contusion,contusion/P1070871.JPG,train
+357,3.0,P1070832.JPG,laceration,laceration,laceration/P1070832.JPG,train
+358,1.0,IMG_0074.JPG,contusion,contusion,contusion/IMG_0074.JPG,train
+358,2.0,IMG_0080.JPG,contusion,contusion,contusion/IMG_0080.JPG,train
+358,3.0,IMG_0086.JPG,contusion,contusion,contusion/IMG_0086.JPG,train
+358,4.0,IMG_0089.JPG,contusion,contusion,contusion/IMG_0089.JPG,train
+358,5.0,IMG_0104.JPG,contusion,contusion,contusion/IMG_0104.JPG,train
+358,6.0,IMG_0012.JPG,graze,graze wound,graze wound/IMG_0012.JPG,train
+358,7.0,IMG_0060.JPG,scratch,scratch,scratch/IMG_0060.JPG,train
+359,1.0,IMG_0216.JPG,laceration,laceration,laceration/IMG_0216.JPG,test
+360,1.0,IMG_0235,cut,cut wound,cut wound/IMG_0235,validation
+360,2.0,IMG_0246.JPG,scratch,scratch,scratch/IMG_0246.JPG,validation
+360,3.0,IMG_0249.JPG,scratch,scratch,scratch/IMG_0249.JPG,validation
+361,1.0,IMG_0319.JPG,contusion,contusion,contusion/IMG_0319.JPG,train
+361,2.0,IMG_0334.JPG,contusion,contusion,contusion/IMG_0334.JPG,train
+361,3.0,IMG_0350.JPG,contusion,contusion,contusion/IMG_0350.JPG,train
+362,1.0,IMG_0397.JPG,contusion,contusion,contusion/IMG_0397.JPG,validation
+363,1.0,IMG_0422.JPG,contusion,contusion,contusion/IMG_0422.JPG,train
+363,2.0,IMG_0431.JPG,contusion,contusion,contusion/IMG_0431.JPG,train
+364,1.0,IMG_0552.JPG,scratch,scratch,scratch/IMG_0552.JPG,train
+364,2.0,IMG_0554.JPG,scratch,scratch,scratch/IMG_0554.JPG,train
+364,3.0,IMG_0555.JPG,scratch,scratch,scratch/IMG_0555.JPG,train
+364,4.0,IMG_0558.JPG,scratch,scratch,scratch/IMG_0558.JPG,train
+364,5.0,IMG_0560.JPG,scratch,scratch,scratch/IMG_0560.JPG,train
+364,6.0,IMG_0577.JPG,scratch,scratch,scratch/IMG_0577.JPG,train
+364,7.0,IMG_0584.JPG,scratch,scratch,scratch/IMG_0584.JPG,train
+365,1.0,IMG_0633.JPG,graze,graze wound,graze wound/IMG_0633.JPG,train
+365,2.0,IMG_0626.JPG,laceration,laceration,laceration/IMG_0626.JPG,train
+366,1.0,IMG_0974.JPG,contusion,contusion,contusion/IMG_0974.JPG,train
+366,2.0,IMG_0980.JPG,contusion,contusion,contusion/IMG_0980.JPG,train
+367,1.0,IMG_1027.JPG,contusion,contusion,contusion/IMG_1027.JPG,train
+367,2.0,IMG_1029.JPG,contusion,contusion,contusion/IMG_1029.JPG,train
+367,3.0,IMG_1032.JPG,contusion,contusion,contusion/IMG_1032.JPG,train
+367,4.0,IMG_1049.JPG,graze,graze wound,graze wound/IMG_1049.JPG,train
+368,1.0,IMG_1122.JPG,contusion,contusion,contusion/IMG_1122.JPG,train
+369,1.0,IMG_1159.JPG,scratch,scratch,scratch/IMG_1159.JPG,train
+369,2.0,IMG_1163.JPG,scratch,scratch,scratch/IMG_1163.JPG,train
+369,3.0,IMG_1172.JPG,scratch,scratch,scratch/IMG_1172.JPG,train
+370,1.0,IMG_1224.JPG,graze,graze wound,graze wound/IMG_1224.JPG,validation
+370,2.0,IMG_1231.JPG,graze,graze wound,graze wound/IMG_1231.JPG,validation
+370,3.0,IMG_1235.JPG,graze,graze wound,graze wound/IMG_1235.JPG,validation
+370,4.0,IMG_1239.JPG,graze,graze wound,graze wound/IMG_1239.JPG,validation
+371,1.0,IMG_1286.JPG,contusion,contusion,contusion/IMG_1286.JPG,test
+372,1.0,IMG_1446.JPG,contusion,contusion,contusion/IMG_1446.JPG,validation
+372,2.0,IMG_1459.JPG,contusion,contusion,contusion/IMG_1459.JPG,validation
+372,3.0,IMG_1461.JPG,contusion,contusion,contusion/IMG_1461.JPG,validation
+373,1.0,IMG_1376.JPG,contusion,contusion,contusion/IMG_1376.JPG,train
+373,2.0,IMG_1385.JPG,contusion,contusion,contusion/IMG_1385.JPG,train
+374,1.0,IMG_2262.JPG,graze,graze wound,graze wound/IMG_2262.JPG,test
+375,1.0,IMG_2348.JPG,contusion,contusion,contusion/IMG_2348.JPG,train
+376,1.0,IMG_2680.JPG,graze,graze wound,graze wound/IMG_2680.JPG,train
+377,1.0,IMG_2405.JPG,contusion,contusion,contusion/IMG_2405.JPG,train
+377,2.0,IMG_2411.JPG,contusion,contusion,contusion/IMG_2411.JPG,train
+377,3.0,IMG_2414.JPG,contusion,contusion,contusion/IMG_2414.JPG,train
+377,4.0,IMG_2437.JPG,contusion,contusion,contusion/IMG_2437.JPG,train
+377,5.0,IMG_2455.JPG,contusion,contusion,contusion/IMG_2455.JPG,train
+377,6.0,IMG_2473.JPG,contusion,contusion,contusion/IMG_2473.JPG,train
+377,7.0,IMG_2491.JPG,contusion,contusion,contusion/IMG_2491.JPG,train
+377,8.0,IMG_2497.JPG,contusion,contusion,contusion/IMG_2497.JPG,train
+378,1.0,IMG_2552.JPG,laceration,laceration,laceration/IMG_2552.JPG,train
+379,1.0,IMG_2741,cut,cut wound,cut wound/IMG_2741,train
+379,2.0,IMG_2746,cut,cut wound,cut wound/IMG_2746,train
+380,1.0,IMG_4472,cut,cut wound,cut wound/IMG_4472,train
+381,1.0,IMG_2808.JPG,contusion,contusion,contusion/IMG_2808.JPG,validation
+382,1.0,IMG_2877.JPG,contusion,contusion,contusion/IMG_2877.JPG,train
+382,2.0,IMG_2922.JPG,graze,graze wound,graze wound/IMG_2922.JPG,train
+383,1.0,IMG_2926.JPG,graze,graze wound,graze wound/IMG_2926.JPG,train
+383,2.0,IMG_2930.JPG,graze,graze wound,graze wound/IMG_2930.JPG,train
+383,3.0,IMG_2943.JPG,graze,graze wound,graze wound/IMG_2943.JPG,train
+383,4.0,IMG_2949.JPG,graze,graze wound,graze wound/IMG_2949.JPG,train
+383,5.0,IMG_2954.JPG,graze,graze wound,graze wound/IMG_2954.JPG,train
+383,6.0,IMG_2960.JPG,graze,graze wound,graze wound/IMG_2960.JPG,train
+383,7.0,IMG_2988.JPG,graze,graze wound,graze wound/IMG_2988.JPG,train
+383,8.0,IMG_3006.JPG,graze,graze wound,graze wound/IMG_3006.JPG,train
+383,9.0,IMG_3023.JPG,graze,graze wound,graze wound/IMG_3023.JPG,train
+383,10.0,IMG_3027.JPG,graze,graze wound,graze wound/IMG_3027.JPG,train
+384,1.0,IMG_3060.JPG,contusion,contusion,contusion/IMG_3060.JPG,train
+384,2.0,IMG_3065.JPG,contusion,contusion,contusion/IMG_3065.JPG,train
+384,3.0,IMG_3092.JPG,contusion,contusion,contusion/IMG_3092.JPG,train
+384,4.0,IMG_3095.JPG,contusion,contusion,contusion/IMG_3095.JPG,train
+384,5.0,IMG_3098.JPG,contusion,contusion,contusion/IMG_3098.JPG,train
+385,1.0,IMG_3265.JPG,contusion,contusion,contusion/IMG_3265.JPG,train
+385,2.0,IMG_3299.JPG,graze,graze wound,graze wound/IMG_3299.JPG,train
+385,3.0,IMG_3303.JPG,graze,graze wound,graze wound/IMG_3303.JPG,train
+385,4.0,IMG_3317.JPG,graze,graze wound,graze wound/IMG_3317.JPG,train
+385,5.0,IMG_3278.JPG,scratch,scratch,scratch/IMG_3278.JPG,train
+386,1.0,IMG_3157.JPG,graze,graze wound,graze wound/IMG_3157.JPG,train
+386,2.0,IMG_3171.JPG,graze,graze wound,graze wound/IMG_3171.JPG,train
+386,3.0,IMG_3176.JPG,graze,graze wound,graze wound/IMG_3176.JPG,train
+387,1.0,IMG_3441.JPG,graze,graze wound,graze wound/IMG_3441.JPG,train
+387,2.0,IMG_3446.JPG,graze,graze wound,graze wound/IMG_3446.JPG,train
+387,3.0,IMG_3449.JPG,graze,graze wound,graze wound/IMG_3449.JPG,train
+387,4.0,IMG_3383.JPG,scratch,scratch,scratch/IMG_3383.JPG,train
+387,5.0,IMG_3395.JPG,scratch,scratch,scratch/IMG_3395.JPG,train
+387,6.0,IMG_3432.JPG,scratch,scratch,scratch/IMG_3432.JPG,train
+388,1.0,IMG_3527.JPG,graze,graze wound,graze wound/IMG_3527.JPG,train
+388,2.0,IMG_3520.JPG,scratch,scratch,scratch/IMG_3520.JPG,train
+389,1.0,IMG_3858.JPG,graze,graze wound,graze wound/IMG_3858.JPG,validation
+390,1.0,IMG_4002.JPG,scratch,scratch,scratch/IMG_4002.JPG,train
+391,1.0,IMG_4053.JPG,graze,graze wound,graze wound/IMG_4053.JPG,train
+392,1.0,IMG_4279.JPG,contusion,contusion,contusion/IMG_4279.JPG,test
+392,2.0,IMG_4264.JPG,scratch,scratch,scratch/IMG_4264.JPG,test
+393,1.0,IMG_2753,cut,cut wound,cut wound/IMG_2753,train
+394,1.0,IMG_4546.JPG,contusion,contusion,contusion/IMG_4546.JPG,train
+394,2.0,IMG_4551.JPG,contusion,contusion,contusion/IMG_4551.JPG,train
+394,3.0,IMG_4580.JPG,contusion,contusion,contusion/IMG_4580.JPG,train
+394,4.0,IMG_4589.JPG,contusion,contusion,contusion/IMG_4589.JPG,train
+394,5.0,IMG_4614.JPG,contusion,contusion,contusion/IMG_4614.JPG,train
+395,1.0,IMG_3247.JPG,contusion,contusion,contusion/IMG_3247.JPG,train
+395,2.0,IMG_3249.JPG,contusion,contusion,contusion/IMG_3249.JPG,train
+395,3.0,IMG_3257.JPG,contusion,contusion,contusion/IMG_3257.JPG,train
+395,4.0,IMG_3307.JPG,contusion,contusion,contusion/IMG_3307.JPG,train
+396,1.0,IMG_3378.JPG,contusion,contusion,contusion/IMG_3378.JPG,train
+396,2.0,IMG_3387.JPG,contusion,contusion,contusion/IMG_3387.JPG,train
+397,1.0,IMG_3624.JPG,contusion,contusion,contusion/IMG_3624.JPG,test
+397,2.0,IMG_3637.JPG,contusion,contusion,contusion/IMG_3637.JPG,test
+397,3.0,IMG_3704.JPG,contusion,contusion,contusion/IMG_3704.JPG,test
+398,1.0,IMG_3804.JPG,contusion,contusion,contusion/IMG_3804.JPG,train
+398,2.0,IMG_3827.JPG,contusion,contusion,contusion/IMG_3827.JPG,train
+398,3.0,IMG_3837.JPG,contusion,contusion,contusion/IMG_3837.JPG,train
+398,4.0,IMG_3852.JPG,graze,graze wound,graze wound/IMG_3852.JPG,train
+398,5.0,IMG_3814.JPG,scratch,scratch,scratch/IMG_3814.JPG,train
+399,1.0,IMG_3898.JPG,contusion,contusion,contusion/IMG_3898.JPG,validation
+399,2.0,IMG_3906.JPG,contusion,contusion,contusion/IMG_3906.JPG,validation
+400,1.0,IMG_3995.JPG,contusion,contusion,contusion/IMG_3995.JPG,train
+401,1.0,IMG_3956.JPG,contusion,contusion,contusion/IMG_3956.JPG,train
+402,1.0,IMG_4016.JPG,graze,graze wound,graze wound/IMG_4016.JPG,train
+403,1.0,IMG_4058.JPG,contusion,contusion,contusion/IMG_4058.JPG,test
+403,2.0,IMG_4124.JPG,contusion,contusion,contusion/IMG_4124.JPG,test
+403,3.0,IMG_4148.JPG,contusion,contusion,contusion/IMG_4148.JPG,test
+403,4.0,IMG_4154.JPG,graze,graze wound,graze wound/IMG_4154.JPG,test
+404,1.0,IMG_4435.JPG,scratch,scratch,scratch/IMG_4435.JPG,train
+405,1.0,IMG_4751.JPG,contusion,contusion,contusion/IMG_4751.JPG,test
+405,2.0,IMG_4768.JPG,contusion,contusion,contusion/IMG_4768.JPG,test
+405,3.0,IMG_4757.JPG,graze,graze wound,graze wound/IMG_4757.JPG,test
+406,1.0,IMG_4797.JPG,graze,graze wound,graze wound/IMG_4797.JPG,train
+406,2.0,IMG_4806.JPG,scratch,scratch,scratch/IMG_4806.JPG,train
+407,1.0,IMG_4861.JPG,graze,graze wound,graze wound/IMG_4861.JPG,train
+407,2.0,IMG_4867.JPG,graze,graze wound,graze wound/IMG_4867.JPG,train
+408,1.0,IMG_4960.JPG,contusion,contusion,contusion/IMG_4960.JPG,validation
+409,1.0,IMG_5050.JPG,contusion,contusion,contusion/IMG_5050.JPG,train
+410,1.0,IMG_5118.JPG,contusion,contusion,contusion/IMG_5118.JPG,validation
+410,2.0,IMG_5107.JPG,laceration,laceration,laceration/IMG_5107.JPG,validation
+411,1.0,IMG_5231.JPG,contusion,contusion,contusion/IMG_5231.JPG,train
+412,1.0,IMG_5319.JPG,graze,graze wound,graze wound/IMG_5319.JPG,train
+413,1.0,IMG_5439.JPG,graze,graze wound,graze wound/IMG_5439.JPG,test
+413,2.0,IMG_5448.JPG,graze,graze wound,graze wound/IMG_5448.JPG,test
+413,3.0,IMG_5453.JPG,graze,graze wound,graze wound/IMG_5453.JPG,test
+414,1.0,IMG_0604.JPG,contusion,contusion,contusion/IMG_0604.JPG,train
+414,2.0,IMG_0611.JPG,contusion,contusion,contusion/IMG_0611.JPG,train
+415,,P1071425,cut,cut wound,cut wound/P1071425,train
+416,,P6160256,cut,cut wound,cut wound/P6160256,train
+417,,IMG_4761.JPG,graze,graze wound,graze wound/IMG_4761.JPG,train
+418,,P1070312.JPG,graze,graze wound,graze wound/P1070312.JPG,train
+419,,P2030254.JPG,gsw,gunshot wound,gunshot wound/P2030254.JPG,train
+420,,P6290474.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6290474.JPG,test
+421,,IMG_1427.JPG,scratch,scratch,scratch/IMG_1427.JPG,train
+422,,ZZ177090.JPG,scratch,scratch,scratch/ZZ177090.JPG,train
