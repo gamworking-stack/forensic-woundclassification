@@ -3,10 +3,9 @@
 
 S01-S12 use the T08b chosen learning rate and train for the selected run's best epoch; S13-S14
 fit the T06 chosen SVM; S15-S16 train members with seeds 43-45 for each member's best epoch,
-then soft-vote them per fold. Standard library only, so it runs on the login node.
+then soft-vote them per fold. Standard library only and Python 3.6 compatible, so it runs on the
+login node's system python3.
 """
-
-from __future__ import annotations
 
 import argparse
 import csv
