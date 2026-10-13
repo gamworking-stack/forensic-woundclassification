@@ -79,7 +79,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(cfg.device)
     image_size = cfg.image_size or input_size(cfg.family)
 
-    df = load_manifest(cfg.manifest, cfg.input_path, cfg.full_scope, cfg.roi_manifest, cfg.smoke)
+    df = load_manifest(cfg.manifest, cfg.input_path, cfg.full_scope, cfg.roi_manifest, cfg.smoke,
+                       cfg.cv_folds, cfg.fold)
     df, classes = prepare_rows(df, cfg.input_path, cfg.image_root)
 
     train_labels = df.loc[df["split"] == "train", "label_index"].to_numpy()
@@ -205,15 +206,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         log("Prediction files already present; nothing to do.")
         return 0
 
-    best = load_checkpoint(best_path, device)
-    model.load_state_dict(best["model"])
+    chosen = load_checkpoint(best_path if cfg.checkpoint == "best" else last_path, device)
+    model.load_state_dict(chosen["model"])
     # The test split is loaded here for the first time, after training has ended.
     for split, path in prediction_paths.items():
         rows, loader = make_loader(split, False)
         _, labels, probs = predict(model, loader, criterion, device)
         prediction_frame(rows, labels, probs, classes).to_csv(path, index=False)
-    log(f"Wrote predictions from best epoch {best['epoch']} "
-        f"(validation macro-F1={best['validation_macro_f1']:.6f}) to {out}")
+    detail = (f" (validation macro-F1={chosen['validation_macro_f1']:.6f})" if cfg.checkpoint == "best" else "")
+    log(f"Wrote predictions from {cfg.checkpoint} epoch {chosen['epoch']}{detail} to {out}")
     return 0
 
 

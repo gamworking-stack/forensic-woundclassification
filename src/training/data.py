@@ -33,13 +33,23 @@ def load_manifest(
     full_scope: str = "matched",
     roi_manifest: Path = Path("data/roi/roi_manifest.csv"),
     smoke: bool = False,
+    cv_folds: Optional[Path] = None,
+    fold: Optional[int] = None,
 ) -> pd.DataFrame:
-    """Read a scenario's manifest, apply the full-image scope, and check leakage and classes."""
+    """Read a scenario's manifest, apply the full-image scope, and check leakage and classes.
+
+    With ``cv_folds`` and ``fold`` (T12b) the test rows are dropped, the cases of ``fold`` become
+    the validation split and every other development case the train split.
+    """
     df = read_csv(manifest)
     df["split"] = df["split"].str.strip().str.lower()
     unknown = sorted(set(df["split"]) - set(SPLIT_NAMES))
     if unknown:
         raise ValueError(f"Unexpected split values in {manifest}: {unknown}")
+    splits = SPLIT_NAMES
+    if cv_folds is not None:
+        df = cv_split(df, cv_folds, fold)
+        splits = ("train", "validation")
 
     if input_path == "full" and full_scope == "matched":
         roi_paths = set(read_csv(roi_manifest)["relative_path"])
@@ -48,19 +58,33 @@ def load_manifest(
     verify_no_case_leakage(df.to_dict("records"), GROUP_COLUMN)
     if smoke:
         df = df.groupby(["split", LABEL_COLUMN], sort=False).head(2).reset_index(drop=True)
-    check_class_coverage(df)
+    check_class_coverage(df, splits)
     return df
+
+
+def cv_split(df: pd.DataFrame, cv_folds: Path, fold: Optional[int]) -> pd.DataFrame:
+    """Development rows only; ``fold`` becomes validation, the other folds train."""
+    folds = read_csv(cv_folds).set_index(GROUP_COLUMN)["fold"].astype(int)
+    if fold not in set(folds):
+        raise ValueError(f"Fold {fold} is not in {cv_folds} (folds {sorted(set(folds))})")
+    df = df[df["split"] != "test"].copy()
+    assigned = df[GROUP_COLUMN].map(folds)
+    if assigned.isna().any():
+        missing = sorted(set(df.loc[assigned.isna(), GROUP_COLUMN]))
+        raise ValueError(f"{len(missing)} development cases have no fold in {cv_folds}: {missing[:5]}")
+    df["split"] = ["validation" if f == fold else "train" for f in assigned]
+    return df.reset_index(drop=True)
 
 
 def class_names(df: pd.DataFrame) -> List[str]:
     return sorted(df[LABEL_COLUMN].unique())
 
 
-def check_class_coverage(df: pd.DataFrame) -> None:
+def check_class_coverage(df: pd.DataFrame, splits: Sequence[str] = SPLIT_NAMES) -> None:
     classes = class_names(df)
     if len(classes) != EXPECTED_CLASSES:
         raise ValueError(f"Expected {EXPECTED_CLASSES} classes, found {len(classes)}: {classes}")
-    for split in SPLIT_NAMES:
+    for split in splits:
         missing = set(classes) - set(df.loc[df["split"] == split, LABEL_COLUMN])
         if missing:
             raise ValueError(f"Split {split!r} has no images of: {sorted(missing)}")

@@ -90,7 +90,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--no-pretrained", dest="pretrained", action="store_false")
     parser.add_argument("--no-cache", dest="cache", action="store_false")
     parser.add_argument("--smoke", action="store_true", help="2 images per class per split.")
-    return parser.parse_args(argv)
+    parser.add_argument("--cv-folds", type=Path, default=None,
+                        help="CV run (T12b): fold table; test rows are dropped and --fold is validation.")
+    parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--svm-params-from", type=Path, default=None,
+                        help="run_config.json of a finished CNN-SVM run; fit its best_params instead of the grid.")
+    args = parser.parse_args(argv)
+    if (args.cv_folds is None) != (args.fold is None):
+        parser.error("--cv-folds and --fold go together")
+    return args
 
 
 @torch.no_grad()
@@ -115,19 +123,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(args.device)
     image_size = args.image_size or input_size(args.extractors[0])
 
-    df = load_manifest(args.manifest, args.input_path, args.full_scope, args.roi_manifest, args.smoke)
+    df = load_manifest(args.manifest, args.input_path, args.full_scope, args.roi_manifest, args.smoke,
+                       args.cv_folds, args.fold)
+    cv = args.cv_folds is not None
     df, classes = prepare_rows(df, args.input_path, args.image_root)
-    rows = {split: df[df["split"] == split] for split in SPLIT_NAMES}
-    labels = {split: rows[split]["label_index"].to_numpy() for split in SPLIT_NAMES}
+    splits = ("train", "validation") if cv else SPLIT_NAMES
+    rows = {split: df[df["split"] == split] for split in splits}
+    labels = {split: rows[split]["label_index"].to_numpy() for split in splits}
 
     run_config: Dict[str, Any] = {
         **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         "family": "cnn_svm",
         "image_size": image_size,
         "classes": classes,
-        "svm_grid": svm_grid(),
-        "images_per_split": {s: len(rows[s]) for s in SPLIT_NAMES},
-        "cases_per_split": {s: int(rows[s][GROUP_COLUMN].nunique()) for s in SPLIT_NAMES},
+        "svm_grid": [] if args.svm_params_from else svm_grid(),
+        "images_per_split": {s: len(rows[s]) for s in splits},
+        "cases_per_split": {s: int(rows[s][GROUP_COLUMN].nunique()) for s in splits},
         **git_state(),
         "environment": environment_info(device),
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -183,10 +194,40 @@ def main(argv: Optional[List[str]] = None) -> int:
     run_config["feature_dim"] = int(x_train.shape[1])
     log(f"Features: train {x_train.shape}, validation {x_val.shape}")
 
+    if args.svm_params_from:
+        best = json.loads(args.svm_params_from.read_text(encoding="utf-8"))["best_params"]
+        run_config["best_params"] = best
+        log(f"Fixed SVM {best} from {args.svm_params_from} (no grid)")
+    else:
+        best = tune(x_train, x_val, labels, classes, args.seed, out, log, run_config)
+
+    val_model = make_svm(best, args.seed, probability=True).fit(x_train, labels["train"])
+    prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes) \
+        .to_csv(out / "validation_predictions.csv", index=False)
+    if cv:  # held-out fold predicted; the test split is never loaded
+        write_config()
+        log(f"Wrote validation predictions to {out} (CV fold {args.fold})")
+        return 0
+
+    # The test split is touched for the first time here, after the SVM has been chosen.
+    x_test = split_features("test")
+    final = make_svm(best, args.seed, probability=True).fit(
+        np.vstack([x_train, x_val]), np.concatenate([labels["train"], labels["validation"]])
+    )
+    prediction_frame(rows["test"], labels["test"], final.predict_proba(x_test), classes) \
+        .to_csv(out / "test_predictions.csv", index=False)
+
+    write_config()
+    log(f"Wrote predictions to {out} (test from SVM refit on train+validation)")
+    return 0
+
+
+def tune(x_train, x_val, labels, classes, seed, out, log, run_config) -> Dict[str, Any]:
+    """Validation macro-F1 for every grid setting; returns the chosen one and logs grid-edge warnings."""
     grid = svm_grid()
     tuning = []
     for params in grid:
-        pred = make_svm(params, args.seed).fit(x_train, labels["train"]).predict(x_val)
+        pred = make_svm(params, seed).fit(x_train, labels["train"]).predict(x_val)
         metrics = classification_metrics(labels["validation"], pred, len(classes))
         tuning.append({
             "kernel": params["kernel"],
@@ -208,21 +249,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if edges:
         log(f"WARNING: chosen SVM is on the edge of the grid ({', '.join(edges)}); consider widening it")
 
-    val_model = make_svm(best, args.seed, probability=True).fit(x_train, labels["train"])
-    prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes) \
-        .to_csv(out / "validation_predictions.csv", index=False)
-
-    # The test split is touched for the first time here, after the SVM has been chosen.
-    x_test = split_features("test")
-    final = make_svm(best, args.seed, probability=True).fit(
-        np.vstack([x_train, x_val]), np.concatenate([labels["train"], labels["validation"]])
-    )
-    prediction_frame(rows["test"], labels["test"], final.predict_proba(x_test), classes) \
-        .to_csv(out / "test_predictions.csv", index=False)
-
-    write_config()
-    log(f"Wrote predictions to {out} (test from SVM refit on train+validation)")
-    return 0
+    return best
 
 
 if __name__ == "__main__":

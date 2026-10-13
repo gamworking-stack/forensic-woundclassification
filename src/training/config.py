@@ -45,6 +45,9 @@ class RunConfig:
     resume: bool = False
     smoke: bool = False
     skip_test: bool = False
+    cv_folds: Optional[Path] = None
+    fold: Optional[int] = None
+    checkpoint: str = "best"
 
     def to_json(self) -> Dict[str, Any]:
         return {k: str(v) if isinstance(v, Path) else v for k, v in asdict(self).items()}
@@ -84,7 +87,16 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
                         help="2 epochs on 2 images per class per split.")
     parser.add_argument("--skip-test", action="store_true",
                         help="Tuning run: write validation predictions only; never load the test split.")
+    parser.add_argument("--cv-folds", type=Path, default=None,
+                        help="CV run (T12b): fold table; test rows are dropped and --fold is validation.")
+    parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--checkpoint", choices=("best", "last"), default="best",
+                        help="Weights that predict: best validation epoch, or the last epoch (fixed-epoch CV).")
     args = parser.parse_args(argv)
+    if (args.cv_folds is None) != (args.fold is None):
+        parser.error("--cv-folds and --fold go together")
+    if args.cv_folds is not None:
+        args.skip_test = True  # CV never loads the test split
 
     if args.max_epochs is None:
         args.max_epochs = 2 if args.smoke else 200

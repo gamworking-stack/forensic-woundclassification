@@ -34,13 +34,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--members", type=Path, nargs="+", required=True,
                         help="Output folders of finished train.py runs.")
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--splits", nargs="+", choices=PREDICTION_SPLITS, default=list(PREDICTION_SPLITS),
+                        help="Prediction files to combine; CV folds (T12b) have validation only.")
     return parser.parse_args(argv)
 
 
-def read_member(member_dir: Path) -> Dict[str, Any]:
+def read_member(member_dir: Path, splits=PREDICTION_SPLITS) -> Dict[str, Any]:
     """Load a member's config, best-checkpoint summary and prediction files."""
     predictions = {}
-    for split in PREDICTION_SPLITS:
+    for split in splits:
         path = member_dir / f"{split}_predictions.csv"
         if not path.is_file():
             raise FileNotFoundError(f"{member_dir} has no {path.name}; has its training run finished?")
@@ -101,11 +103,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     log = Logger(out / "ensemble.log")
 
-    members = [read_member(d) for d in args.members]
+    members = [read_member(d, args.splits) for d in args.members]
     classes = check_members(members)
     names = [str(m["dir"]) for m in members]
 
-    for split in PREDICTION_SPLITS:
+    for split in args.splits:
         voted = soft_vote([m["predictions"][split] for m in members], names, classes)
         voted.to_csv(out / f"{split}_predictions.csv", index=False)
 

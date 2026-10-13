@@ -28,6 +28,7 @@ module load apptainer/1.3.5
 apptainer exec --bind "$PROJECT_ROOT" --pwd "$REPO_DIR" "$SIF" \
   python src/training/ensemble.py \
     --members "$ENSEMBLE_DIR"/member_01 "$ENSEMBLE_DIR"/member_02 "$ENSEMBLE_DIR"/member_03 \
-    --output-dir "$ENSEMBLE_DIR"
+    --output-dir "$ENSEMBLE_DIR" \
+    --splits ${ENSEMBLE_SPLITS:-validation test}
 
 echo "Done at $(date -Is)"
