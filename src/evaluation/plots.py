@@ -70,3 +70,47 @@ def plot_roc_curves(curves: pd.DataFrame, classes: list, title: str, path: Path)
     fig.tight_layout()
     fig.savefig(path, dpi=200)
     plt.close(fig)
+
+
+FAMILY_LABELS = {
+    "efficientnet_b0": "EfficientNet-B0", "resnet152": "ResNet152", "mobilenet_v3_small": "MobileNetV3-Small",
+    "googlenet": "GoogLeNet", "vgg16": "VGG16", "vit_b16": "ViT-B/16", "cnn_svm": "CNN-SVM",
+    "alexnet_ensemble": "AlexNet ensemble",
+}
+
+
+def plot_full_vs_roi(rows: pd.DataFrame, pooled: str, title: str, path: Path) -> None:
+    """Forest plot: ROI - full difference with its 95% interval per family, pooled row last."""
+    families = [f for f in rows["family"] if f != pooled]
+    order = families + [pooled]
+    data = rows.set_index("family").loc[order]
+    y = np.arange(len(order))[::-1].astype(float)
+    y[-1] -= 0.5  # gap above the pooled row
+
+    fig, ax = plt.subplots(figsize=(7.2, 0.42 * len(order) + 1.6))
+    ax.axvline(0, color=MUTED, linewidth=1, linestyle="--", zorder=1)
+    for yi, (family, r) in zip(y, data.iterrows()):
+        is_pooled = family == pooled
+        ax.plot([r["ci_low"], r["ci_high"]], [yi, yi], color=INK, linewidth=2.5 if is_pooled else 1.5,
+                solid_capstyle="round", zorder=2)
+        ax.plot(r["difference"], yi, marker="D" if is_pooled else "o", markersize=8 if is_pooled else 6.5,
+                color=INK, markeredgecolor="white", markeredgewidth=1, zorder=3)
+        ax.annotate(f"{r['difference']:+.3f} [{r['ci_low']:+.3f}, {r['ci_high']:+.3f}]", xy=(1.02, yi),
+                    xycoords=("axes fraction", "data"), va="center", fontsize=8, color=INK)
+
+    reach = max(abs(data["ci_low"]).max(), abs(data["ci_high"]).max(), 0.01) * 1.1
+    ax.set_xlim(-reach, reach)
+    ax.set_ylim(y.min() - 0.7, y.max() + 0.7)
+    ax.set_yticks(y, [FAMILY_LABELS.get(f, f) for f in order])
+    ax.get_yticklabels()[-1].set_fontweight("bold")
+    ax.set_xlabel("ROI − full (95% paired case-bootstrap interval)")
+    ax.text(0.0, -0.17, "← full image better", transform=ax.transAxes, ha="left", fontsize=8, color=MUTED)
+    ax.text(1.0, -0.17, "ROI better →", transform=ax.transAxes, ha="right", fontsize=8, color=MUTED)
+    ax.set_title(title)
+    ax.grid(axis="x", color="#e5e4df", linewidth=0.6)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)

@@ -101,6 +101,17 @@ column -s, -t < /project/a260012_FORWCL/experiments/main/evaluation_index.csv | 
 ```
 Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`, `<split>_roc_curves.csv` and `.png` (one-vs-rest per class plus macro average, T13).
 
+## Summary and full vs ROI (T15)
+
+After `evaluate.py` has scored all 16 scenarios, write the summary table, the paired full-vs-ROI comparison (2,000 case resamples shared by all scenarios) and its forest plot:
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/summarize.py --experiments-root /project/a260012_FORWCL/experiments/main
+```
+Outputs in `/project/a260012_FORWCL/experiments/main/summary/`: `summary_table.csv`, `full_vs_roi.csv`, `full_vs_roi_macro_f1.png`.
+
 ## Submit everything (S01-S16)
 
 `scripts/hpc/submit_all.sh [run_name]` submits every scenario that has no `test_predictions.csv` and is not already queued. Unfinished runs resume from `last.pt`, so it is safe to rerun after a timeout or failure.

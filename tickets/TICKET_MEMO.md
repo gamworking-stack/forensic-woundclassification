@@ -247,3 +247,20 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md` (evaluation outputs)
 - **Outside Git**: per scenario `<split>_roc_curves.csv` and `.png`
 - **Closed** 2026-10-14: HPC run recorded in the ticket (§6), `ROADMAP.md` §9 ticked.
+
+## T15: Summary table and paired full vs ROI
+
+- **Commits**: see `git log --grep 'T15'`
+- **Used**
+  - `<exp>/<full|roi>/<family>/test_predictions.csv` and `test_metrics.json` (from T08)
+  - `src/evaluation/metrics.py` (`load_predictions`, `summary_metrics`), `src/evaluation/evaluate.py` (scenario IDs)
+  - `tests/test_evaluation.py` (`write_predictions`, `write_scenario`)
+- **Created**
+  - `tickets/T15_summary_and_full_vs_roi.md`
+  - `src/evaluation/summarize.py`
+  - `tests/test_summary.py`
+- **Changed**
+  - `src/evaluation/plots.py` (`plot_full_vs_roi`)
+  - `runbook.md`
+  - `ROADMAP.md` (§9 tick)
+- **Outside Git**: `<exp>/summary/summary_table.csv`, `full_vs_roi.csv`, `full_vs_roi_macro_f1.png`
