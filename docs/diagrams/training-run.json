@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One Training Run in train.py",
+    "output": "docs/diagrams/training-run.html",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1080,
+      694
+    ],
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bc28cafd4f4a9da2f7c6079648fead26e0f18416"
+    }
+  },
+  "participants": [
+    {
+      "id": "job",
+      "type": "cloud",
+      "label": "SLURM job",
+      "sublabel": "train_single.sbatch",
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 57,
+          "end_line": 66,
+          "label": "python train.py --resume"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "type": "backend",
+      "label": "train.py",
+      "sublabel": "main()",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 72,
+          "end_line": 216,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "type": "backend",
+      "label": "data.py",
+      "sublabel": "manifest + images",
+      "sources": [
+        {
+          "path": "src/training/data.py",
+          "line": 30,
+          "end_line": 52,
+          "label": "load_manifest"
+        },
+        {
+          "path": "src/training/data.py",
+          "line": 89,
+          "end_line": 98,
+          "label": "prepare_rows"
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "engine.py",
+      "sublabel": "train / predict",
+      "sources": [
+        {
+          "path": "src/training/engine.py",
+          "line": 99,
+          "end_line": 147,
+          "label": "train_one_epoch, predict"
+        },
+        {
+          "path": "src/training/engine.py",
+          "line": 61,
+          "end_line": 80,
+          "label": "EarlyStopping"
+        }
+      ]
+    },
+    {
+      "id": "ckpt",
+      "type": "database",
+      "label": "Checkpoints",
+      "sublabel": "last.pt · best.pt",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 130,
+          "end_line": 133,
+          "label": "resume state"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 178,
+          "end_line": 195,
+          "label": "save each epoch"
+        },
+        {
+          "path": "src/training/engine.py",
+          "line": 49,
+          "end_line": 53,
+          "label": "atomic write"
+        }
+      ]
+    },
+    {
+      "id": "out",
+      "type": "database",
+      "label": "Output folder",
+      "sublabel": "config · history · preds",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 116,
+          "end_line": 128,
+          "label": "run_config.json"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 174,
+          "end_line": 175,
+          "label": "training_history.csv"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 202,
+          "end_line": 213,
+          "label": "prediction CSVs"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 162,
+      "to": 300,
+      "label": "Setup"
+    },
+    {
+      "from": 310,
+      "to": 476,
+      "label": "Each epoch (stop after 25 without gain)"
+    },
+    {
+      "from": 486,
+      "to": 596,
+      "label": "After training"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m-start",
+      "from": "job",
+      "to": "train",
+      "y": 176,
+      "label": "train.py --resume",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-load",
+      "from": "train",
+      "to": "data",
+      "y": 204,
+      "label": "load manifest",
+      "variant": "default"
+    },
+    {
+      "id": "m-rows",
+      "from": "data",
+      "to": "train",
+      "y": 232,
+      "label": "rows (leakage checked)",
+      "variant": "return"
+    },
+    {
+      "id": "m-resume",
+      "from": "train",
+      "to": "ckpt",
+      "y": 260,
+      "label": "read last.pt if present",
+      "variant": "default"
+    },
+    {
+      "id": "m-state",
+      "from": "ckpt",
+      "to": "train",
+      "y": 288,
+      "label": "weights, optimizer, RNG",
+      "variant": "return"
+    },
+    {
+      "id": "m-epoch",
+      "from": "train",
+      "to": "engine",
+      "y": 324,
+      "label": "train_one_epoch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-val",
+      "from": "train",
+      "to": "engine",
+      "y": 352,
+      "label": "predict validation",
+      "variant": "default"
+    },
+    {
+      "id": "m-valprobs",
+      "from": "engine",
+      "to": "train",
+      "y": 380,
+      "label": "val loss, probs",
+      "variant": "return"
+    },
+    {
+      "id": "m-history",
+      "from": "train",
+      "to": "out",
+      "y": 408,
+      "label": "append history",
+      "variant": "dashed"
+    },
+    {
+      "id": "m-best",
+      "from": "train",
+      "to": "ckpt",
+      "y": 436,
+      "label": "best.pt if macro-F1 improves",
+      "variant": "default"
+    },
+    {
+      "id": "m-last",
+      "from": "train",
+      "to": "ckpt",
+      "y": 464,
+      "label": "last.pt",
+      "variant": "dashed"
+    },
+    {
+      "id": "m-loadbest",
+      "from": "train",
+      "to": "ckpt",
+      "y": 500,
+      "label": "load best.pt",
+      "variant": "default"
+    },
+    {
+      "id": "m-test",
+      "from": "train",
+      "to": "engine",
+      "y": 528,
+      "label": "predict validation + test",
+      "variant": "emphasis",
+      "note": "first time the test split is loaded"
+    },
+    {
+      "id": "m-probs",
+      "from": "engine",
+      "to": "train",
+      "y": 556,
+      "label": "probabilities",
+      "variant": "return"
+    },
+    {
+      "id": "m-preds",
+      "from": "train",
+      "to": "out",
+      "y": 584,
+      "label": "prediction CSVs",
+      "variant": "emphasis"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "train",
+      "from": 176,
+      "to": 590,
+      "type": "backend"
+    },
+    {
+      "participant": "data",
+      "from": 199,
+      "to": 238,
+      "type": "backend"
+    },
+    {
+      "participant": "ckpt",
+      "from": 255,
+      "to": 294,
+      "type": "database"
+    },
+    {
+      "participant": "engine",
+      "from": 319,
+      "to": 386,
+      "type": "backend"
+    },
+    {
+      "participant": "engine",
+      "from": 523,
+      "to": 562,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Model selection",
+      "items": [
+        "Best epoch = highest validation macro-F1, ties go to lower validation loss",
+        "Training stops after 25 epochs without improvement, or at 200 epochs"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Resume",
+      "items": [
+        "last.pt holds weights, optimizer, early-stopping state, history and RNG state",
+        "A finished run with both prediction files exits without doing anything"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Test isolation",
+      "items": [
+        "The test split is first loaded after training, with the best.pt weights",
+        "Metrics are computed later from the prediction files by evaluate.py"
+      ]
+    }
+  ]
+}

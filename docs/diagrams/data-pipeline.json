@@ -1,0 +1,395 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "From Metadata to Metrics",
+    "output": "docs/diagrams/data-pipeline.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bc28cafd4f4a9da2f7c6079648fead26e0f18416"
+    },
+    "viewBox": [
+      1080,
+      560
+    ]
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Validate + split"
+    },
+    {
+      "label": "ROI path"
+    },
+    {
+      "label": "Train"
+    },
+    {
+      "label": "Evaluate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "metadata",
+      "type": "external",
+      "label": "Metadata CSV",
+      "sublabel": "id · file · label",
+      "stage": 0,
+      "row": 0,
+      "sources": [
+        {
+          "path": "src/data/validate_metadata.py",
+          "line": 131,
+          "end_line": 135,
+          "label": "required columns"
+        }
+      ],
+      "width": 124,
+      "height": 58
+    },
+    {
+      "id": "images",
+      "type": "database",
+      "label": "Images + boxes",
+      "sublabel": "HPC project storage",
+      "stage": 0,
+      "row": 2,
+      "sources": [
+        {
+          "path": "scripts/slurm/t03_roi_crops.sbatch",
+          "line": 15,
+          "end_line": 18,
+          "label": "images, zips, crops"
+        },
+        {
+          "path": "scripts/hpc/sync_to_raptor.sh",
+          "line": 15,
+          "end_line": 27,
+          "label": "7 CVAT exports uploaded"
+        },
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 27,
+          "end_line": 33,
+          "label": "image root per path"
+        }
+      ],
+      "width": 124,
+      "height": 58
+    },
+    {
+      "id": "validate",
+      "type": "security",
+      "label": "Validate labels",
+      "sublabel": "validate_metadata.py",
+      "stage": 1,
+      "row": 0,
+      "sources": [
+        {
+          "path": "src/data/validate_metadata.py",
+          "line": 159,
+          "end_line": 173,
+          "label": "label mapping"
+        },
+        {
+          "path": "src/data/validate_metadata.py",
+          "line": 293,
+          "end_line": 300,
+          "label": "write only on pass"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T01"
+    },
+    {
+      "id": "split",
+      "type": "backend",
+      "label": "Case split",
+      "sublabel": "create_case_split.py",
+      "stage": 1,
+      "row": 1,
+      "sources": [
+        {
+          "path": "src/data/create_case_split.py",
+          "line": 153,
+          "end_line": 187,
+          "label": "seeded search"
+        },
+        {
+          "path": "src/data/create_case_split.py",
+          "line": 190,
+          "end_line": 208,
+          "label": "leakage check"
+        },
+        {
+          "path": "src/data/create_case_split.py",
+          "line": 257,
+          "end_line": 266,
+          "label": "manifest files"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T02 · frozen"
+    },
+    {
+      "id": "roi",
+      "type": "backend",
+      "label": "ROI crops",
+      "sublabel": "create_roi_dataset.py",
+      "stage": 2,
+      "row": 1,
+      "sources": [
+        {
+          "path": "scripts/slurm/t03_roi_crops.sbatch",
+          "line": 49,
+          "end_line": 62,
+          "label": "live run + compare"
+        },
+        {
+          "path": "src/data/create_roi_dataset.py",
+          "line": 474,
+          "end_line": 495,
+          "label": "crops + manifest"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T03"
+    },
+    {
+      "id": "audit",
+      "type": "security",
+      "label": "ROI audit",
+      "sublabel": "audit_full_vs_roi.py",
+      "stage": 2,
+      "row": 0,
+      "sources": [
+        {
+          "path": "src/data/audit_full_vs_roi.py",
+          "line": 1,
+          "end_line": 8,
+          "label": "purpose"
+        },
+        {
+          "path": "src/data/audit_full_vs_roi.py",
+          "line": 240,
+          "end_line": 284,
+          "label": "table + report"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T04"
+    },
+    {
+      "id": "models",
+      "type": "backend",
+      "label": "Train models",
+      "sublabel": "train.py · cnn_svm.py",
+      "stage": 3,
+      "row": 1,
+      "sources": [
+        {
+          "path": "src/training/data.py",
+          "line": 30,
+          "end_line": 52,
+          "label": "manifest + matched scope"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 202,
+          "end_line": 213,
+          "label": "prediction files"
+        },
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 211,
+          "end_line": 221,
+          "label": "SVM predictions"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T05 · T06"
+    },
+    {
+      "id": "ensemble",
+      "type": "backend",
+      "label": "Soft vote",
+      "sublabel": "ensemble.py",
+      "stage": 3,
+      "row": 0,
+      "sources": [
+        {
+          "path": "src/training/ensemble.py",
+          "line": 74,
+          "end_line": 110,
+          "label": "soft vote"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T07"
+    },
+    {
+      "id": "evaluate",
+      "type": "backend",
+      "label": "Evaluate",
+      "sublabel": "evaluate.py",
+      "stage": 4,
+      "row": 1,
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 56,
+          "end_line": 75,
+          "label": "per-scenario files"
+        },
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 94,
+          "end_line": 145,
+          "label": "same test set + index"
+        }
+      ],
+      "width": 124,
+      "height": 58,
+      "tag": "T08 · T13"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-metadata",
+      "from": "metadata",
+      "to": "validate",
+      "label": "raw rows",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-validated",
+      "from": "validate",
+      "to": "split",
+      "label": "validated CSV",
+      "variant": "emphasis",
+      "labelAt": [
+        362,
+        214
+      ]
+    },
+    {
+      "id": "f-split-roi",
+      "from": "split",
+      "to": "roi",
+      "label": "split CSV",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-images-roi",
+      "from": "images",
+      "to": "roi",
+      "label": "images + boxes",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          530,
+          385
+        ]
+      ]
+    },
+    {
+      "id": "f-roi-audit",
+      "from": "roi",
+      "to": "audit",
+      "label": "roi_manifest.csv",
+      "variant": "dashed",
+      "labelAt": [
+        588,
+        214
+      ]
+    },
+    {
+      "id": "f-roi-models",
+      "from": "roi",
+      "to": "models",
+      "label": "ROI crops",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-images-models",
+      "from": "images",
+      "to": "models",
+      "label": "full images",
+      "route": "bottom-channel",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "classification": "full path"
+    },
+    {
+      "id": "f-members",
+      "from": "models",
+      "to": "ensemble",
+      "label": "member preds",
+      "variant": "dashed",
+      "labelAt": [
+        796,
+        214
+      ]
+    },
+    {
+      "id": "f-preds",
+      "from": "models",
+      "to": "evaluate",
+      "label": "prediction CSVs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-voted",
+      "from": "ensemble",
+      "to": "evaluate",
+      "label": "voted preds",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          960,
+          157
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "No leakage",
+      "items": [
+        "Every image of one pseudonimized_id lands in one split, checked when the split is made and again on load",
+        "ROI crops inherit the case and split of their source image"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Fair full vs ROI",
+      "items": [
+        "The full path keeps only images that also have an ROI crop (full_scope = matched)",
+        "evaluate.py stops if two scenarios were tested on different images"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Test set used once",
+      "items": [
+        "train.py loads the test split only after training, with best.pt",
+        "Test metrics get case-level bootstrap 95% CIs"
+      ]
+    }
+  ]
+}

@@ -108,3 +108,22 @@ Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split
 cd ~/forensic-woundclassification
 bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)
 ```
+
+## Diagrams
+
+`docs/diagrams/` holds five Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
+
+| Diagram | Shows |
+|---|---|
+| `raptor-pipeline` | Architecture: laptop, Raptor, SLURM jobs and project storage |
+| `data-pipeline` | Data flow: metadata → split → ROI crops → training → evaluation |
+| `submit-all` | Workflow: how `submit_all.sh` skips, submits and chains the AlexNet ensemble |
+| `training-run` | Sequence: one `train.py` run (resume, epoch loop, checkpoints, predictions) |
+| `scenario-status` | Lifecycle: a scenario from not submitted to evaluated, with timeout recovery |
+
+After a code change, update the affected `sources` lines and `revision` in the `.json`, then rebuild (on the laptop; install once with `npx skills add tt-a1i/archify -g`):
+```bash
+node ~/.agents/skills/archify/bin/archify.mjs finalize <architecture|dataflow|workflow|sequence|lifecycle> \
+  docs/diagrams/<name>.json docs/diagrams/<name>.html --repo-root . --quality showcase --out-dir .archify/<name>
+```
+Check receipts go to the git-ignored `.archify/`.

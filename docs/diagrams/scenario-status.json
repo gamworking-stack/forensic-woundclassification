@@ -1,0 +1,222 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Lifecycle of One Scenario",
+    "output": "docs/diagrams/scenario-status.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bc28cafd4f4a9da2f7c6079648fead26e0f18416"
+    }
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Scenario progress"
+    },
+    {
+      "id": "interrupted",
+      "label": "Interrupted"
+    }
+  ],
+  "states": [
+    {
+      "id": "not_submitted",
+      "type": "start",
+      "label": "Not submitted",
+      "sublabel": "no job, no predictions",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 18,
+          "end_line": 31,
+          "label": "skip_reason, submit_single"
+        }
+      ]
+    },
+    {
+      "id": "queued",
+      "type": "waiting",
+      "label": "Queued",
+      "sublabel": "job name in squeue",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 15,
+          "end_line": 20,
+          "label": "queued check"
+        }
+      ]
+    },
+    {
+      "id": "training",
+      "type": "active",
+      "label": "Training",
+      "sublabel": "epochs, last.pt",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 156,
+          "end_line": 199,
+          "label": "epoch loop"
+        },
+        {
+          "path": "src/training/engine.py",
+          "line": 72,
+          "end_line": 80,
+          "label": "early stopping"
+        }
+      ]
+    },
+    {
+      "id": "finished",
+      "type": "success",
+      "label": "Finished",
+      "sublabel": "test_predictions.csv",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 202,
+          "end_line": 213,
+          "label": "prediction files"
+        },
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 19,
+          "label": "finished marker"
+        }
+      ]
+    },
+    {
+      "id": "evaluated",
+      "type": "success",
+      "label": "Evaluated",
+      "sublabel": "metrics, CIs, ROC",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 108,
+          "end_line": 133,
+          "label": "status evaluated"
+        },
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 136,
+          "end_line": 144,
+          "label": "status missing"
+        }
+      ]
+    },
+    {
+      "id": "interrupted",
+      "type": "failure",
+      "label": "Interrupted",
+      "sublabel": "timeout or job error",
+      "lane": "interrupted",
+      "col": 2,
+      "sources": [
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 144,
+          "end_line": 156,
+          "label": "cached features"
+        },
+        {
+          "path": "src/training/engine.py",
+          "line": 49,
+          "end_line": 53,
+          "label": "atomic last.pt"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 130,
+          "end_line": 154,
+          "label": "resume on rerun"
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "not_submitted",
+      "to": "queued",
+      "label": "sbatch",
+      "variant": "emphasis"
+    },
+    {
+      "from": "queued",
+      "to": "training",
+      "label": "starts",
+      "variant": "emphasis"
+    },
+    {
+      "from": "training",
+      "to": "finished",
+      "label": "predict",
+      "variant": "emphasis"
+    },
+    {
+      "from": "finished",
+      "to": "evaluated",
+      "label": "evaluate.py",
+      "variant": "emphasis"
+    },
+    {
+      "from": "training",
+      "to": "interrupted",
+      "label": "stops early",
+      "variant": "security"
+    },
+    {
+      "from": "interrupted",
+      "to": "queued",
+      "label": "rerun submit_all",
+      "variant": "dashed",
+      "note": "train.py resumes from last.pt; CNN-SVM reuses cached features"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What counts as finished",
+      "items": [
+        "submit_all.sh treats a scenario as finished once test_predictions.csv exists, and skips it",
+        "Training ends after 25 epochs without a better validation macro-F1, or at 200 epochs"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Ensemble scenarios",
+      "items": [
+        "S15 and S16 finish when the combine job writes the soft-voted test_predictions.csv",
+        "A failed member makes SLURM cancel the combine job"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Evaluation index",
+      "items": [
+        "evaluate.py lists every S01–S16 scenario; those without prediction files are marked missing",
+        "Rerun it whenever more scenarios finish"
+      ]
+    }
+  ]
+}

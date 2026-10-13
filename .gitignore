@@ -29,3 +29,6 @@ derived_data/
 logs/*.log
 logs/*.out
 logs/*.err
+
+# Archify working folders and check receipts (diagrams live in docs/diagrams/)
+.archify/

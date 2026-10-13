@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Wound Classification on Raptor HPC",
+    "output": "docs/diagrams/raptor-pipeline.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bc28cafd4f4a9da2f7c6079648fead26e0f18416"
+    }
+  },
+  "components": [
+    {
+      "id": "laptop",
+      "type": "external",
+      "label": "Laptop",
+      "sublabel": "code + CVAT exports",
+      "pos": [
+        40,
+        280
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/hpc/sync_to_raptor.sh",
+          "line": 1,
+          "end_line": 27,
+          "label": "rsync to Raptor"
+        }
+      ]
+    },
+    {
+      "id": "repo",
+      "type": "frontend",
+      "label": "Repo checkout",
+      "sublabel": "code + frozen manifests",
+      "pos": [
+        270,
+        280
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/hpc/sync_to_raptor.sh",
+          "line": 23,
+          "end_line": 24,
+          "label": "repo upload"
+        },
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 27,
+          "end_line": 33,
+          "label": "manifest per input path"
+        }
+      ]
+    },
+    {
+      "id": "submit",
+      "type": "backend",
+      "label": "submit_all.sh",
+      "sublabel": "skips finished / queued",
+      "pos": [
+        480,
+        280
+      ],
+      "size": [
+        140,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 15,
+          "end_line": 47,
+          "label": "skip and submit"
+        }
+      ]
+    },
+    {
+      "id": "slurm",
+      "type": "cloud",
+      "label": "SLURM",
+      "sublabel": "account a260012",
+      "pos": [
+        690,
+        280
+      ],
+      "size": [
+        120,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 7,
+          "end_line": 15,
+          "label": "gpu partition, 1 GPU"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "type": "backend",
+      "label": "Training job",
+      "sublabel": "train.py · cnn_svm.py",
+      "tag": "1× H100",
+      "pos": [
+        890,
+        280
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 50,
+          "end_line": 66,
+          "label": "entry point choice"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 130,
+          "end_line": 216,
+          "label": "train, checkpoint, predict"
+        },
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 182,
+          "end_line": 221,
+          "label": "features + SVM"
+        }
+      ]
+    },
+    {
+      "id": "experiments",
+      "type": "database",
+      "label": "Experiments",
+      "sublabel": "last.pt · predictions",
+      "tag": "project storage",
+      "pos": [
+        1130,
+        280
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 37,
+          "label": "output folder"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 202,
+          "end_line": 213,
+          "label": "prediction files"
+        }
+      ]
+    },
+    {
+      "id": "evaluate",
+      "type": "backend",
+      "label": "evaluate.py",
+      "sublabel": "writes metrics + ROC",
+      "tag": "srun · compute",
+      "pos": [
+        1390,
+        280
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 56,
+          "end_line": 75,
+          "label": "per-scenario files"
+        },
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 108,
+          "end_line": 145,
+          "label": "evaluation_index.csv"
+        }
+      ]
+    },
+    {
+      "id": "combine",
+      "type": "backend",
+      "label": "Ensemble combine",
+      "sublabel": "ensemble.py soft vote",
+      "tag": "compute",
+      "pos": [
+        1130,
+        100
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_alexnet_ensemble.sh",
+          "line": 21,
+          "end_line": 25,
+          "label": "afterok dependency"
+        },
+        {
+          "path": "scripts/slurm/ensemble_combine.sbatch",
+          "line": 28,
+          "end_line": 31,
+          "label": "runs ensemble.py"
+        },
+        {
+          "path": "src/training/ensemble.py",
+          "line": 104,
+          "end_line": 121,
+          "label": "mean probabilities"
+        }
+      ]
+    },
+    {
+      "id": "roi",
+      "type": "backend",
+      "label": "ROI crop job",
+      "sublabel": "create_roi_dataset.py",
+      "tag": "compute",
+      "pos": [
+        690,
+        460
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/t03_roi_crops.sbatch",
+          "line": 47,
+          "end_line": 62,
+          "label": "test, crop, compare"
+        }
+      ]
+    },
+    {
+      "id": "images",
+      "type": "database",
+      "label": "Images + annotations",
+      "sublabel": "raw · CVAT zips · ROI crops",
+      "tag": "project storage",
+      "pos": [
+        900,
+        460
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/t03_roi_crops.sbatch",
+          "line": 15,
+          "end_line": 18,
+          "label": "raw, zips, crops"
+        },
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 27,
+          "end_line": 33,
+          "label": "image root per path"
+        }
+      ]
+    },
+    {
+      "id": "weights",
+      "type": "database",
+      "label": "Torch cache",
+      "sublabel": "pretrained weights",
+      "tag": "project storage",
+      "pos": [
+        1140,
+        460
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 38,
+          "label": "TORCH_HOME"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "MedCMU Raptor HPC",
+      "wraps": [
+        "repo",
+        "submit",
+        "slurm",
+        "train",
+        "experiments",
+        "evaluate",
+        "combine",
+        "roi",
+        "images",
+        "weights"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "from": "laptop",
+      "to": "repo",
+      "label": "rsync code",
+      "variant": "emphasis"
+    },
+    {
+      "from": "laptop",
+      "to": "images",
+      "label": "rsync CVAT zips",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "from": "repo",
+      "to": "submit",
+      "label": "bash",
+      "variant": "emphasis"
+    },
+    {
+      "from": "submit",
+      "to": "slurm",
+      "label": "sbatch",
+      "variant": "emphasis"
+    },
+    {
+      "from": "slurm",
+      "to": "train",
+      "label": "gpu job",
+      "variant": "emphasis"
+    },
+    {
+      "from": "train",
+      "to": "experiments",
+      "label": "outputs",
+      "variant": "emphasis"
+    },
+    {
+      "from": "experiments",
+      "to": "evaluate",
+      "label": "predictions",
+      "variant": "emphasis"
+    },
+    {
+      "from": "slurm",
+      "to": "combine",
+      "label": "afterok: 3 members",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "from": "combine",
+      "to": "experiments",
+      "label": "soft-voted preds",
+      "variant": "dashed"
+    },
+    {
+      "from": "slurm",
+      "to": "roi",
+      "label": "t03 job"
+    },
+    {
+      "from": "roi",
+      "to": "images",
+      "label": "ROI crops"
+    },
+    {
+      "from": "train",
+      "to": "images",
+      "label": "read"
+    },
+    {
+      "from": "train",
+      "to": "weights",
+      "label": "weights"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Runtime",
+      "items": [
+        "Every job runs python inside the Apptainer pytorch-24.11 image with /project bound",
+        "Training jobs get one H100 on the gpu partition; ROI crops and the ensemble combine run on compute"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Restart safety",
+      "items": [
+        "submit_all.sh skips a scenario that has test_predictions.csv or a queued job",
+        "train.py resumes from last.pt, which is written atomically every epoch"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Data stays on the HPC",
+      "items": [
+        "Images, crops and checkpoints are git-ignored; only manifests and reports are committed",
+        "Training reads the frozen split or ROI manifest from the repo checkout"
+      ]
+    }
+  ]
+}

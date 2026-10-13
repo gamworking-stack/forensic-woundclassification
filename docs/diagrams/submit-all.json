@@ -1,0 +1,344 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Submitting All 16 Scenarios",
+    "output": "docs/diagrams/submit-all.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bc28cafd4f4a9da2f7c6079648fead26e0f18416"
+    }
+  },
+  "lanes": [
+    {
+      "id": "ensemble",
+      "label": "AlexNet ensemble"
+    },
+    {
+      "id": "submit",
+      "label": "submit_all.sh"
+    },
+    {
+      "id": "gpu",
+      "label": "SLURM GPU job"
+    },
+    {
+      "id": "stop",
+      "label": "Skipped",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-plan",
+      "label": "Decide",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "p-run",
+      "label": "Submit + run",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-done",
+      "label": "Results",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "start",
+    "queue",
+    "check",
+    "single",
+    "train",
+    "outputs"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "lane": "submit",
+      "col": 0,
+      "type": "external",
+      "label": "Run submit_all.sh",
+      "sublabel": "run name: main",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 1,
+          "end_line": 13,
+          "label": "usage + scenario order"
+        }
+      ]
+    },
+    {
+      "id": "queue",
+      "lane": "submit",
+      "col": 1,
+      "type": "backend",
+      "label": "Read queue",
+      "sublabel": "squeue job names",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 15,
+          "label": "squeue -u $USER"
+        }
+      ]
+    },
+    {
+      "id": "check",
+      "lane": "submit",
+      "col": 2,
+      "type": "security",
+      "label": "Skip check",
+      "sublabel": "finished or queued?",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 18,
+          "end_line": 22,
+          "label": "skip_reason"
+        }
+      ]
+    },
+    {
+      "id": "single",
+      "lane": "submit",
+      "col": 3,
+      "type": "backend",
+      "label": "sbatch scenario",
+      "sublabel": "S01–S14",
+      "tag": "12 h · CNN-SVM 4 h",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 24,
+          "end_line": 40,
+          "label": "submit_single"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "lane": "gpu",
+      "col": 4,
+      "type": "cloud",
+      "label": "train_single.sbatch",
+      "sublabel": "1 H100 · --resume",
+      "width": 140,
+      "sources": [
+        {
+          "path": "scripts/slurm/train_single.sbatch",
+          "line": 50,
+          "end_line": 66,
+          "label": "train.py or cnn_svm.py"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 130,
+          "end_line": 154,
+          "label": "resume from last.pt"
+        }
+      ]
+    },
+    {
+      "id": "skip",
+      "lane": "stop",
+      "col": 2,
+      "type": "security",
+      "label": "Skip",
+      "sublabel": "print reason",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 26,
+          "end_line": 27,
+          "label": "skip message"
+        }
+      ]
+    },
+    {
+      "id": "outputs",
+      "lane": "gpu",
+      "col": 5,
+      "type": "database",
+      "label": "Scenario folder",
+      "sublabel": "test_predictions.csv",
+      "width": 132,
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 202,
+          "end_line": 213,
+          "label": "prediction files"
+        },
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 19,
+          "label": "finished marker"
+        }
+      ]
+    },
+    {
+      "id": "enssub",
+      "lane": "ensemble",
+      "col": 3,
+      "type": "backend",
+      "label": "Ensemble submit",
+      "sublabel": "S15–S16",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 41,
+          "end_line": 47,
+          "label": "calls ensemble script"
+        }
+      ]
+    },
+    {
+      "id": "members",
+      "lane": "ensemble",
+      "col": 4,
+      "type": "cloud",
+      "label": "3 AlexNet jobs",
+      "sublabel": "seeds 43, 44, 45",
+      "width": 140,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_alexnet_ensemble.sh",
+          "line": 13,
+          "end_line": 19,
+          "label": "member jobs"
+        }
+      ]
+    },
+    {
+      "id": "combine",
+      "lane": "ensemble",
+      "col": 5,
+      "type": "backend",
+      "label": "Combine job",
+      "sublabel": "soft vote on CPU",
+      "width": 132,
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_alexnet_ensemble.sh",
+          "line": 21,
+          "end_line": 25,
+          "label": "afterok, kill-on-invalid-dep"
+        },
+        {
+          "path": "scripts/slurm/ensemble_combine.sbatch",
+          "line": 28,
+          "end_line": 31,
+          "label": "ensemble.py"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start",
+      "from": "start",
+      "to": "queue",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-queue",
+      "from": "queue",
+      "to": "check",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-single",
+      "from": "check",
+      "to": "single",
+      "label": "submit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-skip",
+      "from": "check",
+      "to": "skip",
+      "label": "done / queued",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-ens",
+      "from": "check",
+      "to": "enssub",
+      "label": "S15–S16",
+      "variant": "default",
+      "role": "branch"
+    },
+    {
+      "id": "e-train",
+      "from": "single",
+      "to": "train",
+      "label": "sbatch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-out",
+      "from": "train",
+      "to": "outputs",
+      "label": "predictions",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-members",
+      "from": "enssub",
+      "to": "members",
+      "label": "3× sbatch",
+      "variant": "default"
+    },
+    {
+      "id": "e-afterok",
+      "from": "members",
+      "to": "combine",
+      "label": "afterok",
+      "variant": "default"
+    },
+    {
+      "id": "e-voted",
+      "from": "combine",
+      "to": "outputs",
+      "label": "voted preds",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Safe to rerun",
+      "items": [
+        "A scenario counts as finished once test_predictions.csv exists",
+        "Rerunning after a timeout or failure resubmits only unfinished scenarios, which resume from last.pt",
+        "watch_jobs.sh follows the .out/.err logs of the printed job IDs and prints sacct when they end"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Ensemble chain",
+      "items": [
+        "The combine job waits for all three members (afterok)",
+        "If a member fails, SLURM cancels the combine job instead of leaving it pending"
+      ]
+    }
+  ]
+}
