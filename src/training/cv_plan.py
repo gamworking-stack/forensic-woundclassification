@@ -91,7 +91,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     jobs = plan(args.main_root, args.cv_root, args.folds)
     with args.output.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         # "-" marks an empty field: bash's read collapses consecutive tabs
         writer.writerows({k: ("-" if v == "" else v) for k, v in job.items()} for job in jobs)

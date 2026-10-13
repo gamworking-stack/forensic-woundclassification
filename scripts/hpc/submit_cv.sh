@@ -23,6 +23,7 @@ queued_id() { squeue -u "$USER" -h -n "$1" -o %i | head -n 1; }
 
 # Plan fields are tab-separated; "-" marks an empty field.
 while IFS=$'\t' read -r name kind family input_path fold lr epochs seed svm_from out; do
+  out="${out%$'\r'}"  # tolerate CRLF plan files
   if [[ "$name" == job_name ]]; then continue; fi
   if [[ -f "$out/validation_predictions.csv" ]]; then continue; fi
   fold_dir="${out%/member_*}"

@@ -136,6 +136,15 @@ def test_plan_reads_settings_from_the_main_run(tmp_path):
     assert all(scenario_id(p, f) == sid for (p, f), sid in SCENARIO_IDS.items())
 
 
+def test_plan_file_has_unix_line_endings_and_no_empty_fields(tmp_path):
+    from src.training.cv_plan import main as plan_main
+    out = tmp_path / "plan.tsv"
+    assert plan_main(["--main-root", str(fake_main_run(tmp_path / "main")), "--cv-root", str(tmp_path / "cv"),
+                      "--output", str(out)]) == 0
+    raw = out.read_bytes()
+    assert b"\r" not in raw and b"\t\t" not in raw and not raw.endswith(b"\t\n")
+
+
 def fake_cv_run(root: Path, wrong_roi=()) -> Path:
     """Every scenario: 2 folds of 14 cases each, one image per case."""
     y = np.repeat(np.arange(7), 2)
