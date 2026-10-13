@@ -153,16 +153,16 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T04 full vs ROI audit
 - [x] T05 shared training library
 - [x] T06 CNN-SVM
-- [ ] T07 AlexNet ensemble
+- [x] T07 AlexNet ensemble
 - [x] T08 evaluation module
-- [ ] T08b hyperparameter tuning (and optional CV)
+- [x] T08b hyperparameter tuning (and optional CV)
 - [ ] T09 SLURM templates
 - [ ] T09b cluster environment (micromamba, GPU check)
 - [ ] T09c data transfer with rsync
 - [ ] T10 runbook.md
 - [x] T11 HPC smoke test
-- [ ] T12 16 scenarios (S01 to S16)
-- [ ] T13 ROC/AUC curves
+- [x] T12 16 scenarios (S01 to S16)
+- [x] T13 ROC/AUC curves
 - [ ] T14 Grad-CAM
 - [ ] T15 summary table
 - [ ] T16 final verification

@@ -160,7 +160,7 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `runbook.md`
 - **Outside Git**: `<exp>/<full|roi>/alexnet_ensemble/` and its `member_01` to `member_03`
-- **Open**: the ticket still says "Raptor run pending" and `ROADMAP.md` §9 is unticked, although T08 evaluated S15 and S16.
+- **Closed** 2026-10-14: HPC run recorded in the ticket (§6), `ROADMAP.md` §9 ticked.
 
 ## T08: Evaluation module
 
@@ -180,6 +180,7 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `ROADMAP.md` (§9 tick)
   - `tickets/T08_evaluation_module.md`
 - **Outside Git**: per scenario `<split>_metrics.json`, `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`; `<exp>/evaluation_index.csv`
+- **Changed later**: `tickets/T08_evaluation_module.md` (§7, full 16-scenario run, 2026-10-14)
 
 ## T08b: Learning-rate tuning
 
@@ -200,7 +201,7 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `specs/phase3_training_code.md` (§5 T08b interface)
   - `runbook.md`
 - **Outside Git**: `<exp>/<full|roi>/<family>/lr_<value>/` grid runs, `tuning_summary.csv`, `tuning.log`
-- **Open**: Raptor run pending; chosen learning rates to be recorded in the ticket; `ROADMAP.md` §9 not ticked yet.
+- **Closed** 2026-10-14: chosen learning rates and acceptance recorded in the ticket (§7), `ROADMAP.md` §9 ticked.
 
 ## T09 (partial, no ticket file yet): SLURM templates
 
@@ -245,4 +246,4 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `tests/test_evaluation.py`
   - `runbook.md` (evaluation outputs)
 - **Outside Git**: per scenario `<split>_roc_curves.csv` and `.png`
-- **Open**: Raptor run pending; `ROADMAP.md` §9 not ticked yet.
+- **Closed** 2026-10-14: HPC run recorded in the ticket (§6), `ROADMAP.md` §9 ticked.

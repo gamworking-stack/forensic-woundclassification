@@ -4,7 +4,7 @@
 - **Phase**: Phase 3 (Training Code)
 - **Spec Reference**: [specs/phase3_training_code.md](../specs/phase3_training_code.md) §5
 - **Scenarios**: S15 (full), S16 (ROI)
-- **Status**: In Progress (code and tests done; Raptor run pending)
+- **Status**: Completed
 
 ---
 
@@ -76,3 +76,21 @@ python src/training/ensemble.py \
 2. On Raptor, `submit_alexnet_ensemble.sh full` and `... roi` each finish 3 members and the combine job with exit code 0.
 3. `ensemble_members.csv` lists 3 members with distinct seeds and best epochs, and marks one representative. For the full path, the members' validation macro-F1 are in the EXP002 range (0.61–0.69).
 4. Tick T07 in `ROADMAP.md` §9.
+
+---
+
+## 6. HPC Run
+
+Members and the combine job finished on Raptor (first evaluated 2026-10-01; checked 2026-10-14).
+
+| Path | Seed | Best epoch | Validation macro-F1 | Representative |
+|---|---|---|---|---|
+| full | 43 | 31 | 0.643 | yes |
+| full | 44 | 32 | 0.639 | |
+| full | 45 | 47 | 0.632 | |
+| ROI | 43 | 21 | 0.744 | yes |
+| ROI | 44 | 22 | 0.712 | |
+| ROI | 45 | 18 | 0.677 | |
+
+- Full-path members are in the EXP002 range (0.61–0.69). Seed 43 is the representative member on both paths (T14 Grad-CAM).
+- Soft-voted test macro-F1 [95% case-bootstrap CI]: S15 full 0.662 [0.553, 0.748], S16 ROI 0.728 [0.607, 0.817].

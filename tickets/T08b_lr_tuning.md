@@ -4,7 +4,7 @@
 - **Phase**: Phase 3 (Training Code)
 - **Spec Reference**: [specs/phase3_training_code.md](../specs/phase3_training_code.md) §3, §5
 - **Scenarios**: S01–S12 (the six single fine-tuned families, full and ROI)
-- **Status**: In Progress (code and tests done; Raptor run pending)
+- **Status**: Completed
 
 ---
 
@@ -87,3 +87,31 @@ python src/training/select_lr.py \
 3. Every S01–S12 scenario folder has `tuning_summary.csv` with one selected row and no `test_predictions.csv` in any unselected `lr_*` folder.
 4. `evaluate.py --experiments-root .../experiments/main` evaluates 16 scenarios with 0 missing.
 5. Record the chosen learning rate per scenario here, and tick T08b in `ROADMAP.md` §9.
+
+---
+
+## 7. HPC Run (2026-10-13 to 2026-10-14)
+
+`submit_all.sh` on Raptor: 36 grid runs and 12 select jobs. Chosen learning rate per scenario (`tuning_summary.csv`), with the selected run's best epoch and validation macro-F1:
+
+| Scenario | Family | Path | Chosen lr | Best epoch | Validation macro-F1 |
+|---|---|---|---|---|---|
+| S01 | EfficientNet-B0 | full | 1e-4 | 26 | 0.724 |
+| S02 | EfficientNet-B0 | ROI | 3e-5 | 31 | 0.807 |
+| S03 | ResNet152 | full | 3e-5 | 29 | 0.837 |
+| S04 | ResNet152 | ROI | 3e-5 | 32 | 0.835 |
+| S05 | MobileNetV3-Small | full | 1e-4 | 23 | 0.676 |
+| S06 | MobileNetV3-Small | ROI | 1e-4 | 80 | 0.765 |
+| S07 | GoogLeNet | full | 3e-5 | 69 | 0.781 |
+| S08 | GoogLeNet | ROI | 1e-5 | 93 | 0.786 |
+| S09 | VGG16 | full | 1e-4 | 46 | 0.809 |
+| S10 | VGG16 | ROI | 1e-4 | 33 | 0.777 |
+| S11 | ViT-B/16 | full | 3e-5 | 12 | 0.767 |
+| S12 | ViT-B/16 | ROI | 3e-5 | 23 | 0.813 |
+
+- 6 of 12 kept the spec §3 default (3e-5), 5 chose 1e-4 and 1 chose 1e-5.
+- **Grid limit**: 5 choices sit on the upper limit (1e-4), including both paths of MobileNetV3-Small and VGG16, and 1 on the lower limit (GoogLeNet ROI). Per §2 the grid is not widened after seeing results; report this in the thesis methods as a limitation.
+- These validation scores are each the best of 3 runs, so they are optimistic and are not used to compare full vs ROI; that comparison uses the test results (T15).
+- S01 margin: 1e-4 won with 0.724 against 0.694 (1e-5) and 0.692 (3e-5), smaller than the 0.61–0.69 seed spread of EXP002, so the choice reflects the fixed rule rather than a clearly better setting.
+
+**Acceptance (2026-10-14)**: all 48 jobs finished; `pytest tests/test_tuning.py` passed in the Raptor container (5 passed); exactly 12 `lr_*/test_predictions.csv` exist, one per scenario, each in the selected run; `evaluate.py` evaluated 16 scenarios with 0 missing (T08 §7).

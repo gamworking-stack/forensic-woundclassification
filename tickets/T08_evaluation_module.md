@@ -100,3 +100,22 @@ srun -p compute -c 2 --mem=8G -t 0:30:00 apptainer exec --bind /project/a260012_
 - Test macro-F1 [95% case-bootstrap CI]: S13 CNN-SVM full 0.585 [0.479, 0.667], S14 CNN-SVM ROI 0.725 [0.605, 0.823], S15 AlexNet ensemble full 0.662 [0.553, 0.748], S16 AlexNet ensemble ROI 0.728 [0.607, 0.817].
 - Range check passed: S13 0.585 vs EXP003 0.580 (EXP003 used all 1,106 images and a smaller grid).
 - From here on no setting of these scenarios is changed, because their test results have been seen.
+
+## 7. Full HPC Run (all 16 scenarios)
+
+- **Date**: 2026-10-14, after T08b: 16 scenarios evaluated, 0 missing, each on the same 157 test images from 62 cases, fairness check passed (every scenario tested on the same cases and images per class).
+- Test macro-F1 [95% case-bootstrap CI]:
+
+| Family | Full | ROI |
+|---|---|---|
+| EfficientNet-B0 (S01/S02) | 0.733 [0.613, 0.814] | 0.742 [0.631, 0.809] |
+| ResNet152 (S03/S04) | 0.783 [0.681, 0.861] | 0.726 [0.616, 0.812] |
+| MobileNetV3-Small (S05/S06) | 0.653 [0.557, 0.737] | 0.727 [0.613, 0.800] |
+| GoogLeNet (S07/S08) | 0.705 [0.579, 0.783] | 0.736 [0.631, 0.796] |
+| VGG16 (S09/S10) | 0.699 [0.600, 0.779] | 0.715 [0.612, 0.785] |
+| ViT-B/16 (S11/S12) | 0.754 [0.647, 0.827] | 0.761 [0.671, 0.824] |
+| CNN-SVM (S13/S14) | 0.585 [0.479, 0.667] | 0.725 [0.605, 0.823] |
+| AlexNet ensemble (S15/S16) | 0.662 [0.553, 0.748] | 0.728 [0.607, 0.817] |
+
+- S13–S16 match the first run exactly, as expected (same prediction files, same bootstrap seed).
+- ROI is higher in 7 of 8 families (ResNet152 is lower), but every pair of intervals overlaps; the paired full-vs-ROI comparison on the same test cases belongs to T15.
