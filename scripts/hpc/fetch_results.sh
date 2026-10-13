@@ -9,7 +9,7 @@ HPC_USER="${HPC_USER:-preenapun.s}"
 HPC_HOST="${HPC_HOST:-raptor.med.cmu.ac.th}"
 REMOTE_EXP="${REMOTE_EXP:-/project/a260012_FORWCL/experiments/$RUN_NAME}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-LOCAL_RESULTS="${LOCAL_RESULTS:-$REPO_ROOT/../results_figures}"  # outside the repo, never committed
+LOCAL_RESULTS="${LOCAL_RESULTS:-$REPO_ROOT/../results_figures/$RUN_NAME}"  # outside the repo, never committed
 
 mkdir -p "$LOCAL_RESULTS"
 rsync -av --prune-empty-dirs \

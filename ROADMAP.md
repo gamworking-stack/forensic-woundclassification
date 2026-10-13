@@ -163,6 +163,6 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T11 HPC smoke test
 - [x] T12 16 scenarios (S01 to S16)
 - [x] T13 ROC/AUC curves
-- [ ] T14 Grad-CAM
+- [x] T14 Grad-CAM
 - [x] T15 summary table
 - [ ] T16 final verification

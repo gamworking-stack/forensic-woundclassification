@@ -4,7 +4,7 @@
 - **Phase**: Phase 6 (Figures and Results)
 - **Spec Reference**: [ROADMAP.md](../ROADMAP.md) §3 (Grad-CAM "where applicable"), §5 T14
 - **Scenarios**: S01–S12, S15–S16 (CNN-SVM excluded)
-- **Status**: In Progress
+- **Status**: Completed
 
 ---
 
@@ -58,3 +58,25 @@ Target layers: EfficientNet-B0 and MobileNetV3-Small `features[-1]`, ResNet152 `
 2. On Raptor, all 7 families x 2 paths x 14 images are computed; `matches_prediction_file` is true for (nearly) every row, with any exception listed here.
 3. `cam_in_box` vs `box_share` summarized per family here; figures inspected on Raptor by the researcher.
 4. Tick T14 in `ROADMAP.md` §9.
+
+---
+
+## 6. HPC Run (2026-10-14)
+
+`gradcam.py --experiments-root /project/a260012_FORWCL/experiments/main` (CPU, fp32): 7 families x 2 paths x 14 images = 196 maps. `pytest tests/test_gradcam.py` passed in the Raptor container (10 passed).
+
+- **Predictions**: 195 of 196 equal the scenario's prediction file. The exception is MobileNetV3-Small, full image, a cut wound predicted *cut wound* at p = 0.37 here: a borderline case flipped by fp32 here vs bf16 in the GPU prediction run.
+- **Correct on the 14 images** (full / ROI): EfficientNet-B0 12/9, ResNet152 12/9, MobileNetV3-Small 10/9, GoogLeNet 13/11, VGG16 10/11, ViT-B/16 11/13, AlexNet ensemble 10/10. Descriptive only (14 images).
+- **Full-image maps vs the annotated wound box** (`cam_in_box` / `box_share`, box share 0.4–22% of the input, mean 6%):
+
+| Family | Mean map share in box | Median ratio to box area | Images above uniform |
+|---|---|---|---|
+| ResNet152 | 0.41 | 9.6x | 14/14 |
+| EfficientNet-B0 | 0.39 | 8.2x | 14/14 |
+| MobileNetV3-Small | 0.32 | 6.2x | 14/14 |
+| GoogLeNet | 0.29 | 5.8x | 14/14 |
+| AlexNet ensemble (member seed 43) | 0.19 | 2.9x | 13/14 |
+| VGG16 | 0.12 | 1.5x | 11/14 |
+| ViT-B/16 | 0.08 | 0.7x | 6/14 |
+
+**Reading**: the convolutional families trained on full images concentrate their maps on the annotated wound (median 2.9–9.6x the box's area share); VGG16 only weakly; ViT-B/16 not at all (below a uniform map in 8 of 14 images). ViT-B/16 is also one of the families that gains most from ROI in cross-validation (T12b: +0.072), consistent with ROI cropping supplying the localization the full-image ViT lacks; this is an observation on 14 images, and Grad-CAM is less reliable for transformers than for CNNs. Figures (`<family>_set1|2.png`) are on Raptor for the researcher to inspect; they are not copied off the cluster.

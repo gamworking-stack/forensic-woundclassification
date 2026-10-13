@@ -4,7 +4,7 @@
 - **Phase**: Phase 5 (Experiments, optional item)
 - **Spec Reference**: [ROADMAP.md](../ROADMAP.md) §5 Phase 5 (optional 5-fold grouped CV on train+validation); [T08b](T08b_lr_tuning.md); [T15](T15_summary_and_full_vs_roi.md)
 - **Scenarios**: all (S01–S16)
-- **Status**: In Progress
+- **Status**: Completed
 
 ---
 
@@ -78,3 +78,43 @@ This analysis was decided **after** the test results (T08 §7, T15 §7) were see
 2. On Raptor, every job of the plan finishes; each of the 16 scenarios has 5 held-out-fold prediction files covering all development cases once.
 3. `cv_summary.py` writes the three files; the figure is inspected.
 4. Record the CV results here and note in T12 that the optional CV was run.
+
+---
+
+## 7. HPC Run (2026-10-14)
+
+`submit_cv.sh`: 110 jobs (60 single-model, 10 CNN-SVM, 30 AlexNet members, 10 combine), 03:34–05:54, all completed; every run recorded commit `760e799` with `git_dirty: false`. `pytest tests/test_cv.py` passed in the Raptor container (8 passed). `cv_summary.py`: 16 scenarios x 5 folds, 356 development cases (943 images) out of fold, 2,000 paired resamples. The figure was inspected (same layout and scale as the T15 test figure).
+
+**Per scenario: macro-F1 over 5 folds (mean ± SD) and out of fold**
+
+| Family | Full | ROI |
+|---|---|---|
+| EfficientNet-B0 | 0.730 ± 0.035 (0.741) | 0.774 ± 0.035 (0.788) |
+| ResNet152 | 0.761 ± 0.033 (0.769) | 0.789 ± 0.029 (0.801) |
+| MobileNetV3-Small | 0.636 ± 0.026 (0.650) | 0.729 ± 0.027 (0.744) |
+| GoogLeNet | 0.736 ± 0.025 (0.747) | 0.737 ± 0.041 (0.749) |
+| VGG16 | 0.753 ± 0.038 (0.768) | 0.761 ± 0.027 (0.773) |
+| ViT-B/16 | 0.706 ± 0.062 (0.716) | 0.774 ± 0.031 (0.787) |
+| CNN-SVM | 0.529 ± 0.020 (0.537) | 0.717 ± 0.052 (0.732) |
+| AlexNet ensemble | 0.643 ± 0.050 (0.662) | 0.695 ± 0.032 (0.708) |
+
+**Paired full vs ROI, out-of-fold macro-F1 (primary)**
+
+| Family | Full | ROI | ROI − full [95% paired CI] | p | Holm p |
+|---|---|---|---|---|---|
+| EfficientNet-B0 | 0.741 | 0.788 | +0.047 [+0.009, +0.079] | 0.017 | 0.085 |
+| ResNet152 | 0.769 | 0.801 | +0.032 [−0.009, +0.073] | 0.145 | 0.435 |
+| MobileNetV3-Small | 0.650 | 0.744 | +0.094 [+0.052, +0.133] | <0.001 | <0.001 |
+| GoogLeNet | 0.747 | 0.749 | +0.002 [−0.039, +0.041] | 0.935 | 1.000 |
+| VGG16 | 0.768 | 0.773 | +0.005 [−0.032, +0.042] | 0.810 | 1.000 |
+| ViT-B/16 | 0.716 | 0.787 | +0.072 [+0.029, +0.114] | <0.001 | <0.001 |
+| CNN-SVM | 0.537 | 0.732 | +0.195 [+0.143, +0.242] | <0.001 | <0.001 |
+| AlexNet ensemble | 0.662 | 0.708 | +0.046 [−0.001, +0.090] | 0.055 | 0.220 |
+| **All families (mean)** | 0.699 | 0.760 | **+0.061 [+0.036, +0.085]** | <0.001 | – |
+
+p < 0.001 means no bootstrap resample out of 2,000 crossed 0. **Secondary (pooled)**: balanced accuracy +0.059 [+0.033, +0.083], p < 0.001; macro AUC +0.016 [+0.005, +0.026], p = 0.002. Holm p < 0.05 on balanced accuracy for EfficientNet-B0, MobileNetV3-Small, ViT-B/16 and CNN-SVM, and on macro AUC for CNN-SVM.
+
+**Reading**
+- On 356 development cases the ROI path is better on average (+0.061 macro-F1), with three families (MobileNetV3-Small, ViT-B/16, CNN-SVM) significant after Holm; no family favours the full image. GoogLeNet and VGG16 show no difference.
+- This agrees in direction with the test set (T15: +0.036 [−0.031, +0.091]), whose 62 cases could not resolve it. ResNet152 is −0.058 on test but +0.032 out of fold, so its test result is compatible with noise.
+- Limits: post hoc and supplementary (§2); the learning rate, SVM setting and epoch counts were chosen on the main validation split, which lies inside these folds, so absolute CV scores are optimistic (both paths share this); the bootstrap resamples cases, not training runs, so run-to-run training variation is not in the intervals; internal data from one hospital.

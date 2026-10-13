@@ -16,7 +16,7 @@ Move code and annotations to Raptor and aggregate results back with `rsync`, kee
 1. **To Raptor** (`scripts/hpc/sync_to_raptor.sh`, laptop): upload the repo to `~/forensic-woundclassification` and the 7 CVAT exports to `/project/a260012_FORWCL/annotations/cvat_yolo_2026_09_30/`.
    - **New**: refuses to run with uncommitted changes (override `ALLOW_DIRTY=1` for a test), so every run's `run_config.json` names the exact commit.
 2. **Raw images**: the 1,112 photographs were uploaded once to `/project/a260012_FORWCL/raw_data/wound_ml_7classes/` (5.7 GB) and are only read from there.
-3. **Back to the laptop** (`scripts/hpc/fetch_results.sh [run]`, **new**): copy only aggregate outputs of a run (metrics JSON, class reports, confusion matrices, ROC curves, tuning and ensemble tables, training histories, run configs, `evaluation_index.csv`, `summary/`) into `../results_figures/`, outside the repo. Per-image prediction files, checkpoints, features and images are never copied.
+3. **Back to the laptop** (`scripts/hpc/fetch_results.sh [run]`, **new**): copy only aggregate outputs of a run (metrics JSON, class reports, confusion matrices, ROC curves, tuning and ensemble tables, training histories, run configs, `evaluation_index.csv`, `summary/`) into `../results_figures/<run>/`, outside the repo. Per-image prediction files, checkpoints, features and images are never copied.
 4. **Git**: images, crops, checkpoints, zips and the local `results/` folder are ignored (`.gitignore`).
 
 ## 3. Finding: every run so far is flagged `git_dirty`

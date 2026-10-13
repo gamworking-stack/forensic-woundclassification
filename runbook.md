@@ -30,7 +30,7 @@ Patient images, crops, checkpoints and per-image prediction files stay on Raptor
 
 ```bash
 bash scripts/hpc/sync_to_raptor.sh     # laptop: upload the committed repo (+ CVAT exports); refuses uncommitted changes
-bash scripts/hpc/fetch_results.sh      # laptop: aggregate results of run 'main' into ../results_figures/
+bash scripts/hpc/fetch_results.sh      # laptop: aggregate results of a run into ../results_figures/<run>/
 ```
 `fetch_results.sh` copies metrics, reports, confusion matrices, ROC curves, tuning and ensemble tables, training histories, run configs and `summary/`; it never copies per-image prediction files, checkpoints or images. Sync only committed code so every run's `run_config.json` names the exact commit (`git_dirty: false`).
 
@@ -198,7 +198,7 @@ module load apptainer/1.3.5
 srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_FORWCL \
   /common/sif/pytorch-24.11-py3.sif python src/evaluation/cv_summary.py --cv-root /project/a260012_FORWCL/experiments/cv
 ```
-Outputs: `experiments/cv/<full|roi>/<family>/fold_<k>/` (ensemble members in `fold_<k>/member_0<j>/`), `oof_predictions.csv` per scenario, and `experiments/cv/summary/` (`cv_table.csv`, `cv_full_vs_roi.csv`, `cv_full_vs_roi_macro_f1.png`). The plan is `experiments/cv/cv_plan.tsv`; rerunning `submit_cv.sh` resubmits only missing jobs. `fetch_results.sh cv` copies the summary to the laptop.
+Outputs: `experiments/cv/<full|roi>/<family>/fold_<k>/` (ensemble members in `fold_<k>/member_0<j>/`), `oof_predictions.csv` per scenario, and `experiments/cv/summary/` (`cv_table.csv`, `cv_full_vs_roi.csv`, `cv_full_vs_roi_macro_f1.png`). The plan is `experiments/cv/cv_plan.tsv`; rerunning `submit_cv.sh` resubmits only missing jobs. `fetch_results.sh cv` copies the summary to `../results_figures/cv/` on the laptop.
 
 ## Diagrams
 
