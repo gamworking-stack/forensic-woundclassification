@@ -7,7 +7,7 @@
 1. **Start each session with the `wayfinder` skill** to re-orient: read this file and `runbook.md`, check git status, and pick the next open ticket.
 2. **`/to-spec`**: turn the next phase into a short spec (inputs, outputs, files, acceptance checks) in `specs/<phase>.md`.
 3. **`/to-ticket`**: break the spec into small tickets in `tickets/` (one ticket = one script or one job, plus its check).
-4. **`/implement`**: build one ticket, run its check, tick it off in section 9, commit.
+4. **`/implement`**: build one ticket, run its check, tick it off in section 9, record its files used, created and changed in `tickets/TICKET_MEMO.md`, commit.
 5. Update `runbook.md` whenever a command, path, or SLURM setting changes.
 
 Ground rules:
