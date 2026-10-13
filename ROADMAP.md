@@ -156,10 +156,10 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T07 AlexNet ensemble
 - [x] T08 evaluation module
 - [x] T08b hyperparameter tuning (and optional CV)
-- [ ] T09 SLURM templates
-- [ ] T09b cluster environment (micromamba, GPU check)
-- [ ] T09c data transfer with rsync
-- [ ] T10 runbook.md
+- [x] T09 SLURM templates
+- [x] T09b cluster environment (micromamba, GPU check)
+- [x] T09c data transfer with rsync
+- [x] T10 runbook.md
 - [x] T11 HPC smoke test
 - [x] T12 16 scenarios (S01 to S16)
 - [x] T13 ROC/AUC curves

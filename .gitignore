@@ -32,3 +32,6 @@ logs/*.err
 
 # Archify working folders and check receipts (diagrams live in docs/diagrams/)
 .archify/
+
+# Local results/ skeleton; run outputs live on Raptor under /project/a260012_FORWCL/experiments
+results/

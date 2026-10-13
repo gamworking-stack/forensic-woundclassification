@@ -203,20 +203,37 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Outside Git**: `<exp>/<full|roi>/<family>/lr_<value>/` grid runs, `tuning_summary.csv`, `tuning.log`
 - **Closed** 2026-10-14: chosen learning rates and acceptance recorded in the ticket (§7), `ROADMAP.md` §9 ticked.
 
-## T09 (partial, no ticket file yet): SLURM templates
+## T09: SLURM templates
 
-- **Commits**: `4a045e5`, `b961312`, `ea7d7f5`
+- **Commits**: `4a045e5`, `b961312`, `ea7d7f5`, T08b commit; record: see `git log --grep 'T09'`
 - **Used**
-  - `src/training/train.py`, `src/training/cnn_svm.py`
+  - `src/training/train.py`, `src/training/cnn_svm.py`, `src/training/ensemble.py`, `src/training/select_lr.py`
   - `data/splits/case_level_split_manifest.csv`, `data/roi/roi_manifest.csv`
-  - `scripts/hpc/submit_alexnet_ensemble.sh` (called by `submit_all.sh`)
 - **Created**
-  - `scripts/slurm/train_single.sbatch`
-  - `scripts/hpc/watch_jobs.sh`
-  - `scripts/hpc/submit_all.sh`
+  - `scripts/slurm/train_single.sbatch`, `scripts/slurm/ensemble_combine.sbatch` (T07), `scripts/slurm/tune_select.sbatch` (T08b), `scripts/slurm/t03_roi_crops.sbatch` (T03)
+  - `scripts/hpc/submit_all.sh`, `scripts/hpc/watch_jobs.sh`
+  - `tickets/T09_slurm_templates.md`
 - **Changed**
-  - `scripts/slurm/train_single.sbatch` (log follow-up in `b961312`)
-  - `runbook.md`
+  - `scripts/slurm/train_single.sbatch` (log follow-up in `b961312`), `scripts/hpc/submit_all.sh` (T08b grid)
+  - `runbook.md`, `ROADMAP.md` (§9 tick)
+
+## T09b: Cluster environment
+
+- **Created**: `tickets/T09b_cluster_environment.md`
+- **Changed**: `runbook.md` (container versions), `ROADMAP.md` (§9 tick)
+- **Outside Git**: `<project>/torch_cache/`; container `/common/sif/pytorch-24.11-py3.sif` (cluster-provided)
+
+## T09c: Data transfer
+
+- **Used**: `scripts/hpc/sync_to_raptor.sh` (created in T03, `a85411d`)
+- **Created**: `scripts/hpc/fetch_results.sh`, `tickets/T09c_data_transfer.md`
+- **Changed**: `scripts/hpc/sync_to_raptor.sh` (refuses uncommitted changes), `.gitignore` (`results/`), `runbook.md`, `ROADMAP.md` (§9 tick)
+- **Outside Git**: `<project>/raw_data/wound_ml_7classes/`, `<project>/annotations/cvat_yolo_2026_09_30/`; laptop `../results_figures/`
+
+## T10: Runbook
+
+- **Created**: `tickets/T10_runbook.md`
+- **Changed**: `runbook.md` (connecting, data locations, transfer, progress and failures, support), `ROADMAP.md` (§9 tick)
 
 ## T11: HPC smoke test
 
@@ -230,6 +247,13 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md`
   - `ROADMAP.md` (§9 tick)
 - **Outside Git**: EfficientNet-B0 2-epoch runs, full and ROI (jobs `221591`, `221592`)
+
+## T12: All 16 scenarios
+
+- **Used**: `scripts/hpc/submit_all.sh`, `scripts/hpc/submit_alexnet_ensemble.sh`, `scripts/slurm/*.sbatch`, `src/training/*`
+- **Created**: `tickets/T12_all_scenarios.md`
+- **Changed**: `ROADMAP.md` (§9 tick, `83cb643`)
+- **Outside Git**: `<exp>/<full|roi>/<family>/` for all 16 scenarios
 
 ## T13: ROC/AUC curves
 

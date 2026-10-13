@@ -2,9 +2,47 @@
 
 ## MedCMU-HPC Raptor
 
-- Login: `ssh preenapun.s@raptor.med.cmu.ac.th` (set up a key with `ssh-copy-id` after the first password login)
+- Login: `ssh preenapun.s@raptor.med.cmu.ac.th`
 - Account `a260012`, project root `/project/a260012_FORWCL`
-- Container `/common/sif/pytorch-24.11-py3.sif` via `module load apptainer/1.3.5`
+- Container `/common/sif/pytorch-24.11-py3.sif` via `module load apptainer/1.3.5` (Python 3.12, torch 2.6 NGC 24.11, CUDA 12.6); no micromamba environment is needed
+- Partitions: `gpu` (2 nodes x 2 H100 PCIe), `compute` (CPU), `short` (8 h, tiny tests)
+- Support: nattawet.sri@cmu.ac.th, weekdays 9:00-16:30
+
+### Connecting
+
+- Raptor (`10.128.1.10`) is only reachable from the CMU network: on campus, or through the university VPN. Check from the laptop: `nc -z -G 8 raptor.med.cmu.ac.th 22 && echo reachable`.
+- SSH key: the **laptop's** public key must be in `~/.ssh/authorized_keys` on Raptor. Run `ssh-copy-id preenapun.s@raptor.med.cmu.ac.th` **on the laptop** (running it on Raptor only installs Raptor's own key). Without a key every `ssh`/`rsync` asks for the password.
+- Long sessions: `tmux new -s <name>`, detach with Ctrl+B then D, reattach with `tmux attach -t <name>`.
+
+### Data locations (Raptor)
+
+| Path under `/project/a260012_FORWCL` | Contents | Written by |
+|---|---|---|
+| `raw_data/wound_ml_7classes/` | 1,112 raw photographs by raw label (5.7 GB) | uploaded once, read only |
+| `annotations/cvat_yolo_2026_09_30/` | the 7 CVAT YOLO exports | `sync_to_raptor.sh` |
+| `derived_data/roi_union_p008/` | ROI crops by split and class | T03 job |
+| `torch_cache/` | ImageNet weights (`TORCH_HOME`) | login-node download (T05) |
+| `experiments/<run>/<full\|roi>/<family>/` | checkpoints, prediction files, metrics, figures | training, T08, T15 |
+
+Patient images, crops, checkpoints and per-image prediction files stay on Raptor; only manifests and reports are committed.
+
+### Code to Raptor, results back
+
+```bash
+bash scripts/hpc/sync_to_raptor.sh     # laptop: upload the committed repo (+ CVAT exports); refuses uncommitted changes
+bash scripts/hpc/fetch_results.sh      # laptop: aggregate results of run 'main' into ../results_figures/
+```
+`fetch_results.sh` copies metrics, reports, confusion matrices, ROC curves, tuning and ensemble tables, training histories, run configs and `summary/`; it never copies per-image prediction files, checkpoints or images. Sync only committed code so every run's `run_config.json` names the exact commit (`git_dirty: false`).
+
+### Checking progress and failures
+
+```bash
+squeue -u $USER                                       # queued (PD) and running (R) jobs
+sacct -S today -X --format=JobID,JobName%40,State,ExitCode,Elapsed | grep -v COMPLETED
+less logs/<jobname>_<jobid>.err                       # why a job failed
+scancel <jobid>                                       # stop a job
+```
+A scenario is finished when `experiments/<run>/<path>/<family>/test_predictions.csv` exists. After a `TIMEOUT` or `FAILED`, rerun `submit_all.sh` (below): it resubmits only what is missing and resumes from `last.pt`.
 
 ## T03 live ROI crops
 

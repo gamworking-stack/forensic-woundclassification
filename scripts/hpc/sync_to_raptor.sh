@@ -12,6 +12,14 @@ LOCAL_EXPORTS="${LOCAL_EXPORTS:-$HOME/Downloads}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEST="$HPC_USER@$HPC_HOST"
 
+# Runs record the commit they ran from (run_config.json git_commit/git_dirty), so only a
+# committed tree is uploaded. ALLOW_DIRTY=1 overrides this for a throwaway test.
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" && "${ALLOW_DIRTY:-0}" != 1 ]]; then
+  echo "Uncommitted changes in $REPO_ROOT; commit them first (or ALLOW_DIRTY=1 for a test):" >&2
+  git -C "$REPO_ROOT" status --short >&2
+  exit 1
+fi
+
 # The 30 Sep exports used for the committed ROI manifest; browser copies like "(1).zip" are skipped.
 exports=()
 for task in 12 14 15 16 17 18 19; do
