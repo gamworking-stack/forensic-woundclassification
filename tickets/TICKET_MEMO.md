@@ -292,6 +292,21 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Outside Git**: per scenario `<split>_roc_curves.csv` and `.png`
 - **Closed** 2026-10-14: HPC run recorded in the ticket (§6), `ROADMAP.md` §9 ticked.
 
+## T14: Grad-CAM
+
+- **Commits**: see `git log --grep 'T14'`
+- **Used**
+  - `<exp>/<full|roi>/<family>/tuning_summary.csv`, `ensemble_members.csv`, the selected runs' `best.pt`, `run_config.json`, `test_predictions.csv`
+  - `data/roi/roi_manifest.csv` (test rows, wound boxes)
+  - `src/training/models.py`, `data.py` (`load_image`), `transforms.py`, `src/data/create_roi_dataset.py` (`find_source_image`)
+- **Created**
+  - `tickets/T14_gradcam.md`
+  - `src/evaluation/gradcam.py`
+  - `tests/test_gradcam.py`
+- **Changed**
+  - `runbook.md`
+- **Outside Git**: `<exp>/gradcam/` (overlays on patient photographs; not copied off Raptor)
+
 ## T15: Summary table and paired full vs ROI
 
 - **Commits**: see `git log --grep 'T15'`

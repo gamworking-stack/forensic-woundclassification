@@ -175,6 +175,18 @@ srun -p gpu --gres=gpu:1 -c 4 --mem=32G -t 1:00:00 apptainer exec --nv --bind /p
   --scenario-dir /project/a260012_FORWCL/experiments/main/roi/efficientnet_b0
 ```
 
+## Grad-CAM (T14)
+
+One fixed set of 2 test images per class (seed 42), explained by every fine-tuned family (CNN-SVM excluded; AlexNet ensemble: representative member) on both input paths, with the checkpoint behind each reported result. Needs the ImageNet weights cache.
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+export TORCH_HOME=/project/a260012_FORWCL/torch_cache
+srun -p compute -c 8 --mem=32G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/gradcam.py --experiments-root /project/a260012_FORWCL/experiments/main
+```
+Outputs in `experiments/main/gradcam/`: `examples.csv`, `gradcam_results.csv` (prediction, correct, `matches_prediction_file`, and for full images `cam_in_box` vs `box_share`) and `<family>_set<1|2>.png`. **The figures are overlays on patient photographs: they stay on Raptor** (`fetch_results.sh` does not copy them); use them only as the ethics approval allows.
+
 ## Cross-validation (T12b, supplementary)
 
 5 case-grouped folds over train+validation (`data/splits/cv_folds.csv`, frozen; rebuild check: `python src/data/create_cv_folds.py`). Each scenario reuses its main-run settings (chosen lr, best epoch as a fixed epoch count, chosen SVM, member seeds), trains on 4 folds and predicts the 5th; the test split is never loaded. Needs the finished main run.
