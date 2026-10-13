@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Evaluate prediction files: one scenario folder, or every scenario in a run.
 
-Per scenario and split it writes metrics JSON, a class-wise report, and the confusion matrix
-(CSV and PNG); test metrics get case-level bootstrap confidence intervals. For a whole run it
+Per scenario and split it writes metrics JSON, a class-wise report, the confusion matrix and
+the one-vs-rest ROC curves (each as CSV and PNG); test metrics get case-level bootstrap confidence intervals. For a whole run it
 also checks that every scenario was tested on the same images and writes evaluation_index.csv.
 """
 
@@ -23,8 +23,9 @@ from src.evaluation.metrics import (  # noqa: E402
     compute_metrics,
     confusion_table,
     load_predictions,
+    roc_points,
 )
-from src.evaluation.plots import plot_confusion_matrix  # noqa: E402
+from src.evaluation.plots import plot_confusion_matrix, plot_roc_curves  # noqa: E402
 
 
 SPLITS = ("validation", "test")
@@ -67,6 +68,9 @@ def evaluate_scenario(run_dir: Path, title: str, n_resamples: int, seed: int) ->
         table = confusion_table(p)
         table.to_csv(run_dir / f"{split}_confusion_matrix.csv")
         plot_confusion_matrix(table, f"{title} | {split}", run_dir / f"{split}_confusion_matrix.png")
+        curves = roc_points(p)
+        curves.to_csv(run_dir / f"{split}_roc_curves.csv", index=False)
+        plot_roc_curves(curves, p.classes, f"{title} | {split}", run_dir / f"{split}_roc_curves.png")
         results[split] = metrics
     return results["test"]
 

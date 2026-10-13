@@ -208,3 +208,20 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md`
   - `ROADMAP.md` (§9 tick)
 - **Outside Git**: EfficientNet-B0 2-epoch runs, full and ROI (jobs `221591`, `221592`)
+
+## T13: ROC/AUC curves
+
+- **Commits**: see `git log --grep 'T13'`
+- **Used**
+  - `<exp>/<full|roi>/<family>/validation_predictions.csv` and `test_predictions.csv`
+  - `src/evaluation/metrics.py` (`load_predictions`, `one_vs_rest_auc`)
+- **Created**
+  - `tickets/T13_roc_auc_curves.md`
+- **Changed**
+  - `src/evaluation/metrics.py` (`roc_points`)
+  - `src/evaluation/plots.py` (`plot_roc_curves`)
+  - `src/evaluation/evaluate.py` (writes the curves per scenario and split)
+  - `tests/test_evaluation.py`
+  - `runbook.md` (evaluation outputs)
+- **Outside Git**: per scenario `<split>_roc_curves.csv` and `.png`
+- **Open**: Raptor run pending; `ROADMAP.md` §9 not ticked yet.

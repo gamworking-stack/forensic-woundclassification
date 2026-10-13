@@ -99,7 +99,7 @@ srun -p compute -c 2 --mem=8G -t 0:30:00 apptainer exec --bind /project/a260012_
   /common/sif/pytorch-24.11-py3.sif python src/evaluation/evaluate.py --experiments-root /project/a260012_FORWCL/experiments/main
 column -s, -t < /project/a260012_FORWCL/experiments/main/evaluation_index.csv | cut -c1-150
 ```
-Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`.
+Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`, `<split>_roc_curves.csv` and `.png` (one-vs-rest per class plus macro average, T13).
 
 ## Submit everything (S01-S16)
 

@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.metrics import auc
 
 from src.evaluation.evaluate import SCENARIO_IDS, main as evaluate_main
 from src.evaluation.metrics import (
@@ -19,6 +20,7 @@ from src.evaluation.metrics import (
     compute_metrics,
     confusion_table,
     load_predictions,
+    roc_points,
     summary_metrics,
 )
 
@@ -85,6 +87,41 @@ def test_hand_computed_three_class_example(tmp_path):
     assert metrics["accuracy"] == pytest.approx(4 / 6)
     assert metrics["balanced_accuracy"] == pytest.approx((0.5 + 1.0 + 0.5) / 3)
     assert metrics["macro_f1"] == pytest.approx((0.5 + 0.8 + 2 / 3) / 3)
+
+
+def test_roc_points_perfect_predictions(tmp_path):
+    p = load_predictions(write_scenario(tmp_path / "s") / "test_predictions.csv", "test")
+    curves = roc_points(p)
+    assert list(curves["curve"].unique()) == SEVEN + ["macro average"]
+    assert curves["auc"].to_numpy() == pytest.approx(1.0)
+    for _, curve in curves.groupby("curve"):
+        assert curve["fpr"].iloc[0] == 0.0 and curve["tpr"].iloc[-1] == 1.0
+        assert ((curve["fpr"] == 0.0) & (curve["tpr"] == 1.0)).any()
+
+
+def test_roc_points_match_metrics_auc(tmp_path):
+    classes = ["a", "b", "c"]
+    path = write_predictions(tmp_path / "test_predictions.csv", "test", classes,
+                             y_true=[0, 0, 1, 1, 2, 2, 0, 1], y_pred=[0, 1, 1, 1, 2, 0, 2, 0], confidence=0.7)
+    p = load_predictions(path, "test")
+    curves = roc_points(p)
+    report = class_report(p).set_index("class")
+    per_class = curves.groupby("curve")["auc"].first()
+    for name in classes:
+        assert per_class[name] == pytest.approx(report.loc[name, "auc"])
+        curve = curves[curves["curve"] == name]
+        assert auc(curve["fpr"], curve["tpr"]) == pytest.approx(report.loc[name, "auc"])
+    assert per_class["macro average"] == pytest.approx(compute_metrics(p)["macro_auc"])
+    macro = curves[curves["curve"] == "macro average"]
+    assert macro["fpr"].is_monotonic_increasing and macro["tpr"].is_monotonic_increasing
+
+
+def test_roc_points_skip_class_without_positives(tmp_path):
+    classes = ["a", "b", "c"]
+    path = write_predictions(tmp_path / "test_predictions.csv", "test", classes,
+                             y_true=[0, 0, 1, 1], y_pred=[0, 1, 1, 2])
+    curves = roc_points(load_predictions(path, "test"))
+    assert sorted(curves["curve"].unique()) == ["a", "b", "macro average"]
 
 
 def test_bootstrap_is_reproducible(tmp_path):
@@ -167,7 +204,8 @@ def test_experiments_root_writes_index_and_skips_members(tmp_path):
 
     folder = root / "roi" / "alexnet_ensemble"
     for split in ("validation", "test"):
-        for name in ("metrics.json", "classification_report.csv", "confusion_matrix.csv", "confusion_matrix.png"):
+        for name in ("metrics.json", "classification_report.csv", "confusion_matrix.csv", "confusion_matrix.png",
+                     "roc_curves.csv", "roc_curves.png"):
             assert (folder / f"{split}_{name}").is_file()
     test_metrics = json.loads((folder / "test_metrics.json").read_text())
     assert test_metrics["bootstrap"]["unit"] == "case"

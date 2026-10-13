@@ -16,6 +16,7 @@ from sklearn.metrics import (
     log_loss,
     precision_recall_fscore_support,
     roc_auc_score,
+    roc_curve,
 )
 
 
@@ -79,6 +80,32 @@ def one_vs_rest_auc(y_true: np.ndarray, probs: np.ndarray, k: int) -> float:
     if positives.all() or not positives.any():
         return float("nan")
     return float(roc_auc_score(positives, probs[:, k]))
+
+
+def roc_points(p: Predictions) -> pd.DataFrame:
+    """One-vs-rest ROC points per class plus their macro average, in long format.
+
+    Columns: ``curve`` (class name or ``macro average``), ``fpr``, ``tpr``, ``threshold``, ``auc``.
+    A class with no positives or no negatives in the split has no curve. The macro curve is the
+    mean of the class curves interpolated on the union of their false positive rates; its ``auc``
+    is the mean of the class AUCs, the same number as ``macro_auc`` in the metrics JSON.
+    """
+    frames, class_curves, aucs = [], [], []
+    for k, name in enumerate(p.classes):
+        auc = one_vs_rest_auc(p.y_true, p.probs, k)
+        if np.isnan(auc):
+            continue
+        fpr, tpr, threshold = roc_curve(p.y_true == k, p.probs[:, k])
+        frames.append(pd.DataFrame({"curve": name, "fpr": fpr, "tpr": tpr, "threshold": threshold, "auc": auc}))
+        class_curves.append((fpr, tpr))
+        aucs.append(auc)
+    if not class_curves:
+        raise ValueError("No class has both positives and negatives; ROC curves are undefined")
+    grid = np.unique(np.concatenate([fpr for fpr, _ in class_curves]))
+    mean_tpr = np.mean([np.interp(grid, fpr, tpr) for fpr, tpr in class_curves], axis=0)
+    frames.append(pd.DataFrame({"curve": "macro average", "fpr": grid, "tpr": mean_tpr,
+                                "threshold": np.nan, "auc": float(np.mean(aucs))}))
+    return pd.concat(frames, ignore_index=True)
 
 
 def summary_metrics(y_true: np.ndarray, y_pred: np.ndarray, probs: np.ndarray) -> Dict[str, float]:
