@@ -93,7 +93,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     with args.output.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t")
         writer.writeheader()
-        writer.writerows(jobs)
+        # "-" marks an empty field: bash's read collapses consecutive tabs
+        writer.writerows({k: ("-" if v == "" else v) for k, v in job.items()} for job in jobs)
     kinds = {k: sum(j["kind"] == k for j in jobs) for k in ("train", "svm", "member", "combine")}
     print(f"{len(jobs)} CV jobs ({kinds}) written to {args.output}", file=sys.stderr)
     return 0

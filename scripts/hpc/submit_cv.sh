@@ -21,12 +21,13 @@ declare -A member_ids  # fold folder -> colon-separated member job IDs submitted
 is_queued() { grep -qx "$1" <<<"$queued"; }
 queued_id() { squeue -u "$USER" -h -n "$1" -o %i | head -n 1; }
 
+# Plan fields are tab-separated; "-" marks an empty field.
 while IFS=$'\t' read -r name kind family input_path fold lr epochs seed svm_from out; do
-  [[ "$name" == job_name ]] && continue
+  if [[ "$name" == job_name ]]; then continue; fi
   if [[ -f "$out/validation_predictions.csv" ]]; then continue; fi
   fold_dir="${out%/member_*}"
   if is_queued "$name"; then
-    [[ "$kind" == member ]] && member_ids[$fold_dir]+="$(queued_id "$name"):"
+    if [[ "$kind" == member ]]; then member_ids[$fold_dir]+="$(queued_id "$name"):"; fi
     continue
   fi
   cv_args="--cv-folds $FOLDS_CSV --fold $fold"
@@ -38,7 +39,7 @@ while IFS=$'\t' read -r name kind family input_path fold lr epochs seed svm_from
     combine)
       deps="${member_ids[$fold_dir]:-}"; deps="${deps%:}"
       dep_args=()
-      [[ -n "$deps" ]] && dep_args=(--dependency="afterok:$deps" --kill-on-invalid-dep=yes)
+      if [[ -n "$deps" ]]; then dep_args=(--dependency="afterok:$deps" --kill-on-invalid-dep=yes); fi
       ids+=("$(sbatch --parsable -J "$name" ${dep_args[@]+"${dep_args[@]}"} \
         --export=ALL,ENSEMBLE_DIR="$out",ENSEMBLE_SPLITS=validation scripts/slurm/ensemble_combine.sbatch)")
       echo "submitted $name" >&2
@@ -48,7 +49,7 @@ while IFS=$'\t' read -r name kind family input_path fold lr epochs seed svm_from
     --export=ALL,FAMILY="$family",INPUT_PATH="$input_path",OUTPUT_DIR="$out",EXTRA_ARGS="$extra" \
     scripts/slurm/train_single.sbatch)
   ids+=("$id")
-  [[ "$kind" == member ]] && member_ids[$fold_dir]+="$id:"
+  if [[ "$kind" == member ]]; then member_ids[$fold_dir]+="$id:"; fi
   echo "submitted $name" >&2
 done < "$CV/cv_plan.tsv"
 
