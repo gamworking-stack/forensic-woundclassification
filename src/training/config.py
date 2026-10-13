@@ -44,6 +44,7 @@ class RunConfig:
     cache: bool = True
     resume: bool = False
     smoke: bool = False
+    skip_test: bool = False
 
     def to_json(self) -> Dict[str, Any]:
         return {k: str(v) if isinstance(v, Path) else v for k, v in asdict(self).items()}
@@ -81,6 +82,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--resume", action="store_true", help="Continue from last.pt if present.")
     parser.add_argument("--smoke", action="store_true",
                         help="2 epochs on 2 images per class per split.")
+    parser.add_argument("--skip-test", action="store_true",
+                        help="Tuning run: write validation predictions only; never load the test split.")
     args = parser.parse_args(argv)
 
     if args.max_epochs is None:

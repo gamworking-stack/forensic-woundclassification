@@ -3,8 +3,8 @@
 
 Training keeps the checkpoint with the best validation macro-F1 (ties: lower validation loss)
 and stops after ``patience`` epochs without improvement. The test split is loaded and predicted
-only after training has ended, with that checkpoint. Metrics are computed later from the
-prediction files (T08).
+only after training has ended, with that checkpoint; ``--skip-test`` (T08b tuning runs) leaves it
+out entirely. Metrics are computed later from the prediction files (T08).
 """
 
 from __future__ import annotations
@@ -199,7 +199,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 break
         del train_loader, val_loader  # shut down persistent workers before predicting
 
-    prediction_paths = {split: out / f"{split}_predictions.csv" for split in ("validation", "test")}
+    prediction_splits = ("validation",) if cfg.skip_test else ("validation", "test")
+    prediction_paths = {split: out / f"{split}_predictions.csv" for split in prediction_splits}
     if finished and all(p.exists() for p in prediction_paths.values()):
         log("Prediction files already present; nothing to do.")
         return 0

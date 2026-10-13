@@ -103,10 +103,27 @@ Per scenario: `<split>_metrics.json` (test includes case-level 95% CIs), `<split
 
 ## Submit everything (S01-S16)
 
-`scripts/hpc/submit_all.sh [run_name]` submits every scenario that has no `test_predictions.csv` and is not already queued (job names `S01_efficientnet_b0_full`, ...). Unfinished runs resume from `last.pt`, so it is safe to rerun after a timeout or failure.
+`scripts/hpc/submit_all.sh [run_name]` submits every scenario that has no `test_predictions.csv` and is not already queued. Unfinished runs resume from `last.pt`, so it is safe to rerun after a timeout or failure.
 ```bash
 cd ~/forensic-woundclassification
 bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)
+```
+
+S01-S12 are tuned on validation (T08b): each scenario gets 3 GPU runs, one per learning rate (`S01_efficientnet_b0_full_lr1e-5`, `..._lr3e-5`, `..._lr1e-4`, with `--skip-test`), then a select job (`S01_efficientnet_b0_full_select`, `scripts/slurm/tune_select.sbatch`) that starts after all 3 succeed. It picks the best validation macro-F1, writes `tuning_summary.csv`, predicts test for that run only and copies its files into the scenario folder:
+```
+/project/a260012_FORWCL/experiments/main/<full|roi>/<family>/
+  lr_1e-5/  lr_3e-5/  lr_1e-4/     grid runs (best.pt, last.pt, validation predictions; test only in the chosen one)
+  tuning_summary.csv  tuning.log   choice and its validation scores
+  run_config.json  training_history.csv  validation_predictions.csv  test_predictions.csv   from the chosen run
+```
+A failed grid run cancels its select job; rerunning `submit_all.sh` resubmits only what is missing. To rerun the selection by hand:
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+export TORCH_HOME=/project/a260012_FORWCL/torch_cache
+srun -p gpu --gres=gpu:1 -c 4 --mem=32G -t 1:00:00 apptainer exec --nv --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/training/select_lr.py \
+  --scenario-dir /project/a260012_FORWCL/experiments/main/roi/efficientnet_b0
 ```
 
 ## Diagrams

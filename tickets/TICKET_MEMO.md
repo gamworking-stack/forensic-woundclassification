@@ -181,6 +181,27 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `tickets/T08_evaluation_module.md`
 - **Outside Git**: per scenario `<split>_metrics.json`, `<split>_classification_report.csv`, `<split>_confusion_matrix.csv` and `.png`; `<exp>/evaluation_index.csv`
 
+## T08b: Learning-rate tuning
+
+- **Commits**: see `git log --grep 'T08b'`
+- **Used**
+  - `src/training/engine.py` (`load_checkpoint`), `src/training/common.py` (`Logger`)
+  - `scripts/slurm/train_single.sbatch` (grid runs, via `OUTPUT_DIR` and `EXTRA_ARGS`)
+  - `src/evaluation/evaluate.py` (`find_scenarios`, in the tests)
+  - `tests/synthetic_data.py`, `tests/test_training.py` (`run_args`)
+- **Created**
+  - `tickets/T08b_lr_tuning.md`
+  - `src/training/select_lr.py`
+  - `scripts/slurm/tune_select.sbatch`
+  - `tests/test_tuning.py`
+- **Changed**
+  - `src/training/config.py`, `src/training/train.py` (`--skip-test`)
+  - `scripts/hpc/submit_all.sh` (S01-S12 grid runs and select jobs)
+  - `specs/phase3_training_code.md` (§5 T08b interface)
+  - `runbook.md`
+- **Outside Git**: `<exp>/<full|roi>/<family>/lr_<value>/` grid runs, `tuning_summary.csv`, `tuning.log`
+- **Open**: Raptor run pending; chosen learning rates to be recorded in the ticket; `ROADMAP.md` §9 not ticked yet.
+
 ## T09 (partial, no ticket file yet): SLURM templates
 
 - **Commits**: `4a045e5`, `b961312`, `ea7d7f5`

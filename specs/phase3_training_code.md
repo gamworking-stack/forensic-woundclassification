@@ -120,7 +120,7 @@ Flags for tests: `--smoke` (2 epochs on 2 images per class per split), `--no-pre
 - **T06 CNN-SVM** uses `data.py`, `transforms.py` (eval transform only) and `models.feature_extractor`. It writes the same prediction CSVs, with probabilities from Platt scaling (`SVC(probability=True)`).
 - **T07 Ensemble** calls `train.py` 3 times with `--family alexnet --seed 43|44|45`, then averages the members' `prob_*` columns into the ensemble's prediction CSVs.
 - **T08 Evaluation** reads only prediction CSVs and produces accuracy, balanced accuracy, macro/class-wise precision, recall and F1, confusion matrix, and one-vs-rest ROC/AUC.
-- **T08b Tuning** passes overrides (`--lr`, `--batch-size`, `--dropout`) to `train.py`, and selects on validation macro-F1 only.
+- **T08b Tuning** tunes `--lr` only (grid 1e-5, 3e-5, 1e-4; decision in `tickets/T08b_lr_tuning.md` §2) with `--skip-test` runs, and selects on validation macro-F1 only.
 
 ### 5.1 Scenario IDs
 
