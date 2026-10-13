@@ -25,7 +25,7 @@ Run S01–S16 (8 families x full/ROI) under one split, seed and budget policy.
 
 ## 3. Optional 5-fold cross-validation
 
-Not run. The ROADMAP lists it as optional ("if the data size allows"), on train+validation only, to report a mean and SD for the strongest models. Note that compute is not the obstacle (S01–S12 took 3.1 GPU-hours), and choosing the "strongest models" must not use the test results.
+Run as a supplementary analysis for **all 16 scenarios** (not only the "strongest", which would have to be chosen on test results): see [T12b](T12b_cross_validation.md). Decided 2026-10-14, after the test results were seen; it changes no model or test result.
 
 ## 4. Acceptance Check (2026-10-14)
 

@@ -255,6 +255,26 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**: `ROADMAP.md` (§9 tick, `83cb643`)
 - **Outside Git**: `<exp>/<full|roi>/<family>/` for all 16 scenarios
 
+## T12b: Cross-validation (supplementary)
+
+- **Commits**: see `git log --grep 'cv'`
+- **Used**
+  - `data/splits/case_level_split_manifest.csv`, `data/roi/roi_manifest.csv`
+  - `src/data/create_case_split.py` (`build_group_matrices`)
+  - main run: `<exp>/<full|roi>/<family>/tuning_summary.csv`, `ensemble_members.csv`, CNN-SVM `run_config.json`
+  - `src/evaluation/summarize.py` (`paired_comparison`), `scripts/slurm/train_single.sbatch`
+- **Created**
+  - `tickets/T12b_cross_validation.md`
+  - `src/data/create_cv_folds.py`, `data/splits/cv_folds.csv`, `data/splits/cv_folds_report.json`
+  - `src/training/cv_plan.py`, `scripts/hpc/submit_cv.sh`, `src/evaluation/cv_summary.py`
+  - `tests/test_cv.py`
+- **Changed**
+  - `src/training/data.py`, `config.py`, `train.py` (CV mode, `--checkpoint last`)
+  - `src/training/cnn_svm.py` (CV mode, `--svm-params-from`), `src/training/ensemble.py` (`--splits`)
+  - `scripts/slurm/ensemble_combine.sbatch` (`ENSEMBLE_SPLITS`)
+  - `runbook.md`, `tickets/T12_all_scenarios.md`
+- **Outside Git**: `<project>/experiments/cv/` (fold runs, `oof_predictions.csv`, `summary/`, `cv_plan.tsv`)
+
 ## T13: ROC/AUC curves
 
 - **Commits**: see `git log --grep 'T13'`

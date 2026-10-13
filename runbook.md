@@ -175,6 +175,19 @@ srun -p gpu --gres=gpu:1 -c 4 --mem=32G -t 1:00:00 apptainer exec --nv --bind /p
   --scenario-dir /project/a260012_FORWCL/experiments/main/roi/efficientnet_b0
 ```
 
+## Cross-validation (T12b, supplementary)
+
+5 case-grouped folds over train+validation (`data/splits/cv_folds.csv`, frozen; rebuild check: `python src/data/create_cv_folds.py`). Each scenario reuses its main-run settings (chosen lr, best epoch as a fixed epoch count, chosen SVM, member seeds), trains on 4 folds and predicts the 5th; the test split is never loaded. Needs the finished main run.
+```bash
+cd ~/forensic-woundclassification
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_cv.sh)     # 110 jobs: 100 GPU + 10 CPU combine
+# when all are done:
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/cv_summary.py --cv-root /project/a260012_FORWCL/experiments/cv
+```
+Outputs: `experiments/cv/<full|roi>/<family>/fold_<k>/` (ensemble members in `fold_<k>/member_0<j>/`), `oof_predictions.csv` per scenario, and `experiments/cv/summary/` (`cv_table.csv`, `cv_full_vs_roi.csv`, `cv_full_vs_roi_macro_f1.png`). The plan is `experiments/cv/cv_plan.tsv`; rerunning `submit_cv.sh` resubmits only missing jobs. `fetch_results.sh cv` copies the summary to the laptop.
+
 ## Diagrams
 
 `docs/diagrams/` holds five Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
