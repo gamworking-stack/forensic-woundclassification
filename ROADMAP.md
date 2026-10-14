@@ -171,4 +171,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T14 Grad-CAM
 - [x] T15 summary table
 - [x] T16 final verification
-- [ ] T17 per-box ROI experiment (extra; code done, HPC run pending)
+- [x] T17 per-box ROI experiment (extra)
