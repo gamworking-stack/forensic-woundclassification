@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 from torch import nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 
@@ -92,6 +93,15 @@ def classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, num_classes: 
     }
 
 
+def weighted_loss(criterion: nn.CrossEntropyLoss, logits: torch.Tensor, targets: torch.Tensor,
+                  sample_weight: torch.Tensor) -> torch.Tensor:
+    """``criterion`` with a per-sample weight, normalized like PyTorch's class-weighted mean."""
+    per_sample = F.cross_entropy(logits, targets, weight=criterion.weight,
+                                 label_smoothing=criterion.label_smoothing, reduction="none")
+    norm = sample_weight if criterion.weight is None else sample_weight * criterion.weight[targets]
+    return (per_sample * sample_weight).sum() / norm.sum()
+
+
 def _autocast(device: torch.device):
     return torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda")
 
@@ -103,17 +113,24 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
 ) -> Tuple[float, np.ndarray, np.ndarray]:
-    """One pass over the training loader; returns (mean loss, labels, predicted labels)."""
+    """One pass over the training loader; returns (mean loss, labels, predicted labels).
+
+    Batches of (images, targets, weights) use per-sample weights in the loss (T17).
+    """
     model.train()
     total_loss, count = 0.0, 0
     labels, preds = [], []
-    for images, targets in loader:
+    for images, targets, *weights in loader:
         images = images.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
         with _autocast(device):
             logits = model(images)
-        loss = criterion(logits.float(), targets)
+        if weights:
+            sample_weight = weights[0].to(device, dtype=torch.float32, non_blocking=True)
+            loss = weighted_loss(criterion, logits.float(), targets, sample_weight)
+        else:
+            loss = criterion(logits.float(), targets)
         loss.backward()
         optimizer.step()
         total_loss += loss.item() * len(targets)
@@ -134,7 +151,7 @@ def predict(
     model.eval()
     total_loss, count = 0.0, 0
     labels, probs = [], []
-    for images, targets in loader:
+    for images, targets, *_ in loader:
         images = images.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
         with _autocast(device):

@@ -200,6 +200,26 @@ srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_
 ```
 Outputs: `experiments/cv/<full|roi>/<family>/fold_<k>/` (ensemble members in `fold_<k>/member_0<j>/`), `oof_predictions.csv` per scenario, and `experiments/cv/summary/` (`cv_table.csv`, `cv_full_vs_roi.csv`, `cv_full_vs_roi_macro_f1.png`). The plan is `experiments/cv/cv_plan.tsv`; rerunning `submit_cv.sh` resubmits only missing jobs. `fetch_results.sh cv` copies the summary to `../results_figures/cv/` on the laptop.
 
+## Per-box ROI experiment (T17, extra)
+
+One crop per annotated box instead of one union crop per photo; S17-S24, in its own run `roi_box` (the main run is not touched). Plan and decisions: `tickets/T17_box_roi.md`. Needs the finished, evaluated main run for the comparison.
+```bash
+cd ~/forensic-woundclassification
+# 1. crops (CPU), checked against the committed data/roi_box/roi_manifest.csv (1,667 crops)
+sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=/project/a260012_FORWCL/derived_data/roi_box_p008,EXPECTED_MANIFEST=data/roi_box/roi_manifest.csv \
+  scripts/slurm/t03_roi_crops.sbatch
+# 2. train S17-S24 (lr grid + select for S17-S22, CNN-SVM, AlexNet ensemble)
+bash scripts/hpc/watch_jobs.sh $(PATHS=box bash scripts/hpc/submit_all.sh roi_box)
+# 3. crop-level metrics, then photo level and the paired comparison with the main run
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/evaluate.py --experiments-root /project/a260012_FORWCL/experiments/roi_box
+srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/box_summary.py \
+  --box-root /project/a260012_FORWCL/experiments/roi_box --main-root /project/a260012_FORWCL/experiments/main
+```
+Outputs: `experiments/roi_box/box/<family>/` (crop-level prediction and metric files; `photo/` holds the photo-level ones) and `experiments/roi_box/summary/` (`box_summary_table.csv`, `box_vs_union.csv`, `box_vs_full.csv`, `box_vs_union_macro_f1.png`). `fetch_results.sh roi_box` copies the summary to `../results_figures/roi_box/` on the laptop.
+
 ## Final verification (T16)
 
 After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):

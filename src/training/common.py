@@ -14,6 +14,7 @@ import torch
 import torchvision
 
 from src.training.data import GROUP_COLUMN
+from src.training.photo import PHOTO_COLUMN
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -62,11 +63,16 @@ def environment_info(device: torch.device) -> Dict[str, Any]:
 
 
 def prediction_frame(
-    rows: pd.DataFrame, labels: np.ndarray, probs: np.ndarray, classes: List[str]
+    rows: pd.DataFrame, labels: np.ndarray, probs: np.ndarray, classes: List[str], photo: bool = False
 ) -> pd.DataFrame:
-    """One row per image: identifiers, true and predicted class, and one probability per class."""
+    """One row per image: identifiers, true and predicted class, and one probability per class.
+
+    With ``photo`` (T17 per-box crops) each row also names its source photo.
+    """
+    photo_column = {PHOTO_COLUMN: rows[PHOTO_COLUMN].to_numpy()} if photo else {}
     frame = pd.DataFrame({
         "relative_path": rows["image_relative_path"].to_numpy(),
+        **photo_column,
         "pseudonimized_id": rows[GROUP_COLUMN].to_numpy(),
         "split": rows["split"].to_numpy(),
         "true_class": [classes[i] for i in labels],

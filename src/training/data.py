@@ -95,14 +95,14 @@ def resolve_image_paths(df: pd.DataFrame, input_path: str, image_root: Path) -> 
     paths: List[Path] = []
     missing: List[str] = []
     for row in df.to_dict("records"):
-        if input_path == "roi":
+        if input_path in ("roi", "box"):
             candidate: Optional[Path] = image_root / row["roi_relative_path"]
             if not candidate.is_file():
                 candidate = None
         else:
             candidate = find_source_image(image_root, row)
         if candidate is None:
-            missing.append(row.get("roi_relative_path") if input_path == "roi" else row["relative_path"])
+            missing.append(row.get("roi_relative_path") if input_path in ("roi", "box") else row["relative_path"])
         else:
             paths.append(candidate)
     if missing:
@@ -134,7 +134,8 @@ class ManifestImageDataset(Dataset):
     """Images and integer labels for one split.
 
     With ``cache_side`` set, every image is decoded once up front and kept in memory with its
-    longest side shrunk to ``cache_side``; the raw photos are up to 6000 x 4000.
+    longest side shrunk to ``cache_side``; the raw photos are up to 6000 x 4000. With ``weights``
+    (T17 per-box training) each item also returns its loss weight.
     """
 
     def __init__(
@@ -144,9 +145,11 @@ class ManifestImageDataset(Dataset):
         transform: Callable,
         cache_side: Optional[int] = None,
         threads: int = 8,
+        weights: Optional[Sequence[float]] = None,
     ) -> None:
         self.paths = list(paths)
         self.labels = list(labels)
+        self.weights = None if weights is None else [float(w) for w in weights]
         self.transform = transform
         self.cache: Optional[List[Image.Image]] = None
         if cache_side is not None:
@@ -158,4 +161,6 @@ class ManifestImageDataset(Dataset):
 
     def __getitem__(self, idx: int):
         image = self.cache[idx] if self.cache is not None else load_image(self.paths[idx])
+        if self.weights is not None:
+            return self.transform(image), self.labels[idx], self.weights[idx]
         return self.transform(image), self.labels[idx]

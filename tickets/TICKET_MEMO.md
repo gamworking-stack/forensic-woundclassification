@@ -353,3 +353,24 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md`
   - `ROADMAP.md` (§9 tick)
 - **Outside Git**: `<exp>/verification/verification_report.csv`
+
+## T17: Per-box ROI experiment (extra)
+
+- **Commits**: see `git log --grep 'T17'`
+- **Used**
+  - `data/splits/case_level_split_manifest.csv`, the 7 CVAT exports of 30 Sep 2026
+  - `src/data/create_roi_dataset.py` (`--crop-mode individual`), `src/data/compare_roi_manifests.py`
+  - `src/evaluation/summarize.py` (`load_pairs`, `paired_comparison`), `src/evaluation/metrics.py`
+  - the evaluated main run (`<exp>/<full|roi>/<family>/`) for the comparison
+- **Created**
+  - `tickets/T17_box_roi.md`
+  - `data/roi_box/roi_manifest.csv`, `data/roi_box/crop_summary.json` (dry run)
+  - `src/training/photo.py`, `src/evaluation/box_summary.py`
+  - `tests/test_box_roi.py`
+- **Changed**
+  - `src/training/config.py`, `data.py`, `engine.py`, `train.py`, `common.py`, `cnn_svm.py`, `ensemble.py` (`box` input path)
+  - `src/evaluation/evaluate.py` (S17-S24), `src/evaluation/plots.py` (forest-plot labels)
+  - `scripts/slurm/train_single.sbatch`, `scripts/slurm/t03_roi_crops.sbatch`, `scripts/hpc/submit_all.sh`, `scripts/hpc/submit_alexnet_ensemble.sh`
+  - `tests/synthetic_data.py` (`build_synthetic_box_dataset`)
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/derived_data/roi_box_p008/`, `<project>/experiments/roi_box/`

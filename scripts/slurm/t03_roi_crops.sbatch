@@ -1,6 +1,8 @@
 #!/bin/bash
 # T03 live run: crop padded union ROIs from the raw images on Raptor.
 # CPU only. Submit from the repo root:  sbatch scripts/slurm/t03_roi_crops.sbatch
+# T17 per-box crops (one crop per box):
+#   sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=/project/a260012_FORWCL/derived_data/roi_box_p008,EXPECTED_MANIFEST=data/roi_box/roi_manifest.csv scripts/slurm/t03_roi_crops.sbatch
 #SBATCH --job-name=t03_roi_crops
 #SBATCH --account=a260012
 #SBATCH --partition=compute
@@ -16,6 +18,8 @@ PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
 IMAGE_ROOT="${IMAGE_ROOT:-$PROJECT_ROOT/raw_data/wound_ml_7classes}"
 EXPORTS_DIR="${EXPORTS_DIR:-$PROJECT_ROOT/annotations/cvat_yolo_2026_09_30}"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/derived_data/roi_union_p008}"
+CROP_MODE="${CROP_MODE:-union}"
+EXPECTED_MANIFEST="${EXPECTED_MANIFEST:-data/roi/roi_manifest.csv}"
 SIF="${SIF:-/common/sif/pytorch-24.11-py3.sif}"
 REPO_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
 
@@ -24,7 +28,7 @@ echo "Job $SLURM_JOB_ID on $(hostname) at $(date -Is)"
 echo "Repo: $REPO_DIR ($(git rev-parse --short HEAD 2>/dev/null || echo 'no git'))"
 echo "Images: $IMAGE_ROOT"
 echo "Exports: $EXPORTS_DIR"
-echo "Output: $OUTPUT_DIR"
+echo "Output: $OUTPUT_DIR (crop mode $CROP_MODE, expected $EXPECTED_MANIFEST)"
 
 for d in "$IMAGE_ROOT" "$EXPORTS_DIR"; do
   [[ -d "$d" ]] || { echo "Missing directory: $d" >&2; exit 1; }
@@ -53,11 +57,11 @@ run python src/data/create_roi_dataset.py \
   --output-dir "$OUTPUT_DIR" \
   --padding 0.08 \
   --min-size 8 \
-  --crop-mode union \
+  --crop-mode "$CROP_MODE" \
   --clear-output
 
 run python src/data/compare_roi_manifests.py \
-  --expected data/roi/roi_manifest.csv \
+  --expected "$EXPECTED_MANIFEST" \
   --actual "$OUTPUT_DIR/roi_manifest.csv" \
   --crop-root "$OUTPUT_DIR"
 

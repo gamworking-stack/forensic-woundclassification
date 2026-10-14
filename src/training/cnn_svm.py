@@ -4,6 +4,10 @@
 The SVM is tuned on validation macro-F1 with the scaler and SVM fit on train only. The chosen
 setting is refit on train+validation and the test split is predicted once. Test features are
 extracted only after the SVM has been chosen.
+
+On the ``box`` input path (T17 per-box crops) the scaler and SVM are fitted with photo weights
+(1 / crops per photo), class weights count photos, and the grid is scored on photo-level
+validation macro-F1 (mean of each photo's crop probabilities).
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ from src.training.data import (  # noqa: E402
 )
 from src.training.engine import classification_metrics, seed_everything  # noqa: E402
 from src.training.models import feature_extractor, input_size  # noqa: E402
+from src.training.photo import PHOTO_COLUMN, PHOTO_INPUT_PATHS, photo_mean, photo_weights  # noqa: E402
 from src.training.transforms import build_transforms  # noqa: E402
 
 
@@ -67,15 +72,28 @@ def grid_edges(params: Dict[str, Any]) -> List[str]:
     return edges
 
 
-def make_svm(params: Dict[str, Any], seed: int, probability: bool = False) -> Pipeline:
+def make_svm(params: Dict[str, Any], seed: int, probability: bool = False,
+             class_weight: Any = "balanced") -> Pipeline:
     """Scaler and SVM in one pipeline, so the scaler only ever sees the SVM's training data."""
-    svm = SVC(**params, class_weight="balanced", probability=probability, random_state=seed)
+    svm = SVC(**params, class_weight=class_weight, probability=probability, random_state=seed)
     return Pipeline([("scale", StandardScaler()), ("svm", svm)])
+
+
+def fit_svm(params: Dict[str, Any], seed: int, x: np.ndarray, y: np.ndarray,
+            weight: Optional[np.ndarray] = None, probability: bool = False) -> Pipeline:
+    """Fit the pipeline; with ``weight`` (T17 photo weights) both steps use it and the class
+    weights are 'balanced' on the weighted counts instead of the row counts."""
+    if weight is None:
+        return make_svm(params, seed, probability).fit(x, y)
+    counts = np.bincount(y, weights=weight)
+    class_weight = {int(c): float(weight.sum() / (len(counts) * counts[c])) for c in np.unique(y)}
+    return make_svm(params, seed, probability, class_weight).fit(
+        x, y, scale__sample_weight=weight, svm__sample_weight=weight)
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hybrid CNN-SVM on one input path (full image or ROI).")
-    parser.add_argument("--input-path", required=True, choices=("full", "roi"))
+    parser.add_argument("--input-path", required=True, choices=("full", "roi", "box"))
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -130,6 +148,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     splits = ("train", "validation") if cv else SPLIT_NAMES
     rows = {split: df[df["split"] == split] for split in splits}
     labels = {split: rows[split]["label_index"].to_numpy() for split in splits}
+    per_box = args.input_path in PHOTO_INPUT_PATHS
+    weights = {split: photo_weights(rows[split][PHOTO_COLUMN]) if per_box else None for split in splits}
 
     run_config: Dict[str, Any] = {
         **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
@@ -199,11 +219,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         run_config["best_params"] = best
         log(f"Fixed SVM {best} from {args.svm_params_from} (no grid)")
     else:
-        best = tune(x_train, x_val, labels, classes, args.seed, out, log, run_config)
+        val_photos = rows["validation"][PHOTO_COLUMN].to_numpy() if per_box else None
+        best = tune(x_train, x_val, labels, classes, args.seed, out, log, run_config,
+                    train_weight=weights["train"], val_photos=val_photos)
 
-    val_model = make_svm(best, args.seed, probability=True).fit(x_train, labels["train"])
-    prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes) \
-        .to_csv(out / "validation_predictions.csv", index=False)
+    val_model = fit_svm(best, args.seed, x_train, labels["train"], weights["train"], probability=True)
+    prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes,
+                     photo=per_box).to_csv(out / "validation_predictions.csv", index=False)
     if cv:  # held-out fold predicted; the test split is never loaded
         write_config()
         log(f"Wrote validation predictions to {out} (CV fold {args.fold})")
@@ -211,24 +233,35 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # The test split is touched for the first time here, after the SVM has been chosen.
     x_test = split_features("test")
-    final = make_svm(best, args.seed, probability=True).fit(
-        np.vstack([x_train, x_val]), np.concatenate([labels["train"], labels["validation"]])
-    )
-    prediction_frame(rows["test"], labels["test"], final.predict_proba(x_test), classes) \
-        .to_csv(out / "test_predictions.csv", index=False)
+    final = fit_svm(best, args.seed, np.vstack([x_train, x_val]),
+                    np.concatenate([labels["train"], labels["validation"]]),
+                    np.concatenate([weights["train"], weights["validation"]]) if per_box else None,
+                    probability=True)
+    prediction_frame(rows["test"], labels["test"], final.predict_proba(x_test), classes,
+                     photo=per_box).to_csv(out / "test_predictions.csv", index=False)
 
     write_config()
     log(f"Wrote predictions to {out} (test from SVM refit on train+validation)")
     return 0
 
 
-def tune(x_train, x_val, labels, classes, seed, out, log, run_config) -> Dict[str, Any]:
-    """Validation macro-F1 for every grid setting; returns the chosen one and logs grid-edge warnings."""
+def tune(x_train, x_val, labels, classes, seed, out, log, run_config,
+         train_weight: Optional[np.ndarray] = None, val_photos: Optional[np.ndarray] = None) -> Dict[str, Any]:
+    """Validation macro-F1 for every grid setting; returns the chosen one and logs grid-edge warnings.
+
+    With ``val_photos`` (T17) the score is on photo level, from the mean of the crop probabilities.
+    """
     grid = svm_grid()
     tuning = []
     for params in grid:
-        pred = make_svm(params, seed).fit(x_train, labels["train"]).predict(x_val)
-        metrics = classification_metrics(labels["validation"], pred, len(classes))
+        if val_photos is None:
+            y_val = labels["validation"]
+            pred = fit_svm(params, seed, x_train, labels["train"], train_weight).predict(x_val)
+        else:
+            model = fit_svm(params, seed, x_train, labels["train"], train_weight, probability=True)
+            _, y_val, probs = photo_mean(val_photos, labels["validation"], model.predict_proba(x_val))
+            pred = probs.argmax(axis=1)
+        metrics = classification_metrics(y_val, pred, len(classes))
         tuning.append({
             "kernel": params["kernel"],
             "C": params["C"],

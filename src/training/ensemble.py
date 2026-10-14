@@ -23,6 +23,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.training.common import Logger, environment_info, git_state  # noqa: E402
 from src.training.engine import load_checkpoint  # noqa: E402
+from src.training.photo import PHOTO_COLUMN  # noqa: E402
 
 
 ID_COLUMNS = ["relative_path", "pseudonimized_id", "split", "true_class"]
@@ -46,7 +47,7 @@ def read_member(member_dir: Path, splits=PREDICTION_SPLITS) -> Dict[str, Any]:
         path = member_dir / f"{split}_predictions.csv"
         if not path.is_file():
             raise FileNotFoundError(f"{member_dir} has no {path.name}; has its training run finished?")
-        predictions[split] = pd.read_csv(path, dtype={c: str for c in ID_COLUMNS + ["predicted_class"]})
+        predictions[split] = pd.read_csv(path, dtype={c: str for c in ID_COLUMNS + [PHOTO_COLUMN, "predicted_class"]})
     config = json.loads((member_dir / "run_config.json").read_text(encoding="utf-8"))
     best = load_checkpoint(member_dir / "best.pt", torch.device("cpu"))
     return {
@@ -77,14 +78,17 @@ def soft_vote(frames: List[pd.DataFrame], names: List[str], classes: List[str]) 
     """Mean of the members' probabilities per image and class; predicted class is the argmax."""
     prob_columns = [f"prob_{c.replace(' ', '_')}" for c in classes]
     reference = frames[0]
+    # Per-box crops (T17) also carry their source photo.
+    id_columns = [c for c in reference.columns if c in ID_COLUMNS or c == PHOTO_COLUMN]
     for frame, name in zip(frames, names):
         if [c for c in frame.columns if c.startswith("prob_")] != prob_columns:
             raise ValueError(f"{name}: probability columns do not match classes {classes}")
-        if len(frame) != len(reference) or not frame[ID_COLUMNS].equals(reference[ID_COLUMNS]):
+        if (len(frame) != len(reference) or list(frame.columns) != list(reference.columns)
+                or not frame[id_columns].equals(reference[id_columns])):
             raise ValueError(f"{name}: rows differ from {names[0]} (different images or order)")
 
     mean = np.mean([frame[prob_columns].to_numpy() for frame in frames], axis=0)
-    voted = reference[ID_COLUMNS].copy()
+    voted = reference[id_columns].copy()
     voted["predicted_class"] = [classes[i] for i in mean.argmax(axis=1)]
     for j, column in enumerate(prob_columns):
         voted[column] = mean[:, j]

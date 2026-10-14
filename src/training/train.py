@@ -51,6 +51,7 @@ from src.training.engine import (  # noqa: E402
     train_one_epoch,
 )
 from src.training.models import build_model, input_size  # noqa: E402
+from src.training.photo import PHOTO_COLUMN, PHOTO_INPUT_PATHS, photo_mean, photo_weights  # noqa: E402
 from src.training.transforms import build_transforms  # noqa: E402
 
 
@@ -62,9 +63,13 @@ HISTORY_COLUMNS = [
 ]
 
 
-def compute_class_weights(train_labels: np.ndarray, num_classes: int) -> torch.Tensor:
-    """Inverse class frequency on the train split, normalized to mean 1."""
-    counts = np.bincount(train_labels, minlength=num_classes).astype(float)
+def compute_class_weights(train_labels: np.ndarray, num_classes: int,
+                          sample_weight: Optional[np.ndarray] = None) -> torch.Tensor:
+    """Inverse class frequency on the train split, normalized to mean 1.
+
+    With ``sample_weight`` (T17 photo weights) the frequency is the weighted count, i.e. photos.
+    """
+    counts = np.bincount(train_labels, weights=sample_weight, minlength=num_classes).astype(float)
     inverse = 1.0 / counts
     return torch.tensor(inverse / inverse.mean(), dtype=torch.float32)
 
@@ -83,8 +88,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                        cfg.cv_folds, cfg.fold)
     df, classes = prepare_rows(df, cfg.input_path, cfg.image_root)
 
+    # T17 per-box crops: each photo counts once in the loss and selection is on photo level.
+    per_box = cfg.input_path in PHOTO_INPUT_PATHS
     train_labels = df.loc[df["split"] == "train", "label_index"].to_numpy()
-    class_weights = compute_class_weights(train_labels, len(classes))
+    train_weights = photo_weights(df.loc[df["split"] == "train", PHOTO_COLUMN]) if per_box else None
+    class_weights = compute_class_weights(train_labels, len(classes), train_weights)
     criterion = nn.CrossEntropyLoss(
         weight=class_weights.to(device) if cfg.class_weights else None,
         label_smoothing=cfg.label_smoothing,
@@ -99,6 +107,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             build_transforms(image_size, train),
             cache_side=2 * image_size if cfg.cache else None,
             threads=max(cfg.num_workers, 4),
+            weights=photo_weights(rows[PHOTO_COLUMN]) if per_box and train else None,
         )
         loader = DataLoader(
             dataset,
@@ -121,6 +130,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "class_weights": [round(float(w), 6) for w in class_weights],
         "images_per_split": {s: int((df["split"] == s).sum()) for s in SPLIT_NAMES},
         "cases_per_split": {s: int(df.loc[df["split"] == s, GROUP_COLUMN].nunique()) for s in SPLIT_NAMES},
+        **({"photos_per_split": {s: int(df.loc[df["split"] == s, PHOTO_COLUMN].nunique()) for s in SPLIT_NAMES},
+            "selection_unit": "photo", "loss_weights": "1 / crops per photo"} if per_box else {}),
         **git_state(),
         "environment": environment_info(device),
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -155,12 +166,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             log(f"Resuming from epoch {start_epoch}")
 
         _, train_loader = make_loader("train", True, generator)
-        _, val_loader = make_loader("validation", False)
+        val_rows, val_loader = make_loader("validation", False)
         started = time.time()
         for epoch in range(start_epoch, cfg.max_epochs + 1):
             train_loss, train_y, train_pred = train_one_epoch(model, train_loader, criterion, optimizer, device)
             val_loss, val_y, val_probs = predict(model, val_loader, criterion, device)
             train_m = classification_metrics(train_y, train_pred, len(classes))
+            if per_box:  # selection metric on photo level: mean of each photo's crop probabilities
+                _, val_y, val_probs = photo_mean(val_rows[PHOTO_COLUMN], val_y, val_probs)
             val_m = classification_metrics(val_y, val_probs.argmax(axis=1), len(classes))
             row = {
                 "model": cfg.family,
@@ -212,7 +225,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     for split, path in prediction_paths.items():
         rows, loader = make_loader(split, False)
         _, labels, probs = predict(model, loader, criterion, device)
-        prediction_frame(rows, labels, probs, classes).to_csv(path, index=False)
+        prediction_frame(rows, labels, probs, classes, photo=per_box).to_csv(path, index=False)
     detail = (f" (validation macro-F1={chosen['validation_macro_f1']:.6f})" if cfg.checkpoint == "best" else "")
     log(f"Wrote predictions from {cfg.checkpoint} epoch {chosen['epoch']}{detail} to {out}")
     return 0

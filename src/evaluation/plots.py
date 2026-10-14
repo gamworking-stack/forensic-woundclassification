@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Tuple
 
 import matplotlib
 
@@ -79,8 +80,13 @@ FAMILY_LABELS = {
 }
 
 
-def plot_full_vs_roi(rows: pd.DataFrame, pooled: str, title: str, path: Path) -> None:
-    """Forest plot: ROI - full difference with its 95% interval per family, pooled row last."""
+def plot_full_vs_roi(rows: pd.DataFrame, pooled: str, title: str, path: Path,
+                     labels: Tuple[str, str] = ("full image", "ROI")) -> None:
+    """Forest plot: ROI - full difference with its 95% interval per family, pooled row last.
+
+    ``labels`` names the reference and the compared path (T17: e.g. ("union ROI", "per-box ROI")).
+    """
+    reference, compared = labels
     families = [f for f in rows["family"] if f != pooled]
     order = families + [pooled]
     data = rows.set_index("family").loc[order]
@@ -103,9 +109,10 @@ def plot_full_vs_roi(rows: pd.DataFrame, pooled: str, title: str, path: Path) ->
     ax.set_ylim(y.min() - 0.7, y.max() + 0.7)
     ax.set_yticks(y, [FAMILY_LABELS.get(f, f) for f in order])
     ax.get_yticklabels()[-1].set_fontweight("bold")
-    ax.set_xlabel("ROI − full (95% paired case-bootstrap interval)")
-    ax.text(0.0, -0.17, "← full image better", transform=ax.transAxes, ha="left", fontsize=8, color=MUTED)
-    ax.text(1.0, -0.17, "ROI better →", transform=ax.transAxes, ha="right", fontsize=8, color=MUTED)
+    short = {"full image": "full"}
+    ax.set_xlabel(f"{compared} − {short.get(reference, reference)} (95% paired case-bootstrap interval)")
+    ax.text(0.0, -0.17, f"← {reference} better", transform=ax.transAxes, ha="left", fontsize=8, color=MUTED)
+    ax.text(1.0, -0.17, f"{compared} better →", transform=ax.transAxes, ha="right", fontsize=8, color=MUTED)
     ax.set_title(title)
     ax.grid(axis="x", color="#e5e4df", linewidth=0.6)
     for side in ("top", "right", "left"):

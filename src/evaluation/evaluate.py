@@ -40,6 +40,9 @@ SCENARIO_IDS = {
     for i, family in enumerate(FAMILY_ORDER)
     for j, input_path in enumerate(INPUT_PATHS)
 }
+# T17 extra experiment: one crop per annotated box, in its own experiments root.
+BOX_PATH = "box"
+BOX_SCENARIO_IDS = {(BOX_PATH, family): f"S{17 + i:02d}" for i, family in enumerate(FAMILY_ORDER)}
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -81,7 +84,7 @@ def find_scenarios(root: Path) -> List[Tuple[str, str, Path]]:
     Only direct children count, so ensemble member folders one level deeper are skipped.
     """
     found = []
-    for input_path in INPUT_PATHS:
+    for input_path in (*INPUT_PATHS, BOX_PATH):
         base = root / input_path
         if not base.is_dir():
             continue
@@ -111,9 +114,10 @@ def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
         raise FileNotFoundError(f"No scenario folders with prediction files under {root}")
     check_same_test_set(scenarios)
 
+    ids = {**SCENARIO_IDS, **BOX_SCENARIO_IDS}
     rows = []
     for input_path, family, folder in scenarios:
-        scenario_id = SCENARIO_IDS.get((input_path, family), "")
+        scenario_id = ids.get((input_path, family), "")
         title = f"{scenario_id} {family} ({input_path})".strip()
         test = evaluate_scenario(folder, title, n_resamples, seed)
         ci = test["confidence_intervals"]["macro_f1"]
@@ -134,7 +138,10 @@ def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
         print(f"{title}: test macro-F1 {test['macro_f1']:.3f} [{ci['low']:.3f}, {ci['high']:.3f}]", flush=True)
 
     done = {(r["input_path"], r["family"]) for r in rows}
-    for (input_path, family), scenario_id in SCENARIO_IDS.items():
+    # List the missing scenarios of each study present in this root (main S01-S16, box S17-S24).
+    expected = {**(SCENARIO_IDS if any(p in INPUT_PATHS for p, _ in done) else {}),
+                **(BOX_SCENARIO_IDS if any(p == BOX_PATH for p, _ in done) else {})}
+    for (input_path, family), scenario_id in expected.items():
         if (input_path, family) not in done:
             rows.append({"scenario_id": scenario_id, "input_path": input_path, "family": family,
                          "status": "missing"})
