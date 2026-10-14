@@ -45,7 +45,7 @@ from src.training.data import (  # noqa: E402
 )
 from src.training.engine import classification_metrics, seed_everything  # noqa: E402
 from src.training.models import feature_extractor, input_size  # noqa: E402
-from src.training.photo import PHOTO_COLUMN, PHOTO_INPUT_PATHS, photo_mean, photo_weights  # noqa: E402
+from src.training.photo import PHOTO_INPUT_PATHS, manifest_photos, photo_mean, photo_weights  # noqa: E402
 from src.training.transforms import build_transforms  # noqa: E402
 
 
@@ -149,7 +149,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     rows = {split: df[df["split"] == split] for split in splits}
     labels = {split: rows[split]["label_index"].to_numpy() for split in splits}
     per_box = args.input_path in PHOTO_INPUT_PATHS
-    weights = {split: photo_weights(rows[split][PHOTO_COLUMN]) if per_box else None for split in splits}
+    weights = {split: photo_weights(manifest_photos(rows[split])) if per_box else None for split in splits}
 
     run_config: Dict[str, Any] = {
         **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
@@ -219,7 +219,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         run_config["best_params"] = best
         log(f"Fixed SVM {best} from {args.svm_params_from} (no grid)")
     else:
-        val_photos = rows["validation"][PHOTO_COLUMN].to_numpy() if per_box else None
+        val_photos = manifest_photos(rows["validation"]) if per_box else None
         best = tune(x_train, x_val, labels, classes, args.seed, out, log, run_config,
                     train_weight=weights["train"], val_photos=val_photos)
 

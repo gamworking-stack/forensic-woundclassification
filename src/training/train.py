@@ -51,7 +51,7 @@ from src.training.engine import (  # noqa: E402
     train_one_epoch,
 )
 from src.training.models import build_model, input_size  # noqa: E402
-from src.training.photo import PHOTO_COLUMN, PHOTO_INPUT_PATHS, photo_mean, photo_weights  # noqa: E402
+from src.training.photo import PHOTO_INPUT_PATHS, manifest_photos, photo_mean, photo_weights  # noqa: E402
 from src.training.transforms import build_transforms  # noqa: E402
 
 
@@ -91,7 +91,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # T17 per-box crops: each photo counts once in the loss and selection is on photo level.
     per_box = cfg.input_path in PHOTO_INPUT_PATHS
     train_labels = df.loc[df["split"] == "train", "label_index"].to_numpy()
-    train_weights = photo_weights(df.loc[df["split"] == "train", PHOTO_COLUMN]) if per_box else None
+    train_weights = photo_weights(manifest_photos(df[df["split"] == "train"])) if per_box else None
     class_weights = compute_class_weights(train_labels, len(classes), train_weights)
     criterion = nn.CrossEntropyLoss(
         weight=class_weights.to(device) if cfg.class_weights else None,
@@ -107,7 +107,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             build_transforms(image_size, train),
             cache_side=2 * image_size if cfg.cache else None,
             threads=max(cfg.num_workers, 4),
-            weights=photo_weights(rows[PHOTO_COLUMN]) if per_box and train else None,
+            weights=photo_weights(manifest_photos(rows)) if per_box and train else None,
         )
         loader = DataLoader(
             dataset,
@@ -130,7 +130,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "class_weights": [round(float(w), 6) for w in class_weights],
         "images_per_split": {s: int((df["split"] == s).sum()) for s in SPLIT_NAMES},
         "cases_per_split": {s: int(df.loc[df["split"] == s, GROUP_COLUMN].nunique()) for s in SPLIT_NAMES},
-        **({"photos_per_split": {s: int(df.loc[df["split"] == s, PHOTO_COLUMN].nunique()) for s in SPLIT_NAMES},
+        **({"photos_per_split": {s: len(set(manifest_photos(df[df["split"] == s]))) for s in SPLIT_NAMES},
             "selection_unit": "photo", "loss_weights": "1 / crops per photo"} if per_box else {}),
         **git_state(),
         "environment": environment_info(device),
@@ -173,7 +173,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             val_loss, val_y, val_probs = predict(model, val_loader, criterion, device)
             train_m = classification_metrics(train_y, train_pred, len(classes))
             if per_box:  # selection metric on photo level: mean of each photo's crop probabilities
-                _, val_y, val_probs = photo_mean(val_rows[PHOTO_COLUMN], val_y, val_probs)
+                _, val_y, val_probs = photo_mean(manifest_photos(val_rows), val_y, val_probs)
             val_m = classification_metrics(val_y, val_probs.argmax(axis=1), len(classes))
             row = {
                 "model": cfg.family,

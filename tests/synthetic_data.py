@@ -75,8 +75,8 @@ def build_synthetic_dataset(root: Path) -> dict:
 def build_synthetic_box_dataset(root: Path, data: dict) -> dict:
     """Per-box crops (T17) for every photo of ``build_synthetic_dataset``'s ROI manifest.
 
-    Photos get 1, 2 or 3 crops in turn, so photo weights and photo means are exercised; each crop
-    keeps its photo in ``source_relative_path``.
+    Photos get 1, 2 or 3 crops in turn, so photo weights and photo means are exercised. As in the
+    committed dry-run manifest, a crop's photo is ``relative_path`` and ``source_relative_path`` is empty.
     """
     rows = []
     for i, row in enumerate(pd.read_csv(data["roi_manifest"], dtype=str).to_dict("records")):
@@ -87,7 +87,7 @@ def build_synthetic_box_dataset(root: Path, data: dict) -> dict:
             crop_rel = f"{row['split']}/{row['canonical_wound_label']}/{stem}_bbox{k + 1:02d}.jpg"
             (root / "box" / row["split"] / row["canonical_wound_label"]).mkdir(parents=True, exist_ok=True)
             Image.fromarray(pixels[k * 4:, k * 4:]).save(root / "box" / crop_rel)
-            rows.append({**row, "source_relative_path": row["relative_path"], "roi_relative_path": crop_rel,
+            rows.append({**row, "source_relative_path": "", "roi_relative_path": crop_rel,
                          "crop_mode": "individual", "crop_index": str(k + 1)})
     manifest = root / "box_manifest.csv"
     pd.DataFrame(rows).to_csv(manifest, index=False)

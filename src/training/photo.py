@@ -1,7 +1,10 @@
 """Per-box crops grouped back into photos (T17): loss weights and photo-level predictions.
 
 In the ``box`` input path every annotated box is its own crop, so one photo can give many rows
-(up to 35). Each crop carries its photo in ``PHOTO_COLUMN``. Training weights a crop by
+(up to 35). In the manifest a crop's photo is ``relative_path`` (the crop itself is
+``roi_relative_path``; ``source_relative_path`` is only filled by live cropping runs, not by the
+committed dry-run manifest). Prediction files name the photo in ``PHOTO_COLUMN``, because their
+``relative_path`` is the crop. Training weights a crop by
 1 / (crops of its photo) so every photo counts once; a photo's prediction is the mean of its
 crops' probabilities.
 """
@@ -14,8 +17,17 @@ import numpy as np
 import pandas as pd
 
 
-PHOTO_COLUMN = "source_relative_path"
+PHOTO_COLUMN = "source_relative_path"  # photo of each row in prediction files
+MANIFEST_PHOTO_COLUMN = "relative_path"  # photo of each row in the ROI manifest
 PHOTO_INPUT_PATHS = ("box",)
+
+
+def manifest_photos(rows: pd.DataFrame) -> np.ndarray:
+    """Each manifest row's source photo; every row must name one."""
+    photos = rows[MANIFEST_PHOTO_COLUMN].astype(str).str.strip().to_numpy()
+    if (photos == "").any():
+        raise ValueError(f"{int((photos == '').sum())} manifest rows have an empty {MANIFEST_PHOTO_COLUMN!r}")
+    return photos
 
 
 def photo_weights(photos: Sequence[str]) -> np.ndarray:

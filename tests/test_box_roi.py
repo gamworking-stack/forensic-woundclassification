@@ -18,7 +18,7 @@ from src.evaluation.metrics import load_predictions
 from src.training.cnn_svm import main as svm_main
 from src.training.engine import classification_metrics, load_checkpoint, weighted_loss
 from src.training.ensemble import soft_vote
-from src.training.photo import PHOTO_COLUMN, photo_mean, photo_prediction_frame, photo_weights
+from src.training.photo import PHOTO_COLUMN, manifest_photos, photo_mean, photo_prediction_frame, photo_weights
 from src.training.train import compute_class_weights, main as train_main
 from tests.synthetic_data import EXPECTED_PREDICTION_COLUMNS, build_synthetic_box_dataset, build_synthetic_dataset
 from tests.test_evaluation import SEVEN, write_predictions
@@ -70,6 +70,13 @@ def test_photo_prediction_frame_has_one_row_per_photo():
     assert photos["predicted_class"].tolist() == ["cut wound", "scratch"]
 
 
+def test_manifest_photos_reads_relative_path_and_rejects_empty():
+    rows = pd.DataFrame({"relative_path": ["cut/a.JPG", "cut/a.JPG"], "source_relative_path": ["", ""]})
+    assert manifest_photos(rows).tolist() == ["cut/a.JPG", "cut/a.JPG"]
+    with pytest.raises(ValueError, match="empty"):
+        manifest_photos(pd.DataFrame({"relative_path": ["cut/a.JPG", " "]}))
+
+
 def test_class_weights_count_photos_not_crops():
     labels = np.array([0, 0, 0, 1])  # class 0: one photo with 3 crops; class 1: one photo
     weights = photo_weights(["a", "a", "a", "b"])
@@ -100,7 +107,8 @@ def test_train_box_writes_crop_rows_and_selects_on_photos(data, tmp_path):
         preds = pd.read_csv(tmp_path / f"{split}_predictions.csv", dtype=str)
         assert preds.columns.tolist() == EXPECTED_PREDICTION_COLUMNS[:1] + [PHOTO_COLUMN] + EXPECTED_PREDICTION_COLUMNS[1:]
         assert len(preds) == (manifest["split"] == split).sum()
-        assert set(preds[PHOTO_COLUMN]) == set(manifest.loc[manifest["split"] == split, PHOTO_COLUMN])
+        assert set(preds[PHOTO_COLUMN]) == set(manifest.loc[manifest["split"] == split, "relative_path"])
+        assert preds[PHOTO_COLUMN].notna().all()
 
     # best.pt's validation macro-F1 is the photo-level score of its validation predictions
     val = load_predictions(tmp_path / "validation_predictions.csv", "validation")

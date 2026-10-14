@@ -14,7 +14,7 @@ import torch
 import torchvision
 
 from src.training.data import GROUP_COLUMN
-from src.training.photo import PHOTO_COLUMN
+from src.training.photo import PHOTO_COLUMN, manifest_photos
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -69,7 +69,7 @@ def prediction_frame(
 
     With ``photo`` (T17 per-box crops) each row also names its source photo.
     """
-    photo_column = {PHOTO_COLUMN: rows[PHOTO_COLUMN].to_numpy()} if photo else {}
+    photo_column = {PHOTO_COLUMN: manifest_photos(rows)} if photo else {}
     frame = pd.DataFrame({
         "relative_path": rows["image_relative_path"].to_numpy(),
         **photo_column,
