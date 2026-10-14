@@ -14,7 +14,7 @@ LOCAL_RESULTS="${LOCAL_RESULTS:-$REPO_ROOT/../results_figures/$RUN_NAME}"  # out
 mkdir -p "$LOCAL_RESULTS"
 rsync -av --prune-empty-dirs \
   --include='*/' \
-  --include='evaluation_index.csv' --include='summary/***' \
+  --include='evaluation_index.csv' --include='summary/***' --include='verification/***' \
   --include='*_metrics.json' --include='*_classification_report.csv' \
   --include='*_confusion_matrix.csv' --include='*_confusion_matrix.png' \
   --include='*_roc_curves.csv' --include='*_roc_curves.png' \

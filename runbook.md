@@ -200,6 +200,18 @@ srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_
 ```
 Outputs: `experiments/cv/<full|roi>/<family>/fold_<k>/` (ensemble members in `fold_<k>/member_0<j>/`), `oof_predictions.csv` per scenario, and `experiments/cv/summary/` (`cv_table.csv`, `cv_full_vs_roi.csv`, `cv_full_vs_roi_macro_f1.png`). The plan is `experiments/cv/cv_plan.tsv`; rerunning `submit_cv.sh` resubmits only missing jobs. `fetch_results.sh cv` copies the summary to `../results_figures/cv/` on the laptop.
 
+## Final verification (T16)
+
+After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/verify.py \
+  --experiments-root /project/a260012_FORWCL/experiments/main --cv-root /project/a260012_FORWCL/experiments/cv
+```
+It prints PASS/FAIL/NOTE counts per check (files, test set, selection, budget, numbers, gradcam, cv), lists every non-PASS row, and exits 1 on any FAIL. The report is `experiments/main/verification/verification_report.csv` (no image paths); `fetch_results.sh` copies it. What each check does: `src/evaluation/verify.py` docstring and `tickets/T16_final_verification.md`.
+
 ## Diagrams
 
 `docs/diagrams/` holds five Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.

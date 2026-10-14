@@ -165,4 +165,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T13 ROC/AUC curves
 - [x] T14 Grad-CAM
 - [x] T15 summary table
-- [ ] T16 final verification
+- [x] T16 final verification

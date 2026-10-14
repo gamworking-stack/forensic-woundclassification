@@ -323,3 +323,20 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md`
   - `ROADMAP.md` (§9 tick)
 - **Outside Git**: `<exp>/summary/summary_table.csv`, `full_vs_roi.csv`, `full_vs_roi_macro_f1.png`
+
+## T16: Final verification
+
+- **Commits**: see `git log --grep 'T16'`
+- **Used**
+  - every file of the main run (`<exp>/<full|roi>/<family>/`, grid runs, members, `summary/`, `gradcam/`) and the CV run (`experiments/cv/`)
+  - `data/splits/case_split_assignments.csv`, `data/splits/cv_folds.csv`
+  - `src/training/engine.py` (`EarlyStopping`), `select_lr.py` (`LR_GRID`, `choose`), `src/evaluation/metrics.py`, `summarize.py`, `gradcam.py` (`FAMILIES`)
+- **Created**
+  - `tickets/T16_final_verification.md`
+  - `src/evaluation/verify.py`
+  - `tests/test_verify.py`
+- **Changed**
+  - `scripts/hpc/fetch_results.sh` (copies `verification/`)
+  - `runbook.md`
+  - `ROADMAP.md` (§9 tick)
+- **Outside Git**: `<exp>/verification/verification_report.csv`
