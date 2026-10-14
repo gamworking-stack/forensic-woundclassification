@@ -89,6 +89,8 @@ specs/  tickets/  logs/
 runbook.md  ROADMAP.md  requirements.txt
 ```
 
+As built, the model builder is `src/training/models.py`, the figures are drawn in `src/evaluation/plots.py`, and run outputs stay on Raptor (`specs/phase0_environment.md` §2).
+
 ## 5. Phases and tickets
 
 ### Phase 0: Environment
@@ -146,7 +148,7 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 
 ## 9. Progress checklist
 
-- [ ] T00 skeleton
+- [x] T00 skeleton
 - [x] T01 metadata validation
 - [x] T02 case-level split
 - [x] T03 ROI crops

@@ -17,6 +17,19 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 
 ---
 
+## T00: Skeleton and requirements
+
+- **Commits**: see `git log --grep 'T00'`
+- **Used**
+  - `ROADMAP.md` §4 (layout), every `import` in `src/` and `tests/`
+- **Created**
+  - `tickets/T00_skeleton.md`
+  - `specs/phase0_environment.md`
+- **Changed**
+  - `requirements.txt` (only packages the code imports)
+  - `ROADMAP.md` (§4 as-built note, §9 tick)
+- **Outside Git**: the fresh test environment (scratch only)
+
 ## T01: Metadata validation
 
 - **Commits**: `38c8ce5`

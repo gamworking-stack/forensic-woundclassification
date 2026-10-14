@@ -2,7 +2,7 @@
 
 - **Phase**: 3 — Training Code
 - **Related Tickets**: T05 (Shared Training Library), T06 (CNN-SVM), T07 (AlexNet Ensemble), T08 (Evaluation Module), T08b (Hyperparameter Tuning)
-- **Status**: Approved
+- **Status**: Completed (outcome in §8)
 - **Owner**: Forensic Wound Classification Team (Antigravity & Preenapun Saokhieo)
 
 ---
@@ -153,3 +153,15 @@ Flags for tests: `--smoke` (2 epochs on 2 images per class per split), `--no-pre
 1. **T05**: synthetic-data smoke test (2 epochs, `--no-pretrained`, CPU) passes for every family; resume test passes; leakage and missing-file errors are raised. Details in `tickets/T05_shared_training_library.md`.
 2. **T06–T08b**: checks set in their own tickets.
 3. **Phase gate**: T11 (2-epoch HPC smoke on real images) runs one family on both input paths through the same code with no edits.
+
+---
+
+## 8. Outcome (closed 2026-10-14)
+
+| Check | Result |
+|---|---|
+| T05 | synthetic smoke test for every family, resume test, leakage and missing-file errors: pass (`tests/test_training.py`) |
+| T06–T08b | closed in their tickets; T08b changed the learning rate from a fixed default to a validation grid for S01–S12 (`tickets/T08b_lr_tuning.md`) |
+| Phase gate (T11) | EfficientNet-B0, 2 epochs on real images, full and ROI, no code edits: jobs `221591`, `221592` (`specs/phase5_experiments.md` §3.1) |
+
+Later additions to the library, each with its own ticket: `--skip-test` and `--checkpoint` (T08b, T12b), CV mode `--cv-folds/--fold` (T12b).

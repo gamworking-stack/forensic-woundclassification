@@ -2,7 +2,7 @@
 
 - **Phase**: 2 — ROI Preprocessing
 - **Related Tickets**: T03 (CVAT Annotation Parsing & Bounding Box Cropping), T04 (Full vs. ROI Alignment Audit)
-- **Status**: Draft / Ready for Review
+- **Status**: Completed (outcome in §6; the 420-case target in §1 and §5 is corrected there to 418)
 - **Owner**: Forensic Wound Classification Team (Antigravity & Preenapun Saokhieo)
 
 ---
@@ -133,3 +133,17 @@ tests/
    - Verifies that Test set retains all 7 classes in both Full (158 images) and ROI (157 images, 1 scratch dropped).
 3. **Unit Tests**:
    - `python3 tests/test_roi_preprocessing.py` passes with exit code 0.
+
+---
+
+## 6. Outcome (closed 2026-10-14)
+
+| Check | Result |
+|---|---|
+| ROI crops (T03) | dry run and live run exit 0 (SLURM job `221586`); 7 exports, 2 browser duplicates skipped; **1,100 records from 418 cases**; 779 / 164 / 157 images; every class in every split; no case leakage |
+| Audit (T04) | 6 unannotated images documented, 0 discrepancies; test keeps all 7 classes (158 full, 157 ROI, 1 scratch dropped) |
+| Unit tests | `tests/test_roi_preprocessing.py` passes |
+
+**Correction to §1 and §5**: the ROI set has 418 cases, not 420. Three of the 6 unannotated images are the only image of their case (cases 220, 353, 415), so 421 − 3 = 418 (`data/audits/full_vs_roi_audit_report.json`, `cases_lost: 3`). The 420 was an arithmetic slip in this spec; no data changed.
+
+Details: `tickets/T03_cvat_roi_cropping.md`, `tickets/T04_full_vs_roi_audit.md`.

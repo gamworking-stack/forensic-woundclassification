@@ -2,7 +2,7 @@
 
 - **Phase**: 1 — Dataset and Split
 - **Related Tickets**: T01 (Metadata validation & label canonicalization), T02 (Case-level 70/15/15 grouped split)
-- **Status**: Draft / Ready for Review
+- **Status**: Completed (outcome in §7)
 - **Owner**: Forensic Wound Classification Team (Antigravity & Preenapun Saokhieo)
 
 ---
@@ -147,3 +147,16 @@ Based on project configuration on the MedCMU-HPC cluster:
 4. **Data Privacy**:
    - Patient imagery remains on secure HPC storage (`/project/a260012_FORWCL/raw_data`) and local encrypted volume.
    - Only code, manifests, and aggregated metrics/figures are tracked in Git.
+
+---
+
+## 7. Outcome (closed 2026-10-14)
+
+| Check | Result |
+|---|---|
+| Validation report (T01) | 0 errors; 7 classes; 1,106 records, 421 cases (`data/metadata_validation_report.json`); 2 warnings kept: 61 filenames without extension, 3 shared filenames |
+| Split (T02) | 295 / 63 / 63 cases, 782 / 166 / 158 images, every class in every split, seed 42 over 50,000 trials (`data/splits/case_level_split_report.json`, `frozen: true`) |
+| Leakage | `tests/test_split_leakage.py` passes; re-checked on every run in T16 (test and validation cases match the frozen split) |
+| Frozen | the manifest has not changed since it was committed; Phases 2 to 6 read it unchanged |
+
+Details: `tickets/T01_validate_metadata.md`, `tickets/T02_case_level_split.md`.
