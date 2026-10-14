@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "From Prediction Files to Reported Numbers",
+    "output": "docs/diagrams/predictions-to-numbers.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      560
+    ],
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bfdfb5ce49b7428b8ea8b317ee8622eb9fa3423d"
+    },
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "main data path"
+        },
+        "default": {
+          "label": "data flow"
+        },
+        "dashed": {
+          "label": "recompute"
+        },
+        "security": {
+          "label": "verified"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Predictions"
+    },
+    {
+      "label": "Score"
+    },
+    {
+      "label": "Compare"
+    },
+    {
+      "label": "Results + check"
+    },
+    {
+      "label": "Report"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "preds",
+      "type": "database",
+      "label": "Main-run preds",
+      "sublabel": "validation + test CSV",
+      "stage": 0,
+      "row": 0,
+      "width": 124,
+      "height": 58,
+      "tag": "16 scenarios",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 211,
+          "end_line": 216,
+          "label": "train.py writes"
+        },
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 216,
+          "end_line": 218,
+          "label": "CNN-SVM test preds"
+        },
+        {
+          "path": "src/training/ensemble.py",
+          "line": 110,
+          "end_line": 112,
+          "label": "soft-voted preds"
+        }
+      ]
+    },
+    {
+      "id": "cvpreds",
+      "type": "database",
+      "label": "CV fold preds",
+      "sublabel": "held-out fold CSV",
+      "stage": 0,
+      "row": 2,
+      "width": 124,
+      "height": 58,
+      "tag": "16 x 5 folds",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 203,
+          "end_line": 204,
+          "label": "validation only in CV"
+        },
+        {
+          "path": "src/evaluation/cv_summary.py",
+          "line": 38,
+          "end_line": 43,
+          "label": "fold_<k> files"
+        }
+      ]
+    },
+    {
+      "id": "evaluate",
+      "type": "backend",
+      "label": "evaluate.py",
+      "sublabel": "metrics + bootstrap",
+      "stage": 1,
+      "row": 0,
+      "width": 124,
+      "height": 58,
+      "tag": "T08",
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 56,
+          "end_line": 75,
+          "label": "evaluate_scenario"
+        },
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 94,
+          "end_line": 105,
+          "label": "same test set check"
+        },
+        {
+          "path": "src/evaluation/metrics.py",
+          "line": 184,
+          "end_line": 213,
+          "label": "case bootstrap"
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "type": "database",
+      "label": "Metric files",
+      "sublabel": "JSON, reports, figures",
+      "stage": 1,
+      "row": 1,
+      "width": 124,
+      "height": 58,
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 65,
+          "end_line": 73,
+          "label": "per split outputs"
+        },
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 144,
+          "label": "evaluation_index.csv"
+        }
+      ]
+    },
+    {
+      "id": "summarize",
+      "type": "backend",
+      "label": "summarize.py",
+      "sublabel": "paired bootstrap, Holm",
+      "stage": 2,
+      "row": 0,
+      "width": 124,
+      "height": 58,
+      "tag": "T15",
+      "sources": [
+        {
+          "path": "src/evaluation/summarize.py",
+          "line": 50,
+          "end_line": 63,
+          "label": "summary_table"
+        },
+        {
+          "path": "src/evaluation/summarize.py",
+          "line": 96,
+          "end_line": 146,
+          "label": "paired_comparison"
+        }
+      ]
+    },
+    {
+      "id": "cvsum",
+      "type": "backend",
+      "label": "cv_summary.py",
+      "sublabel": "fold mean, out of fold",
+      "stage": 2,
+      "row": 2,
+      "width": 124,
+      "height": 58,
+      "tag": "T12b",
+      "sources": [
+        {
+          "path": "src/evaluation/cv_summary.py",
+          "line": 46,
+          "end_line": 56,
+          "label": "out_of_fold"
+        },
+        {
+          "path": "src/evaluation/cv_summary.py",
+          "line": 59,
+          "end_line": 95,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "id": "tables",
+      "type": "database",
+      "label": "Summary tables",
+      "sublabel": "summary/*.csv + plot",
+      "stage": 3,
+      "row": 0,
+      "width": 124,
+      "height": 58,
+      "sources": [
+        {
+          "path": "src/evaluation/summarize.py",
+          "line": 156,
+          "end_line": 160,
+          "label": "3 output files"
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "type": "security",
+      "label": "verify.py",
+      "sublabel": "re-derive all",
+      "stage": 3,
+      "row": 1,
+      "width": 124,
+      "height": 58,
+      "tag": "T16",
+      "sources": [
+        {
+          "path": "src/evaluation/verify.py",
+          "line": 285,
+          "end_line": 327,
+          "label": "check_numbers"
+        },
+        {
+          "path": "src/evaluation/verify.py",
+          "line": 378,
+          "end_line": 424,
+          "label": "check_cv"
+        },
+        {
+          "path": "src/evaluation/verify.py",
+          "line": 427,
+          "end_line": 452,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "id": "cvtables",
+      "type": "database",
+      "label": "CV tables",
+      "sublabel": "cv/summary/*.csv",
+      "stage": 3,
+      "row": 2,
+      "width": 124,
+      "height": 58,
+      "sources": [
+        {
+          "path": "src/evaluation/cv_summary.py",
+          "line": 89,
+          "end_line": 93,
+          "label": "3 output files"
+        }
+      ]
+    },
+    {
+      "id": "thesis",
+      "type": "external",
+      "label": "Recorded results",
+      "sublabel": "tickets, thesis text",
+      "stage": 4,
+      "row": 1,
+      "width": 124,
+      "height": 58,
+      "sources": [
+        {
+          "path": "tickets/T15_summary_and_full_vs_roi.md",
+          "line": 80,
+          "label": "T15 test results"
+        },
+        {
+          "path": "tickets/T12b_cross_validation.md",
+          "line": 84,
+          "label": "T12b CV results"
+        },
+        {
+          "path": "tickets/T16_final_verification.md",
+          "line": 68,
+          "label": "T16 run"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-preds-eval",
+      "from": "preds",
+      "to": "evaluate",
+      "label": "prediction CSVs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-eval-metrics",
+      "from": "evaluate",
+      "to": "metrics",
+      "label": "write per split",
+      "variant": "default",
+      "labelAt": [
+        315,
+        214
+      ]
+    },
+    {
+      "id": "f-preds-sum",
+      "from": "preds",
+      "to": "summarize",
+      "label": "test preds, paired",
+      "variant": "emphasis",
+      "route": "top-channel",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "f-metrics-sum",
+      "from": "metrics",
+      "to": "summarize",
+      "label": "metrics JSON",
+      "variant": "default"
+    },
+    {
+      "id": "f-sum-tables",
+      "from": "summarize",
+      "to": "tables",
+      "label": "3 files",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-cv-sum",
+      "from": "cvpreds",
+      "to": "cvsum",
+      "label": "5 folds per scenario",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-cvsum-tables",
+      "from": "cvsum",
+      "to": "cvtables",
+      "label": "3 files",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-tables-verify",
+      "from": "tables",
+      "to": "verify",
+      "label": "recompute",
+      "variant": "dashed",
+      "labelAt": [
+        745,
+        214
+      ]
+    },
+    {
+      "id": "f-cvtables-verify",
+      "from": "cvtables",
+      "to": "verify",
+      "label": "recompute",
+      "variant": "dashed",
+      "labelAt": [
+        745,
+        328
+      ]
+    },
+    {
+      "id": "f-tables-thesis",
+      "from": "tables",
+      "to": "thesis",
+      "label": "test results",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          960,
+          157
+        ]
+      ]
+    },
+    {
+      "id": "f-cv-thesis",
+      "from": "cvtables",
+      "to": "thesis",
+      "label": "CV results",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          960,
+          385
+        ]
+      ]
+    },
+    {
+      "id": "f-verify-thesis",
+      "from": "verify",
+      "to": "thesis",
+      "label": "313 pass",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Test path (main question)",
+      "items": [
+        "evaluate.py scores each scenario: metrics, 2,000 case resamples (seed 42), confusion matrix, ROC curves",
+        "It refuses to continue unless all 16 scenarios were tested on the same images per case and class",
+        "summarize.py draws one case resample for all 16 scenarios, so each ROI - full difference is paired"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "CV path (supplementary)",
+      "items": [
+        "Each scenario's 5 held-out-fold files are scored per fold, then joined into one out-of-fold file",
+        "The paired comparison reuses summarize.paired_comparison on 356 development cases",
+        "No CV file contains a test case"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Final check",
+      "items": [
+        "verify.py recomputes metrics, intervals, tables and the paired comparison from the prediction files",
+        "It also re-derives every selection and checks the test split was read only after it",
+        "Report: experiments/main/verification/verification_report.csv"
+      ]
+    }
+  ]
+}

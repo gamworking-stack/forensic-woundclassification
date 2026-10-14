@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Learning-Rate Selection and the One Test Pass (S01-S12)",
+    "output": "docs/diagrams/lr-selection.html",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1080,
+      692
+    ],
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bfdfb5ce49b7428b8ea8b317ee8622eb9fa3423d"
+    },
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "main step"
+        },
+        "dashed": {
+          "label": "dependency / copy"
+        },
+        "security": {
+          "label": "test split access"
+        },
+        "return": {
+          "label": "return"
+        },
+        "default": {
+          "label": "call / read"
+        }
+      }
+    }
+  },
+  "participants": [
+    {
+      "id": "submit",
+      "type": "backend",
+      "label": "submit_all.sh",
+      "sublabel": "submit_tuned()",
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 35,
+          "end_line": 58,
+          "label": "submit_tuned"
+        }
+      ]
+    },
+    {
+      "id": "slurm",
+      "type": "cloud",
+      "label": "SLURM",
+      "sublabel": "gpu partition",
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 46,
+          "end_line": 57,
+          "label": "sbatch grid + select"
+        }
+      ]
+    },
+    {
+      "id": "grid",
+      "type": "backend",
+      "label": "train.py x 3",
+      "sublabel": "lr 1e-5, 3e-5, 1e-4",
+      "sources": [
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 15,
+          "label": "LRS grid"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 203,
+          "end_line": 204,
+          "label": "--skip-test: validation only"
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "type": "backend",
+      "label": "select_lr.py",
+      "sublabel": "tune_select.sbatch",
+      "sources": [
+        {
+          "path": "scripts/slurm/tune_select.sbatch",
+          "line": 31,
+          "label": "python select_lr.py"
+        },
+        {
+          "path": "src/training/select_lr.py",
+          "line": 102,
+          "end_line": 126,
+          "label": "main"
+        }
+      ]
+    },
+    {
+      "id": "chosen",
+      "type": "backend",
+      "label": "Chosen run",
+      "sublabel": "train.py --resume",
+      "sources": [
+        {
+          "path": "src/training/select_lr.py",
+          "line": 71,
+          "end_line": 99,
+          "label": "resume_args"
+        },
+        {
+          "path": "src/training/train.py",
+          "line": 203,
+          "end_line": 217,
+          "label": "predict validation + test"
+        }
+      ]
+    },
+    {
+      "id": "test",
+      "type": "security",
+      "label": "Test split",
+      "sublabel": "157 images, 62 cases",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 211,
+          "end_line": 216,
+          "label": "first test load"
+        }
+      ]
+    },
+    {
+      "id": "folder",
+      "type": "database",
+      "label": "Scenario folder",
+      "sublabel": "<path>/<family>/",
+      "sources": [
+        {
+          "path": "src/training/select_lr.py",
+          "line": 112,
+          "label": "tuning_summary.csv"
+        },
+        {
+          "path": "src/training/select_lr.py",
+          "line": 122,
+          "end_line": 125,
+          "label": "copy chosen files"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 170,
+      "to": 226,
+      "label": "Submit"
+    },
+    {
+      "from": 240,
+      "to": 320,
+      "label": "Grid runs: validation only"
+    },
+    {
+      "from": 334,
+      "to": 442,
+      "label": "Choose on validation"
+    },
+    {
+      "from": 456,
+      "to": 594,
+      "label": "One test pass"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m-grid",
+      "from": "submit",
+      "to": "slurm",
+      "y": 184,
+      "label": "3 jobs: --lr X --skip-test",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-select-job",
+      "from": "submit",
+      "to": "slurm",
+      "y": 212,
+      "label": "select job, afterok all 3",
+      "variant": "dashed"
+    },
+    {
+      "id": "m-run",
+      "from": "slurm",
+      "to": "grid",
+      "y": 254,
+      "label": "run each lr",
+      "variant": "default"
+    },
+    {
+      "id": "m-grid-out",
+      "from": "grid",
+      "to": "folder",
+      "y": 282,
+      "label": "lr_X/: best.pt, validation preds",
+      "variant": "default"
+    },
+    {
+      "id": "m-grid-done",
+      "from": "grid",
+      "to": "slurm",
+      "y": 310,
+      "label": "exit 0, no test file",
+      "variant": "return"
+    },
+    {
+      "id": "m-start",
+      "from": "slurm",
+      "to": "select",
+      "y": 348,
+      "label": "start after all 3 succeed",
+      "variant": "default"
+    },
+    {
+      "id": "m-read",
+      "from": "select",
+      "to": "folder",
+      "y": 376,
+      "label": "read 3 best.pt scores",
+      "variant": "default"
+    },
+    {
+      "id": "m-summary",
+      "from": "select",
+      "to": "folder",
+      "y": 404,
+      "label": "write tuning_summary.csv",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-resume",
+      "from": "select",
+      "to": "chosen",
+      "y": 432,
+      "label": "resume chosen lr",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-test-read",
+      "from": "chosen",
+      "to": "test",
+      "y": 470,
+      "label": "load test rows",
+      "variant": "security"
+    },
+    {
+      "id": "m-test-rows",
+      "from": "test",
+      "to": "chosen",
+      "y": 498,
+      "label": "157 images",
+      "variant": "return"
+    },
+    {
+      "id": "m-test-pred",
+      "from": "chosen",
+      "to": "folder",
+      "y": 526,
+      "label": "test preds from best.pt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-copy",
+      "from": "select",
+      "to": "folder",
+      "y": 554,
+      "label": "copy 4 files, test last",
+      "variant": "dashed"
+    },
+    {
+      "id": "m-done",
+      "from": "select",
+      "to": "slurm",
+      "y": 582,
+      "label": "exit 0",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "submit",
+      "from": 178,
+      "to": 218,
+      "type": "backend"
+    },
+    {
+      "participant": "slurm",
+      "from": 178,
+      "to": 588,
+      "type": "cloud"
+    },
+    {
+      "participant": "grid",
+      "from": 248,
+      "to": 316,
+      "type": "backend"
+    },
+    {
+      "participant": "select",
+      "from": 342,
+      "to": 588,
+      "type": "backend"
+    },
+    {
+      "participant": "chosen",
+      "from": 426,
+      "to": 532,
+      "type": "backend"
+    },
+    {
+      "participant": "test",
+      "from": 464,
+      "to": 504,
+      "type": "security"
+    },
+    {
+      "participant": "folder",
+      "from": 276,
+      "to": 560,
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Selection rule",
+      "items": [
+        "Grid {1e-5, 3e-5, 1e-4} and rule fixed before any S01-S12 run",
+        "Highest validation macro-F1 at the run's best epoch; ties: lower validation loss, then smaller lr",
+        "Each grid run keeps its own best epoch by the same rule (best.pt)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Test guard",
+      "items": [
+        "Grid runs pass --skip-test, so they never load or predict test rows",
+        "tuning_summary.csv is written before the chosen run touches test",
+        "The resume does not train again: it predicts validation and test from best.pt"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Failures and checks",
+      "items": [
+        "A failed grid job cancels the select job (--kill-on-invalid-dep=yes)",
+        "Rerunning submit_all.sh skips lr runs that already have validation predictions",
+        "verify.py (T16) re-derives the choice and checks only the chosen run has test predictions"
+      ]
+    }
+  ]
+}

@@ -214,7 +214,7 @@ It prints PASS/FAIL/NOTE counts per check (files, test set, selection, budget, n
 
 ## Diagrams
 
-`docs/diagrams/` holds five Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
+`docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
 
 | Diagram | Shows |
 |---|---|
@@ -223,6 +223,9 @@ It prints PASS/FAIL/NOTE counts per check (files, test set, selection, budget, n
 | `submit-all` | Workflow: how `submit_all.sh` skips, submits and chains the AlexNet ensemble |
 | `training-run` | Sequence: one `train.py` run (resume, epoch loop, checkpoints, predictions) |
 | `scenario-status` | Lifecycle: a scenario from not submitted to evaluated, with timeout recovery |
+| `lr-selection` | Sequence: the T08b learning-rate grid, the choice on validation and the one test pass |
+| `predictions-to-numbers` | Data flow: prediction files → `evaluate.py` / `summarize.py` / `cv_summary.py` → tables, checked by `verify.py` |
+| `test-access` | Architecture: which code may read the test split (only after every choice) and which never does |
 
 After a code change, update the affected `sources` lines and `revision` in the `.json`, then rebuild (on the laptop; install once with `npx skills add tt-a1i/archify -g`):
 ```bash

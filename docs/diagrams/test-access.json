@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Who May Read the Test Split",
+    "output": "docs/diagrams/test-access.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/gamworking-stack/forensic-woundclassification.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "bfdfb5ce49b7428b8ea8b317ee8622eb9fa3423d"
+    }
+  },
+  "components": [
+    {
+      "id": "testrows",
+      "type": "security",
+      "label": "Test rows",
+      "sublabel": "frozen split, 157 images",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "62 cases",
+      "sources": [
+        {
+          "path": "src/training/data.py",
+          "line": 30,
+          "end_line": 62,
+          "label": "load_manifest"
+        },
+        {
+          "path": "data/splits/case_split_assignments.csv",
+          "line": 1,
+          "label": "frozen case split"
+        }
+      ]
+    },
+    {
+      "id": "gradcam",
+      "type": "backend",
+      "label": "gradcam.py",
+      "sublabel": "fixed examples",
+      "pos": [
+        300,
+        130
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "T14",
+      "sources": [
+        {
+          "path": "src/evaluation/gradcam.py",
+          "line": 67,
+          "end_line": 80,
+          "label": "draw test examples"
+        },
+        {
+          "path": "src/evaluation/gradcam.py",
+          "line": 154,
+          "end_line": 180,
+          "label": "explain"
+        }
+      ]
+    },
+    {
+      "id": "svm",
+      "type": "backend",
+      "label": "cnn_svm.py",
+      "sublabel": "S13-S14",
+      "pos": [
+        300,
+        250
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 197,
+          "end_line": 210,
+          "label": "SVM chosen first"
+        },
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 212,
+          "end_line": 218,
+          "label": "then test features"
+        }
+      ]
+    },
+    {
+      "id": "chosen",
+      "type": "backend",
+      "label": "train.py run",
+      "sublabel": "chosen lr or member",
+      "pos": [
+        300,
+        370
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 203,
+          "end_line": 217,
+          "label": "test after training"
+        }
+      ]
+    },
+    {
+      "id": "testpreds",
+      "type": "database",
+      "label": "Test predictions",
+      "sublabel": "test_predictions.csv",
+      "pos": [
+        560,
+        236
+      ],
+      "size": [
+        150,
+        90
+      ],
+      "tag": "16 scenarios",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 211,
+          "end_line": 216,
+          "label": "train.py writes"
+        },
+        {
+          "path": "src/training/cnn_svm.py",
+          "line": 216,
+          "end_line": 218,
+          "label": "cnn_svm.py writes"
+        }
+      ]
+    },
+    {
+      "id": "ensemble",
+      "type": "backend",
+      "label": "ensemble.py",
+      "sublabel": "soft vote",
+      "pos": [
+        820,
+        130
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "S15-S16",
+      "sources": [
+        {
+          "path": "src/training/ensemble.py",
+          "line": 100,
+          "end_line": 112,
+          "label": "read members, vote"
+        }
+      ]
+    },
+    {
+      "id": "evaluation",
+      "type": "backend",
+      "label": "Evaluation",
+      "sublabel": "evaluate + summarize",
+      "pos": [
+        820,
+        250
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "T08, T15",
+      "sources": [
+        {
+          "path": "src/evaluation/evaluate.py",
+          "line": 108,
+          "end_line": 145,
+          "label": "evaluate_all"
+        },
+        {
+          "path": "src/evaluation/summarize.py",
+          "line": 149,
+          "end_line": 166,
+          "label": "summarize main"
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "type": "security",
+      "label": "verify.py",
+      "sublabel": "re-derive, read only",
+      "pos": [
+        820,
+        370
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "T16",
+      "sources": [
+        {
+          "path": "src/evaluation/verify.py",
+          "line": 146,
+          "end_line": 167,
+          "label": "check_test_set"
+        },
+        {
+          "path": "src/evaluation/verify.py",
+          "line": 170,
+          "end_line": 203,
+          "label": "check_lr_selection"
+        }
+      ]
+    },
+    {
+      "id": "grid",
+      "type": "backend",
+      "label": "Grid runs",
+      "sublabel": "train.py --skip-test",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "S01-S12",
+      "sources": [
+        {
+          "path": "src/training/train.py",
+          "line": 203,
+          "end_line": 204,
+          "label": "validation only"
+        },
+        {
+          "path": "scripts/hpc/submit_all.sh",
+          "line": 46,
+          "end_line": 48,
+          "label": "--skip-test"
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "type": "backend",
+      "label": "select_lr.py",
+      "sublabel": "choose on validation",
+      "pos": [
+        300,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "T08b",
+      "sources": [
+        {
+          "path": "src/training/select_lr.py",
+          "line": 45,
+          "end_line": 68,
+          "label": "read best.pt, choose"
+        },
+        {
+          "path": "src/training/select_lr.py",
+          "line": 106,
+          "end_line": 120,
+          "label": "summary, then resume"
+        }
+      ]
+    },
+    {
+      "id": "cvruns",
+      "type": "backend",
+      "label": "CV runs",
+      "sublabel": "--cv-folds, test dropped",
+      "pos": [
+        560,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "T12b",
+      "sources": [
+        {
+          "path": "src/training/data.py",
+          "line": 65,
+          "end_line": 76,
+          "label": "cv_split drops test"
+        },
+        {
+          "path": "src/data/create_cv_folds.py",
+          "line": 95,
+          "end_line": 97,
+          "label": "no test case in folds"
+        }
+      ]
+    },
+    {
+      "id": "cvsum",
+      "type": "backend",
+      "label": "cv_summary.py",
+      "sublabel": "fold preds only",
+      "pos": [
+        820,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/evaluation/cv_summary.py",
+          "line": 38,
+          "end_line": 56,
+          "label": "validation files"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Test access, only after every choice is made",
+      "wraps": [
+        "testrows",
+        "gradcam",
+        "svm",
+        "chosen",
+        "testpreds",
+        "ensemble",
+        "evaluation",
+        "verify"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "Never loads test rows",
+      "wraps": [
+        "grid",
+        "select",
+        "cvruns",
+        "cvsum"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-rows-gradcam",
+      "from": "testrows",
+      "to": "gradcam",
+      "label": "14 fixed images",
+      "fromSide": "top",
+      "toSide": "left",
+      "variant": "security",
+      "via": [
+        [
+          115,
+          161
+        ]
+      ]
+    },
+    {
+      "id": "c-rows-svm",
+      "from": "testrows",
+      "to": "svm",
+      "label": "after choice",
+      "variant": "security"
+    },
+    {
+      "id": "c-rows-chosen",
+      "from": "testrows",
+      "to": "chosen",
+      "label": "after training",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "variant": "security",
+      "via": [
+        [
+          115,
+          401
+        ]
+      ]
+    },
+    {
+      "id": "c-svm-preds",
+      "from": "svm",
+      "to": "testpreds",
+      "label": "write",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-chosen-preds",
+      "from": "chosen",
+      "to": "testpreds",
+      "label": "write",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-preds-ensemble",
+      "from": "testpreds",
+      "to": "ensemble",
+      "label": "member preds",
+      "variant": "dashed"
+    },
+    {
+      "id": "c-preds-eval",
+      "from": "testpreds",
+      "to": "evaluation",
+      "label": "score",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-preds-verify",
+      "from": "testpreds",
+      "to": "verify",
+      "label": "recompute",
+      "variant": "dashed"
+    },
+    {
+      "id": "c-grid-select",
+      "from": "grid",
+      "to": "select",
+      "label": "val scores",
+      "variant": "default"
+    },
+    {
+      "id": "c-select-chosen",
+      "from": "select",
+      "to": "chosen",
+      "label": "resume chosen",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-cv-sum",
+      "from": "cvruns",
+      "to": "cvsum",
+      "label": "fold preds",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "When test is read",
+      "items": [
+        "train.py loads test rows only after training ends, and not at all with --skip-test",
+        "cnn_svm.py extracts test features only after the SVM setting is chosen on validation",
+        "gradcam.py draws its 14 test images once (seed 42) and explains the reported models"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Never touches test",
+      "items": [
+        "Grid runs and select_lr.py see validation scores only; tuning_summary.csv is written before the resume",
+        "Cross-validation drops test rows before splitting folds, and its runs write validation files only",
+        "No cv_folds.csv case is a test case (asserted when the folds are built)"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "After the predictions exist",
+      "items": [
+        "ensemble.py averages its members' test files and writes the voted file as the ensemble's predictions",
+        "Evaluation and verify.py only read prediction files; verify.py checks every rule above (313 checks)"
+      ]
+    }
+  ]
+}
