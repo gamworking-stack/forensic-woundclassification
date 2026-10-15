@@ -36,6 +36,7 @@ from src.evaluation.gradcam import FAMILIES as GRADCAM_FAMILIES  # noqa: E402
 from src.evaluation.metrics import case_bootstrap, compute_metrics, load_predictions, summary_metrics  # noqa: E402
 from src.evaluation.summarize import load_pairs, paired_comparison, summary_table  # noqa: E402
 from src.training.engine import EarlyStopping  # noqa: E402
+from src.training.photo import PHOTO_COLUMN, photo_prediction_frame  # noqa: E402
 from src.training.select_lr import LR_GRID, choose  # noqa: E402
 
 
@@ -107,6 +108,17 @@ def best_epoch(history: pd.DataFrame) -> tuple:
     return stopper.best_epoch, stopper.best_f1, stopper.best_loss
 
 
+def load_scored(path: Path, split: str):
+    """Predictions as the run scored them: photo level for per-box crop files (T17), else as written."""
+    frame = pd.read_csv(path, dtype=str)
+    if PHOTO_COLUMN not in frame.columns:
+        return load_predictions(path, split)
+    photos = photo_prediction_frame(frame.astype({c: float for c in frame.columns if c.startswith("prob_")}))
+    with tempfile.TemporaryDirectory() as tmp:
+        photos.to_csv(Path(tmp) / path.name, index=False)
+        return load_predictions(Path(tmp) / path.name, split)
+
+
 def check_history(report: Report, item: str, folder: Path, config: Dict[str, Any],
                   expected_epoch: Optional[int] = None, expected_f1: Optional[float] = None) -> None:
     """Best epoch chosen on validation, early stopping consistent, validation file = best epoch."""
@@ -120,7 +132,7 @@ def check_history(report: Report, item: str, folder: Path, config: Dict[str, Any
     if not ok:
         detail += f" (recorded epoch {expected_epoch}, F1 {expected_f1}; stop rule held: {stopped_right})"
     report.add("selection", f"{item}: best epoch", ok, detail)
-    val = compute_metrics(load_predictions(folder / "validation_predictions.csv", "validation"))["macro_f1"]
+    val = compute_metrics(load_scored(folder / "validation_predictions.csv", "validation"))["macro_f1"]
     report.add("selection", f"{item}: validation file is the best epoch", close(val, f1),
                f"recomputed {val:.6f} vs history {f1:.6f}")
 

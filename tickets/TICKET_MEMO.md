@@ -365,12 +365,13 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Created**
   - `tickets/T17_box_roi.md`
   - `data/roi_box/roi_manifest.csv`, `data/roi_box/crop_summary.json` (dry run)
-  - `src/training/photo.py`, `src/evaluation/box_summary.py`
+  - `src/training/photo.py`, `src/evaluation/box_summary.py`, `src/evaluation/cv_box_summary.py`, `src/evaluation/verify_box.py`
   - `tests/test_box_roi.py`
 - **Changed**
   - `src/training/config.py`, `data.py`, `engine.py`, `train.py`, `common.py`, `cnn_svm.py`, `ensemble.py` (`box` input path)
-  - `src/evaluation/evaluate.py` (S17-S24), `src/evaluation/plots.py` (forest-plot labels)
+  - `src/evaluation/evaluate.py` (S17-S24), `src/evaluation/plots.py` (forest-plot labels), `src/evaluation/gradcam.py` (`--box-manifest`), `src/evaluation/verify.py` (photo-level histories)
+  - `src/training/cv_plan.py` (`--paths`), `scripts/hpc/submit_cv.sh` (`PATHS`)
   - `scripts/slurm/train_single.sbatch`, `scripts/slurm/t03_roi_crops.sbatch`, `scripts/hpc/submit_all.sh`, `scripts/hpc/submit_alexnet_ensemble.sh`
   - `tests/synthetic_data.py` (`build_synthetic_box_dataset`)
   - `runbook.md`, `ROADMAP.md`
-- **Outside Git**: `<project>/derived_data/roi_box_p008/`, `<project>/experiments/roi_box/`
+- **Outside Git**: `<project>/derived_data/roi_box_p008/`, `<project>/experiments/roi_box/` (incl. `gradcam/`, `verification/`), `<project>/experiments/cv_box/`

@@ -5,6 +5,10 @@ The same 2 test images per class are explained for every family and both input p
 checkpoint that produced each scenario's reported predictions. For full images the share of the
 map inside the annotated wound box is reported next to the box's share of the image. Outputs are
 overlays on patient photographs and stay with the run on Raptor.
+
+With ``--box-manifest`` (T17) the per-box run is explained instead: the same example photos (the
+main run's ``examples.csv``), a map for every crop of each photo, and the photo prediction as the
+mean of its crops' probabilities.
 """
 
 from __future__ import annotations
@@ -34,6 +38,7 @@ from src.training.common import resolve_device  # noqa: E402
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN, load_image  # noqa: E402
 from src.training.engine import load_checkpoint  # noqa: E402
 from src.training.models import build_model  # noqa: E402
+from src.training.photo import MANIFEST_PHOTO_COLUMN, photo_prediction_frame  # noqa: E402
 from src.training.transforms import IMAGENET_MEAN, IMAGENET_STD, PadToSquare  # noqa: E402
 
 
@@ -61,7 +66,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--no-pretrained", dest="pretrained", action="store_false",
                         help="Build backbones without ImageNet weights before loading the checkpoint (tests).")
-    return parser.parse_args(argv)
+    parser.add_argument("--box-manifest", type=Path, default=None,
+                        help="T17: explain the per-box run in --experiments-root using this crop manifest.")
+    parser.add_argument("--examples", type=Path, default=None,
+                        help="T17: the main run's gradcam/examples.csv, so the same photos are explained.")
+    args = parser.parse_args(argv)
+    if (args.box_manifest is None) != (args.examples is None):
+        parser.error("--box-manifest and --examples go together")
+    return args
 
 
 def draw_examples(roi_manifest: Path, per_class: int, seed: int) -> pd.DataFrame:
@@ -218,11 +230,115 @@ def plot_family(results: List[Dict[str, Any]], family: str, set_index: int, path
     plt.close(fig)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    args = parse_args(argv)
+BOX_COLUMNS = 3  # crops shown per photo in the per-box figures
+
+
+def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: pd.DataFrame,
+                pretrained: bool, device: torch.device) -> List[Dict[str, Any]]:
+    """Maps for every crop of each example photo, with crop- and photo-level predictions (T17)."""
+    folder = checkpoint_folder(experiments, "box", family)
+    config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
+    classes, size, root = config["classes"], int(config["image_size"]), Path(config["image_root"])
+    model = load_model(folder, family, len(classes), pretrained, device)
+    show = T.Compose([PadToSquare(), T.Resize((size, size))])
+    to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
+    crop_file = pd.read_csv(folder / "test_predictions.csv", dtype=str)
+    reported = crop_file.set_index("relative_path")["predicted_class"]
+    probs_columns = [c for c in crop_file.columns if c.startswith("prob_")]
+    photo_reported = photo_prediction_frame(crop_file.astype({c: float for c in probs_columns})) \
+        .set_index("relative_path")["predicted_class"]
+
+    results = []
+    for row in examples.to_dict("records"):
+        photo = row[MANIFEST_PHOTO_COLUMN]
+        of_photo = crops[crops[MANIFEST_PHOTO_COLUMN] == photo].sort_values("roi_relative_path")
+        if of_photo.empty:
+            raise ValueError(f"No per-box crops for example photo {photo!r}")
+        photo_results, all_probs = [], []
+        for crop in of_photo.to_dict("records"):
+            path = root / crop["roi_relative_path"]
+            if not path.is_file():
+                raise FileNotFoundError(f"box crop {crop['roi_relative_path']} not found under {root}")
+            image = show(load_image(path, 2 * size if config.get("cache", True) else None))
+            cam, probs = grad_cam(model, family, to_input(image).unsqueeze(0).to(device))
+            all_probs.append(probs)
+            predicted = classes[int(probs.argmax())]
+            key = path.relative_to(root).as_posix()
+            photo_results.append({
+                "family": family, "input_path": "box", "set": row["set"], "class": row[LABEL_COLUMN],
+                "case": row[GROUP_COLUMN], "photo": photo, "image": key, "n_crops": len(of_photo),
+                "predicted_class": predicted, "probability": float(probs.max()),
+                "correct": predicted == row[LABEL_COLUMN], "matches_prediction_file": reported.get(key) == predicted,
+                "checkpoint": str(folder / "best.pt"), "_image": np.asarray(image), "_cam": cam,
+            })
+        mean = np.mean(all_probs, axis=0)
+        photo_predicted = classes[int(mean.argmax())]
+        for r in photo_results:
+            r.update({"photo_predicted_class": photo_predicted, "photo_probability": float(mean.max()),
+                      "photo_correct": photo_predicted == row[LABEL_COLUMN],
+                      "matches_photo_prediction_file": photo_reported.get(photo) == photo_predicted})
+        results += photo_results
+    return results
+
+
+def plot_box_family(results: List[Dict[str, Any]], family: str, set_index: int, path: Path) -> None:
+    """One row per class: up to BOX_COLUMNS crops of the example photo, each as input and Grad-CAM."""
+    rows = sorted({r["class"] for r in results})
+    fig, axes = plt.subplots(len(rows), 2 * BOX_COLUMNS, figsize=(2.1 * 2 * BOX_COLUMNS, 2.15 * len(rows)), squeeze=False)
+    for i, label in enumerate(rows):
+        crops = [r for r in results if r["set"] == set_index and r["class"] == label]
+        for ax in axes[i]:
+            ax.set_xticks([]), ax.set_yticks([])
+            ax.axis("off")
+        for j, r in enumerate(crops[:BOX_COLUMNS]):
+            image_ax, cam_ax = axes[i, 2 * j], axes[i, 2 * j + 1]
+            image_ax.axis("on"), cam_ax.axis("on")
+            image_ax.imshow(r["_image"])
+            cam_ax.imshow(r["_image"])
+            cam_ax.imshow(r["_cam"], cmap="inferno", alpha=0.5, vmin=0, vmax=1)
+            mark = "✔" if r["correct"] else "✘"
+            cam_ax.set_title(f"{mark} {r['predicted_class']} {r['probability']:.2f}", fontsize=7)
+            if j == 0:
+                photo_mark = "✔" if r["photo_correct"] else "✘"
+                more = f", {r['n_crops']} crops" if r["n_crops"] > BOX_COLUMNS else ""
+                image_ax.set_title(f"{label}: photo {photo_mark} {r['photo_predicted_class']}{more}", fontsize=7)
+    fig.suptitle(f"{family} Grad-CAM, per-box crops, test set {set_index}", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def main_box(args: argparse.Namespace, device: torch.device) -> int:
     out = args.experiments_root / "gradcam"
     out.mkdir(parents=True, exist_ok=True)
+    examples = pd.read_csv(args.examples, dtype=str, keep_default_na=False)
+    examples.to_csv(out / "examples.csv", index=False)
+    crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
+    crops = crops[crops["split"].str.strip().str.lower() == "test"]
+    table = []
+    for family in args.families:
+        results = explain_box(args.experiments_root, family, examples, crops, args.pretrained, device)
+        for k in sorted(examples["set"].unique()):
+            plot_box_family(results, family, int(k), out / f"{family}_set{k}.png")
+        table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
+        photos = {r["photo"]: r for r in results}.values()
+        print(f"{family}: crops {sum(r['correct'] for r in results)}/{len(results)} correct, "
+              f"photos {sum(r['photo_correct'] for r in photos)}/{len(photos)} correct, "
+              f"{sum(r['matches_prediction_file'] for r in results)}/{len(results)} crops and "
+              f"{sum(r['matches_photo_prediction_file'] for r in photos)}/{len(photos)} photos match prediction files",
+              flush=True)
+    pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)
+    print(f"Wrote examples.csv, gradcam_results.csv and figures to {out}")
+    return 0
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = parse_args(argv)
     device = resolve_device(args.device)
+    if args.box_manifest is not None:
+        return main_box(args, device)
+    out = args.experiments_root / "gradcam"
+    out.mkdir(parents=True, exist_ok=True)
     examples = draw_examples(args.roi_manifest, args.per_class, args.seed)
     examples.to_csv(out / "examples.csv", index=False)
 

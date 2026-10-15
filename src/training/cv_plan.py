@@ -3,8 +3,9 @@
 
 S01-S12 use the T08b chosen learning rate and train for the selected run's best epoch; S13-S14
 fit the T06 chosen SVM; S15-S16 train members with seeds 43-45 for each member's best epoch,
-then soft-vote them per fold. Standard library only and Python 3.6 compatible, so it runs on the
-login node's system python3.
+then soft-vote them per fold. With ``--paths box`` (T17) the same is done for S17-S24 from the
+per-box run. Standard library only and Python 3.6 compatible, so it runs on the login node's
+system python3.
 """
 
 import argparse
@@ -16,6 +17,7 @@ from typing import Dict, List, Optional
 
 
 INPUT_PATHS = ("full", "roi")
+ALL_PATHS = INPUT_PATHS + ("box",)  # box: T17 per-box crops, S17-S24
 FAMILY_ORDER = ("efficientnet_b0", "resnet152", "mobilenet_v3_small", "googlenet",
                 "vgg16", "vit_b16", "cnn_svm", "alexnet_ensemble")  # same as evaluate.py
 TUNED = FAMILY_ORDER[:6]
@@ -28,11 +30,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--main-root", type=Path, required=True, help="Finished main run, e.g. .../experiments/main")
     parser.add_argument("--cv-root", type=Path, required=True, help="CV output root, e.g. .../experiments/cv")
     parser.add_argument("--folds", type=int, default=5)
+    parser.add_argument("--paths", nargs="+", choices=ALL_PATHS, default=list(INPUT_PATHS),
+                        help="Input paths to plan; 'box' needs --main-root to be the per-box run (T17).")
     parser.add_argument("--output", type=Path, required=True, help="Plan TSV to write.")
     return parser.parse_args(argv)
 
 
 def scenario_id(input_path: str, family: str) -> str:
+    if input_path == "box":
+        return f"S{17 + FAMILY_ORDER.index(family):02d}"
     return f"S{2 * FAMILY_ORDER.index(family) + INPUT_PATHS.index(input_path) + 1:02d}"
 
 
@@ -59,10 +65,10 @@ def member_runs(ensemble: Path) -> List[Dict[str, object]]:
     return sorted(members, key=lambda m: m["member"])
 
 
-def plan(main_root: Path, cv_root: Path, folds: int) -> List[Dict[str, object]]:
+def plan(main_root: Path, cv_root: Path, folds: int, paths=INPUT_PATHS) -> List[Dict[str, object]]:
     jobs: List[Dict[str, object]] = []
     for family in FAMILY_ORDER:
-        for path in INPUT_PATHS:
+        for path in paths:
             sid, scenario = scenario_id(path, family), main_root / path / family
             for k in range(1, folds + 1):
                 out = cv_root / path / family / f"fold_{k}"
@@ -89,7 +95,7 @@ def plan(main_root: Path, cv_root: Path, folds: int) -> List[Dict[str, object]]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
-    jobs = plan(args.main_root, args.cv_root, args.folds)
+    jobs = plan(args.main_root, args.cv_root, args.folds, tuple(args.paths))
     with args.output.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n")
         writer.writeheader()

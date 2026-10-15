@@ -128,3 +128,17 @@ Secondary (pooled, box − union): balanced accuracy +0.040 [+0.012, +0.071], p 
 - Only 30 of the 157 test photos have more than one box; for the other 127 the per-box crop equals the union crop. The gain therefore comes partly from scoring multi-box photos as the mean of their wounds and partly from models trained on individual wound crops (1,177 training crops instead of 779 union crops). This run cannot separate the two.
 - Crop-level scores (0.67–0.76) are lower than photo-level: a single crop is harder than the photo, and averaging a photo's crops helps.
 - Limits: the same 62 test cases as the main study (third use of this test set, for a new input path; no setting was chosen on it); post hoc relative to the thesis proposal; one training seed per setting; per-box crops still need manual boxes.
+
+---
+
+## 7. Supplementary Analyses (decided 2026-10-15, after the §6 test results were seen)
+
+Requested to bring the per-box run to the same reporting level as the main study. They change no model or test result and are reported as post hoc.
+
+| Item | Decision |
+|---|---|
+| Cross-validation | T12b method on development data: the frozen `cv_folds.csv`, each S17–S24 scenario's §6 settings (chosen lr and best epoch as a fixed epoch count, chosen SVM, member seeds and epochs), held-out fold predicted per crop and scored on photo level; paired comparison of out-of-fold photos with the T12b union ROI and full-image out-of-fold predictions (same 356 cases, 943 photos), 2,000 resamples, Holm over 8 families. Code: `cv_plan.py --paths box`, `submit_cv.sh` (`PATHS`), `src/evaluation/cv_box_summary.py` |
+| Grad-CAM | T14 method on every crop of the main run's 14 example photos (same photos, read from `main/gradcam/examples.csv`), the 7 families of T14 (CNN-SVM excluded), the checkpoint behind each S17–S24 test file; crop and photo predictions checked against the prediction files. No "map inside the box" score: a per-box crop is the box. Code: `gradcam.py --box-manifest --examples` |
+| Verification | T16 checks for S17–S24 (`src/evaluation/verify_box.py`): files, test set equal to the main run's, selection reproduced on photo level, budget equal to the main run, every number recomputed, Grad-CAM and CV. `verify.py` now scores per-box histories on photo level (no change for the main run) |
+| Reporting | Metrics by wound type (Excel) and slides, from the fetched result files |
+

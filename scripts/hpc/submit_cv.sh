@@ -3,6 +3,7 @@
 # Run on Raptor from the repo root, after the main run has finished:
 #   bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_cv.sh)
 # Finished = validation_predictions.csv (the held-out fold) exists. The test split is never loaded.
+# T17 per-box CV (S17-S24):  MAIN_RUN=roi_box CV_RUN=cv_box PATHS=box bash scripts/hpc/submit_cv.sh
 set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
@@ -12,7 +13,8 @@ FOLDS_CSV=data/splits/cv_folds.csv
 HOURS="${HOURS:-4}"
 
 mkdir -p "$CV"
-python3 src/training/cv_plan.py --main-root "$MAIN" --cv-root "$CV" --output "$CV/cv_plan.tsv"
+# shellcheck disable=SC2086  # PATHS is a list of words on purpose
+python3 src/training/cv_plan.py --main-root "$MAIN" --cv-root "$CV" --output "$CV/cv_plan.tsv" --paths ${PATHS:-full roi}
 
 queued=$(squeue -u "$USER" -h -o %j)
 ids=()

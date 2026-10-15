@@ -200,3 +200,162 @@ def test_box_summary_rejects_other_test_cases(tmp_path):
         frame.to_csv(path, index=False)
     with pytest.raises(ValueError, match="differs from the main run"):
         box_summary_main(["--box-root", str(box), "--main-root", str(main), "--bootstrap", "20"])
+
+
+# ---------- cross-validation plan and summary ----------
+
+def test_cv_plan_for_box_reads_the_per_box_run(tmp_path):
+    from src.training.cv_plan import plan
+    from tests.test_cv import fake_main_run
+    run = fake_main_run(tmp_path / "roi_box")
+    (run / "roi").rename(run / "box")  # the per-box run has the main run's layout under box/
+    members = run / "box" / "alexnet_ensemble" / "ensemble_members.csv"
+    table = pd.read_csv(members)
+    table["output_dir"] = table["output_dir"].str.replace("/roi/", "/box/")
+    table.to_csv(members, index=False)
+    jobs = plan(run, tmp_path / "cv_box", 5, ("box",))
+    kinds = pd.Series([j["kind"] for j in jobs]).value_counts().to_dict()
+    assert kinds == {"train": 30, "member": 15, "svm": 5, "combine": 5}
+    assert jobs[0]["job_name"] == "CV_S17_efficientnet_b0_box_f1" and jobs[0]["input_path"] == "box"
+    assert any(j["job_name"] == "CV_S24_alexnet_ensemble_box_f5_m3" for j in jobs)
+
+
+def write_box_fold(path: Path, cases, y, wrong=(), crops_per_photo=2):
+    """Crop-level held-out-fold file: ``crops_per_photo`` crops per case, one photo per case."""
+    y_crop, pred = np.repeat(y, crops_per_photo), np.repeat(y, crops_per_photo)
+    for i in wrong:
+        pred[i * crops_per_photo:(i + 1) * crops_per_photo] = (y[i] + 1) % 7
+    file = write_predictions(path, "validation", SEVEN, y_crop, pred, np.repeat(cases, crops_per_photo))
+    frame = pd.read_csv(file, dtype=str)
+    frame["relative_path"] = path.parent.name + "/" + frame["relative_path"]
+    frame.insert(1, PHOTO_COLUMN, [f"photo_{c}.jpg" for c in np.repeat(cases, crops_per_photo)])
+    frame.to_csv(file, index=False)
+
+
+def test_cv_box_summary_against_t12b(tmp_path):
+    from src.evaluation.cv_box_summary import main as cv_box_main
+    from src.evaluation.cv_summary import main as cv_summary_main
+    from tests.test_cv import fake_cv_run
+    main_cv = fake_cv_run(tmp_path / "cv", wrong_roi=(0, 3))
+    assert cv_summary_main(["--cv-root", str(main_cv), "--folds", "2", "--bootstrap", "20"]) == 0
+    box_cv = tmp_path / "cv_box"
+    y = np.repeat(np.arange(7), 2)
+    for family in FAMILY_ORDER:
+        for k in (1, 2):
+            write_box_fold(box_cv / "box" / family / f"fold_{k}" / "validation_predictions.csv", np.arange(14) + 100 * k, y)
+    assert cv_box_main(["--cv-box-root", str(box_cv), "--cv-main-root", str(main_cv), "--folds", "2",
+                        "--bootstrap", "30"]) == 0
+    table = pd.read_csv(box_cv / "summary" / "cv_box_table.csv")
+    assert table["scenario_id"].tolist() == [f"S{i}" for i in range(17, 25)]
+    assert (table["oof_photos"] == 28).all() and table["macro_f1_mean"].tolist() == pytest.approx([1.0] * 8)
+    union = pd.read_csv(box_cv / "summary" / "cv_box_vs_union.csv").query("metric == 'macro_f1'").set_index("family")
+    assert (union.drop("all families (mean)")["difference"] > 0).all()  # union had 2 wrong per fold
+    full = pd.read_csv(box_cv / "summary" / "cv_box_vs_full.csv").query("metric == 'macro_f1'")
+    assert np.allclose(full["difference"], 0.0)
+
+
+# ---------- Grad-CAM on per-box crops ----------
+
+def test_gradcam_box_explains_every_crop_of_the_main_examples(data, tmp_path):
+    from src.evaluation.gradcam import draw_examples, main as gradcam_main
+    exp = tmp_path / "roi_box"
+    assert train_main(["--family", "mobilenet_v3_small", *box_args(data, exp / "box" / "mobilenet_v3_small", "--max-epochs", "1")]) == 0
+    member = exp / "box" / "alexnet_ensemble" / "member_01"
+    assert train_main(["--family", "alexnet", *box_args(data, member, "--max-epochs", "1", "--seed", "43")]) == 0
+    pd.DataFrame([{"member": 1, "seed": 43, "best_epoch": 1, "best_validation_macro_f1": 0.5,
+                   "output_dir": str(member), "representative": True}]) \
+        .to_csv(exp / "box" / "alexnet_ensemble" / "ensemble_members.csv", index=False)
+    examples = tmp_path / "examples.csv"
+    draw_examples(data["roi_manifest"], 2, 42).to_csv(examples, index=False)
+
+    assert gradcam_main(["--experiments-root", str(exp), "--box-manifest", str(data["box_manifest"]),
+                         "--examples", str(examples), "--families", "mobilenet_v3_small", "alexnet_ensemble",
+                         "--no-pretrained", "--device", "cpu"]) == 0
+    results = pd.read_csv(exp / "gradcam" / "gradcam_results.csv")
+    crops = pd.read_csv(data["box_manifest"], dtype=str)
+    n_crops = crops["relative_path"].isin(pd.read_csv(examples, dtype=str)["relative_path"]).sum()
+    assert len(results) == 2 * n_crops and n_crops > 14  # some photos have several crops
+    assert results["matches_prediction_file"].all() and results["matches_photo_prediction_file"].all()
+    for family in ("mobilenet_v3_small", "alexnet_ensemble"):
+        for k in (1, 2):
+            assert (exp / "gradcam" / f"{family}_set{k}.png").is_file()
+
+
+# ---------- verification of the per-box run ----------
+
+from tests.test_verify import (  # noqa: E402  (fixture and writers of the T16 tests)
+    BOOT, TEST_CASES, TRAIN_CASES, VAL_CASES, clean, write_ensemble, write_split, write_svm, write_tuned,
+)
+
+
+def add_photo_column(root: Path) -> None:
+    """One crop per photo: every prediction file names its photo; every run selects on photo level."""
+    for path in sorted(root.rglob("*_predictions.csv")):
+        frame = pd.read_csv(path, dtype=str)
+        if PHOTO_COLUMN not in frame.columns:
+            frame.insert(1, PHOTO_COLUMN, "photo_" + frame["pseudonimized_id"] + ".jpg")
+            frame.to_csv(path, index=False)
+    for path in sorted(root.rglob("run_config.json")):
+        config = json.loads(path.read_text())
+        if config.get("family") not in ("cnn_svm", "ensemble"):
+            path.write_text(json.dumps({**config, "selection_unit": "photo"}))
+
+
+@pytest.fixture(scope="module")
+def box_run(clean, tmp_path_factory):
+    import shutil
+    from src.evaluation.cv_box_summary import main as cv_box_main
+    base, cv_folds = clean
+    work = tmp_path_factory.mktemp("t17v")
+    shutil.copytree(base, work / "run", copy_function=shutil.copy2)
+    base = work / "run"
+    root = base / "roi_box"
+    for family in FAMILY_ORDER:
+        folder = root / "box" / family
+        folder.mkdir(parents=True)
+        {"cnn_svm": write_svm, "alexnet_ensemble": write_ensemble}.get(family, write_tuned)(folder, ())
+    add_photo_column(root)
+    assert evaluate_main(["--experiments-root", str(root), "--bootstrap", str(BOOT)]) == 0
+    assert box_summary_main(["--box-root", str(root), "--main-root", str(base / "main"), "--bootstrap", str(BOOT)]) == 0
+    for family in FAMILY_ORDER:
+        for k, cases in ((1, VAL_CASES), (2, TRAIN_CASES)):
+            fold = base / "cv_box" / "box" / family / f"fold_{k}"
+            write_split(fold, (), {"validation": cases})
+            frame = pd.read_csv(fold / "validation_predictions.csv", dtype=str)
+            frame["relative_path"] = f"fold_{k}/" + frame["relative_path"]
+            frame.to_csv(fold / "validation_predictions.csv", index=False)
+            (fold / "run_config.json").write_text(json.dumps({"family": family, "cv_folds": "cv_folds.csv", "fold": k}))
+    add_photo_column(base / "cv_box")
+    assert cv_box_main(["--cv-box-root", str(base / "cv_box"), "--cv-main-root", str(base / "cv"), "--folds", "2",
+                        "--bootstrap", str(BOOT)]) == 0
+    return base, base / "data" / "cv_folds.csv"
+
+
+def run_verify_box(base: Path, cv_folds: Path) -> pd.DataFrame:
+    from src.evaluation.verify_box import main as verify_box_main
+    code = verify_box_main(["--box-root", str(base / "roi_box"), "--main-root", str(base / "main"),
+                            "--split-assignments", str(base / "data" / "assignments.csv"),
+                            "--cv-root", str(base / "cv_box"), "--cv-main-root", str(base / "cv"),
+                            "--cv-folds", str(cv_folds), "--folds", "2", "--bootstrap", str(BOOT)])
+    report = pd.read_csv(base / "roi_box" / "verification" / "verification_report.csv", keep_default_na=False)
+    assert code == (1 if (report["status"] == "FAIL").any() else 0)
+    return report
+
+
+def test_verify_box_clean_run_passes(box_run):
+    report = run_verify_box(*box_run)
+    bad = report[report["status"] == "FAIL"]
+    assert bad.empty, bad.to_string()
+    assert set(report["check"]) == {"files", "test set", "selection", "budget", "numbers", "gradcam", "cv"}
+
+
+def test_verify_box_catches_an_edited_number(box_run, tmp_path):
+    import shutil
+    base, _ = box_run
+    shutil.copytree(base, tmp_path / "run", copy_function=shutil.copy2)
+    path = tmp_path / "run" / "roi_box" / "summary" / "box_vs_union.csv"
+    table = pd.read_csv(path)
+    table.loc[0, "difference"] += 0.01
+    table.to_csv(path, index=False)
+    report = run_verify_box(tmp_path / "run", tmp_path / "run" / "data" / "cv_folds.csv")
+    assert report.loc[report["status"] == "FAIL", "item"].tolist() == ["box_vs_union.csv"]

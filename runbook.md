@@ -220,6 +220,26 @@ srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_
 ```
 Outputs: `experiments/roi_box/box/<family>/` (crop-level prediction and metric files; `photo/` holds the photo-level ones) and `experiments/roi_box/summary/` (`box_summary_table.csv`, `box_vs_union.csv`, `box_vs_full.csv`, `box_vs_union_macro_f1.png`). `fetch_results.sh roi_box` copies the summary to `../results_figures/roi_box/` on the laptop.
 
+Supplementary analyses of the per-box run (added after its test results; T17 §7):
+```bash
+# 4. 5-fold CV (S17-S24, 55 jobs), then the photo-level CV summary against T12b
+bash scripts/hpc/watch_jobs.sh $(MAIN_RUN=roi_box CV_RUN=cv_box PATHS=box bash scripts/hpc/submit_cv.sh)
+srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/cv_box_summary.py \
+  --cv-box-root /project/a260012_FORWCL/experiments/cv_box --cv-main-root /project/a260012_FORWCL/experiments/cv
+# 5. Grad-CAM on every crop of the main run's 14 example photos (CPU)
+srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/gradcam.py --device cpu \
+  --experiments-root /project/a260012_FORWCL/experiments/roi_box --box-manifest data/roi_box/roi_manifest.csv \
+  --examples /project/a260012_FORWCL/experiments/main/gradcam/examples.csv
+# 6. verification of everything above
+srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/verify_box.py \
+  --box-root /project/a260012_FORWCL/experiments/roi_box --main-root /project/a260012_FORWCL/experiments/main \
+  --cv-root /project/a260012_FORWCL/experiments/cv_box --cv-main-root /project/a260012_FORWCL/experiments/cv
+```
+Outputs: `experiments/cv_box/summary/` (`cv_box_table.csv`, `cv_box_vs_union.csv`, `cv_box_vs_full.csv`, figure), `experiments/roi_box/gradcam/` (overlays on patient photographs: they stay on Raptor) and `experiments/roi_box/verification/verification_report.csv`. `fetch_results.sh cv_box` copies the CV summary.
+
 ## Final verification (T16)
 
 After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):
