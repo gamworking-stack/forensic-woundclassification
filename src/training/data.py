@@ -90,19 +90,22 @@ def check_class_coverage(df: pd.DataFrame, splits: Sequence[str] = SPLIT_NAMES) 
             raise ValueError(f"Split {split!r} has no images of: {sorted(missing)}")
 
 
+CROP_INPUT_PATHS = ("roi", "box", "crop")  # images read from roi_relative_path
+
+
 def resolve_image_paths(df: pd.DataFrame, input_path: str, image_root: Path) -> List[Path]:
     """Resolve every row to an image file, failing with the full list of missing rows."""
     paths: List[Path] = []
     missing: List[str] = []
     for row in df.to_dict("records"):
-        if input_path in ("roi", "box"):
+        if input_path in CROP_INPUT_PATHS:
             candidate: Optional[Path] = image_root / row["roi_relative_path"]
             if not candidate.is_file():
                 candidate = None
         else:
             candidate = find_source_image(image_root, row)
         if candidate is None:
-            missing.append(row.get("roi_relative_path") if input_path in ("roi", "box") else row["relative_path"])
+            missing.append(row.get("roi_relative_path") if input_path in CROP_INPUT_PATHS else row["relative_path"])
         else:
             paths.append(candidate)
     if missing:

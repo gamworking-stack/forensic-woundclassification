@@ -240,6 +240,25 @@ srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012
 ```
 Outputs: `experiments/cv_box/summary/` (`cv_box_table.csv`, `cv_box_vs_union.csv`, `cv_box_vs_full.csv`, figure), `experiments/roi_box/gradcam/` (overlays on patient photographs: they stay on Raptor) and `experiments/roi_box/verification/verification_report.csv`. `fetch_results.sh cv_box` copies the CV summary.
 
+## Per-crop ROI experiment (T18, extra)
+
+The T17 crops, each trained, selected and scored on its own: no photo weights, no photo level, no comparison. S25-S32 in their own run `roi_crop`. Plan and decisions: `tickets/T18_crop_roi.md`. Needs the T17 crops in `derived_data/roi_box_p008`.
+```bash
+cd ~/forensic-woundclassification
+# 1. train S25-S32 (lr grid + select for S25-S30, CNN-SVM, AlexNet ensemble)
+bash scripts/hpc/watch_jobs.sh $(PATHS=crop bash scripts/hpc/submit_all.sh roi_crop)
+# 2. crop-level metrics, summary table, verification
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/evaluate.py --experiments-root /project/a260012_FORWCL/experiments/roi_crop
+srun -p compute -c 2 --mem=8G -t 1:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/crop_summary.py --crop-root /project/a260012_FORWCL/experiments/roi_crop
+srun -p compute -c 4 --mem=16G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/verify_crop.py \
+  --crop-root /project/a260012_FORWCL/experiments/roi_crop --main-root /project/a260012_FORWCL/experiments/main
+```
+Outputs: `experiments/roi_crop/crop/<family>/` (prediction, metric and figure files), `experiments/roi_crop/summary/crop_summary_table.csv`, `experiments/roi_crop/verification/verification_report.csv`. `fetch_results.sh roi_crop` copies them to `../results_figures/roi_crop/`.
+
 ## Final verification (T16)
 
 After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):

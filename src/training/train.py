@@ -132,6 +132,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "cases_per_split": {s: int(df.loc[df["split"] == s, GROUP_COLUMN].nunique()) for s in SPLIT_NAMES},
         **({"photos_per_split": {s: len(set(manifest_photos(df[df["split"] == s]))) for s in SPLIT_NAMES},
             "selection_unit": "photo", "loss_weights": "1 / crops per photo"} if per_box else {}),
+        # T18: the same crops, each its own sample: no photo weights, selection on crop level.
+        **({"selection_unit": "crop", "loss_weights": "none"} if cfg.input_path == "crop" else {}),
         **git_state(),
         "environment": environment_info(device),
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

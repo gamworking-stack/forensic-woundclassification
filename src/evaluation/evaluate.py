@@ -43,6 +43,9 @@ SCENARIO_IDS = {
 # T17 extra experiment: one crop per annotated box, in its own experiments root.
 BOX_PATH = "box"
 BOX_SCENARIO_IDS = {(BOX_PATH, family): f"S{17 + i:02d}" for i, family in enumerate(FAMILY_ORDER)}
+# T18 extra experiment: the same crops, each classified and scored on its own.
+CROP_PATH = "crop"
+CROP_SCENARIO_IDS = {(CROP_PATH, family): f"S{25 + i:02d}" for i, family in enumerate(FAMILY_ORDER)}
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -84,7 +87,7 @@ def find_scenarios(root: Path) -> List[Tuple[str, str, Path]]:
     Only direct children count, so ensemble member folders one level deeper are skipped.
     """
     found = []
-    for input_path in (*INPUT_PATHS, BOX_PATH):
+    for input_path in (*INPUT_PATHS, BOX_PATH, CROP_PATH):
         base = root / input_path
         if not base.is_dir():
             continue
@@ -114,7 +117,7 @@ def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
         raise FileNotFoundError(f"No scenario folders with prediction files under {root}")
     check_same_test_set(scenarios)
 
-    ids = {**SCENARIO_IDS, **BOX_SCENARIO_IDS}
+    ids = {**SCENARIO_IDS, **BOX_SCENARIO_IDS, **CROP_SCENARIO_IDS}
     rows = []
     for input_path, family, folder in scenarios:
         scenario_id = ids.get((input_path, family), "")
@@ -138,9 +141,10 @@ def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
         print(f"{title}: test macro-F1 {test['macro_f1']:.3f} [{ci['low']:.3f}, {ci['high']:.3f}]", flush=True)
 
     done = {(r["input_path"], r["family"]) for r in rows}
-    # List the missing scenarios of each study present in this root (main S01-S16, box S17-S24).
+    # List the missing scenarios of each study present in this root (main S01-S16, box S17-S24, crop S25-S32).
     expected = {**(SCENARIO_IDS if any(p in INPUT_PATHS for p, _ in done) else {}),
-                **(BOX_SCENARIO_IDS if any(p == BOX_PATH for p, _ in done) else {})}
+                **(BOX_SCENARIO_IDS if any(p == BOX_PATH for p, _ in done) else {}),
+                **(CROP_SCENARIO_IDS if any(p == CROP_PATH for p, _ in done) else {})}
     for (input_path, family), scenario_id in expected.items():
         if (input_path, family) not in done:
             rows.append({"scenario_id": scenario_id, "input_path": input_path, "family": family,

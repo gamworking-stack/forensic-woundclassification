@@ -5,6 +5,7 @@
 # Finished = test_predictions.csv exists. Unfinished runs resume from last.pt.
 # S01-S12 are tuned (T08b): one run per learning rate in lr_<value>/, then a select job.
 # T17 per-box run (S17-S24):  PATHS=box bash scripts/hpc/submit_all.sh roi_box
+# T18 per-crop run (S25-S32): PATHS=crop bash scripts/hpc/submit_all.sh roi_crop
 set -euo pipefail
 
 RUN_NAME="${1:-main}"
@@ -18,11 +19,12 @@ LRS=(1e-5 3e-5 1e-4)  # T08b grid, fixed before any S01-S12 run; same as select_
 queued=$(squeue -u "$USER" -h -o %j)
 ids=()
 
-scenario_id() {  # <family index 0-7> <input path>: S01-S16 as in spec §5.1, S17-S24 for box (T17)
+scenario_id() {  # <family index 0-7> <input path>: S01-S16 as in spec §5.1, S17-S24 for box (T17), S25-S32 for crop (T18)
   case "$2" in
     full) printf 'S%02d' $(( 2 * $1 + 1 )) ;;
     roi)  printf 'S%02d' $(( 2 * $1 + 2 )) ;;
     box)  printf 'S%02d' $(( 17 + $1 )) ;;
+    crop) printf 'S%02d' $(( 25 + $1 )) ;;
     *)    echo "unknown input path: $2" >&2; exit 1 ;;
   esac
 }

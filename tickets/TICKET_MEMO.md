@@ -375,3 +375,20 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `tests/synthetic_data.py` (`build_synthetic_box_dataset`)
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/derived_data/roi_box_p008/`, `<project>/experiments/roi_box/` (incl. `gradcam/`, `verification/`), `<project>/experiments/cv_box/`
+
+## T18: Per-crop ROI experiment (extra)
+
+- **Commits**: see `git log --grep 'T18'`
+- **Used**
+  - `data/roi_box/roi_manifest.csv` and `<project>/derived_data/roi_box_p008/` (the T17 crops)
+  - `src/evaluation/metrics.py`, `src/evaluation/verify.py` (selection and budget checks)
+- **Created**
+  - `tickets/T18_crop_roi.md`
+  - `src/evaluation/crop_summary.py`, `src/evaluation/verify_crop.py`
+  - `tests/test_crop_roi.py`
+- **Changed**
+  - `src/training/config.py`, `data.py`, `train.py`, `cnn_svm.py` (`crop` input path)
+  - `src/evaluation/evaluate.py` (S25-S32)
+  - `scripts/slurm/train_single.sbatch`, `scripts/hpc/submit_all.sh`, `scripts/hpc/submit_alexnet_ensemble.sh`
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments/roi_crop/` (incl. `verification/`)

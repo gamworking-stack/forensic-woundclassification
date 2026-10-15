@@ -17,7 +17,7 @@ FAMILIES = (
     "vit_b16",
     "alexnet",
 )
-INPUT_PATHS = ("full", "roi", "box")  # box: one crop per annotated box (T17)
+INPUT_PATHS = ("full", "roi", "box", "crop")  # box: one crop per annotated box (T17); crop: same crops, each its own sample (T18)
 
 
 @dataclass
@@ -60,9 +60,9 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--family", required=True, choices=FAMILIES)
     parser.add_argument("--input-path", required=True, choices=INPUT_PATHS)
     parser.add_argument("--manifest", type=Path, required=True,
-                        help="Split manifest (full) or ROI manifest (roi, box).")
+                        help="Split manifest (full) or ROI manifest (roi, box, crop).")
     parser.add_argument("--image-root", type=Path, required=True,
-                        help="Raw image tree (full) or ROI crop directory (roi, box).")
+                        help="Raw image tree (full) or ROI crop directory (roi, box, crop).")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"),
                         help="ROI manifest used to match full-image rows when --full-scope matched.")

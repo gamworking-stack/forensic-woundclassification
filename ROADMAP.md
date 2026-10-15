@@ -130,6 +130,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 
 ### Extra experiments (outside the 16-scenario study)
 - **T17** Per-box ROI: one crop per annotated box instead of the union crop (S17-S24, run `roi_box`), photo-level primary outcome (mean of crop probabilities), compared with union ROI and full image on the same test cases. Separate manifest, crops and run; the main study is unchanged. Plan: `tickets/T17_box_roi.md`.
+- **T18** Per-crop ROI: the T17 crops, each its own sample in training, selection and evaluation (S25-S32, run `roi_crop`); crop-level test macro-F1 with case-bootstrap intervals; no photo level and no comparison. Plan: `tickets/T18_crop_roi.md`.
 
 ## 6. Risks to track
 
@@ -172,3 +173,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T15 summary table
 - [x] T16 final verification
 - [x] T17 per-box ROI experiment (extra)
+- [ ] T18 per-crop ROI experiment (extra)

@@ -5,7 +5,7 @@
 # Prints the 4 job IDs on stdout. Resubmitting resumes unfinished members.
 set -euo pipefail
 
-INPUT_PATH="${1:?usage: submit_alexnet_ensemble.sh <full|roi|box> [run_name]}"
+INPUT_PATH="${1:?usage: submit_alexnet_ensemble.sh <full|roi|box|crop> [run_name]}"
 RUN_NAME="${2:-main}"
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
 ENSEMBLE_DIR="$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/alexnet_ensemble"

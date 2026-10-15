@@ -93,7 +93,7 @@ def fit_svm(params: Dict[str, Any], seed: int, x: np.ndarray, y: np.ndarray,
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hybrid CNN-SVM on one input path (full image or ROI).")
-    parser.add_argument("--input-path", required=True, choices=("full", "roi", "box"))
+    parser.add_argument("--input-path", required=True, choices=("full", "roi", "box", "crop"))
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)

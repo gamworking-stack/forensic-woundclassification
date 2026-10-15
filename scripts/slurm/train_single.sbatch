@@ -5,6 +5,7 @@
 #     scripts/slurm/train_single.sbatch
 # Optional: RUN_NAME (default main), EXTRA_ARGS (passed to train.py), OUTPUT_DIR.
 # INPUT_PATH=box (T17) trains on one crop per annotated box; use RUN_NAME=roi_box.
+# INPUT_PATH=crop (T18) trains on the same crops, each its own sample; use RUN_NAME=roi_crop.
 #SBATCH --job-name=train_single
 #SBATCH --account=a260012
 #SBATCH --partition=gpu
@@ -18,7 +19,7 @@
 set -euo pipefail
 
 : "${FAMILY:?set FAMILY, e.g. --export=ALL,FAMILY=efficientnet_b0,INPUT_PATH=roi}"
-: "${INPUT_PATH:?set INPUT_PATH to full, roi or box}"
+: "${INPUT_PATH:?set INPUT_PATH to full, roi, box or crop}"
 RUN_NAME="${RUN_NAME:-main}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
@@ -32,11 +33,11 @@ case "$INPUT_PATH" in
   roi)
     MANIFEST=data/roi/roi_manifest.csv
     IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_union_p008" ;;
-  box)
+  box|crop)
     MANIFEST=data/roi_box/roi_manifest.csv
     IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_box_p008" ;;
   *)
-    echo "INPUT_PATH must be full, roi or box, got: $INPUT_PATH" >&2; exit 1 ;;
+    echo "INPUT_PATH must be full, roi, box or crop, got: $INPUT_PATH" >&2; exit 1 ;;
 esac
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/$FAMILY}"
 export TORCH_HOME="$PROJECT_ROOT/torch_cache"
