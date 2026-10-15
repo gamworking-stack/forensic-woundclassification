@@ -22,16 +22,16 @@ Master's thesis project, Preenapun Saokhieo, Chiang Mai University. Data: 1,100 
   - Comparisons: paired ROI − full image differences with Holm correction over the 8 families.
 - **Supplementary checks**: 5-fold case-grouped cross-validation on the 356 development cases, decided post hoc; Grad-CAM; automated verification of every reported number.
 
-## Two experiments
+## Three experiments
 
-| | Experiment 1: union ROI | Experiment 2: per-box ROI |
-|---|---|---|
-| ROI crop | All boxes of a photo merged into one crop (8% padding) | One crop per box (8% padding); photo prediction = mean of its crops |
-| Scenarios | S01–S16 (full + union ROI) | S17–S24 (per-box ROI), compared with the full-image scenarios of Experiment 1 |
-| Crops | 1,100 | 1,667 from the same 1,100 photos |
-| Plan and log | `tickets/T01`–`T16` | `tickets/T17_box_roi.md` |
+| | Experiment 1: union ROI | Experiment 2: per-box ROI | Experiment 3: per-crop ROI |
+|---|---|---|---|
+| ROI crop | All boxes of a photo merged into one crop (8% padding) | One crop per box (8% padding); photo prediction = mean of its crops | The same crops, each crop its own sample; scored per crop |
+| Scenarios | S01–S16 (full + union ROI) | S17–S24 (per-box ROI), compared with the full-image scenarios of Experiment 1 | S25–S32, results only (no comparison) |
+| Crops | 1,100 | 1,667 from the same 1,100 photos | the same 1,667 (213 test crops) |
+| Plan and log | `tickets/T01`–`T16` | `tickets/T17_box_roi.md` | `tickets/T18_crop_roi.md` |
 
-Full methodology: [docs/methodology_two_experiments.md](docs/methodology_two_experiments.md).
+Full methodology: [docs/methodology_roi_experiments.md](docs/methodology_roi_experiments.md).
 
 ## Main results
 
@@ -44,6 +44,7 @@ Full methodology: [docs/methodology_two_experiments.md](docs/methodology_two_exp
 - **ROI improves on the full image on average.** Both crop designs show a gain in cross-validation, and the per-box design also shows one on the test set. The largest gains are for CNN-SVM and MobileNetV3-Small.
 - **The two crop designs perform about the same.** Per-box beat the union crop on the test set, but not in cross-validation.
 - **Best test model**: EfficientNet-B0 on per-box ROI, with macro-F1 0.811, accuracy 87.9% and macro AUC 0.969. The best full-image model is ResNet152, with macro-F1 0.783.
+- **Per-crop classification (Experiment 3)**: each wound crop is classified on its own. EfficientNet-B0 is best, with macro-F1 0.797 [0.707, 0.854] on 213 test crops; the other models score 0.69–0.77, and macro AUC is 0.947–0.972.
 - **Limitations**: internal validation at a single hospital, a small test set, and manual boxes. External validation is needed.
 
 ---
@@ -94,7 +95,7 @@ For example, to submit all scenarios of Experiment 1 and watch them:
 bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)
 ```
 
-[runbook.md](runbook.md) has every step: cropping, training, evaluation, summaries, cross-validation, Grad-CAM and verification, for both experiments.
+[runbook.md](runbook.md) has every step: cropping, training, evaluation, summaries, cross-validation, Grad-CAM and verification, for all three experiments.
 
 ## Reproducibility
 
@@ -103,6 +104,7 @@ bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)
 - **Verification**: the scripts re-derive every model selection and reported number from the run files and check that the test set was not used for selection.
   - Experiment 1 (`src/evaluation/verify.py`): 313 checks passed, 0 failed.
   - Experiment 2 (`src/evaluation/verify_box.py`): 203 checks passed, 0 failed.
+  - Experiment 3 (`src/evaluation/verify_crop.py`): 157 checks passed, 0 failed.
 
 ## Data privacy
 

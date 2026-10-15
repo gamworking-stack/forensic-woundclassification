@@ -173,4 +173,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T15 summary table
 - [x] T16 final verification
 - [x] T17 per-box ROI experiment (extra)
-- [ ] T18 per-crop ROI experiment (extra)
+- [x] T18 per-crop ROI experiment (extra)

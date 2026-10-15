@@ -4,7 +4,7 @@
 - **Phase**: Extra experiment, outside the 16-scenario study (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T17](T17_box_roi.md) (the same crops); [T08](T08_evaluation_module.md) (metrics, case bootstrap); [T08b](T08b_lr_tuning.md) (tuning); [T16](T16_final_verification.md) (verification)
 - **Scenarios**: S25–S32 (input path `crop`, the 8 families in S01–S16 order)
-- **Status**: In progress
+- **Status**: Completed (2026-10-15)
 
 ---
 
@@ -75,3 +75,53 @@ Decided with the researcher after the test results of the main study and T17 had
 2. 8 of 8 scenarios finish; `evaluate.py` evaluates S25–S32 on 213 test crops from 62 cases; `crop_summary.py` writes the table.
 3. `verify_crop.py` reports no FAIL.
 4. Record the results here.
+
+---
+
+## 6. HPC Run (2026-10-15)
+
+- **Tests**: `pytest tests/` 129 passed locally; `tests/test_crop_roi.py` 6 passed in the Raptor container.
+- **Training** (jobs 230013–230041, commit `8da4750`, `git_dirty: false`): 29 of 29 completed on the first attempt.
+- **Evaluation** (job 230055): `evaluate.py`, `crop_summary.py` and `verify_crop.py` in one job. 8 scenarios, 213 test crops from 62 cases, 2,000 case resamples.
+- **Verification**: 157 PASS, 0 FAIL, 1 NOTE: all 21 trained networks ran from commit `8da4750`.
+
+**Choices on validation (crop-level macro-F1, 277 crops)**
+
+| Scenario | Family | Chosen | Best epoch | Validation macro-F1 |
+|---|---|---|---|---|
+| S25 | EfficientNet-B0 | lr 1e-4 | 8 | 0.749 |
+| S26 | ResNet152 | lr 3e-5 | 10 | 0.781 |
+| S27 | MobileNetV3-Small | lr 1e-4 | 12 | 0.770 |
+| S28 | GoogLeNet | lr 3e-5 | 61 | 0.736 |
+| S29 | VGG16 | lr 3e-5 | 19 | 0.725 |
+| S30 | ViT-B/16 | lr 1e-4 | 11 | 0.763 |
+| S31 | CNN-SVM | RBF, C 100, gamma 1e-6 | – | 0.698 |
+| S32 | AlexNet ensemble | seeds 43–45 (lr 3e-5) | 26 / 31 / 14 | 0.706 / 0.705 / 0.679 |
+
+Grid edges: S25, S27 and S30 chose the upper limit (1e-4); S31 sits on the smallest gamma, as in S13 and S23. The grids were not widened.
+
+**Test, per crop (213 crops, 62 cases)**
+
+| Scenario | Family | Accuracy | Balanced acc. | Macro-F1 [95% CI] | Macro AUC |
+|---|---|---|---|---|---|
+| S25 | EfficientNet-B0 | 0.873 | 0.841 | **0.797** [0.707, 0.854] | 0.962 |
+| S26 | ResNet152 | 0.864 | 0.804 | 0.767 [0.677, 0.839] | 0.952 |
+| S27 | MobileNetV3-Small | 0.826 | 0.739 | 0.730 [0.608, 0.786] | 0.965 |
+| S28 | GoogLeNet | 0.845 | 0.769 | 0.719 [0.638, 0.778] | 0.947 |
+| S29 | VGG16 | 0.859 | 0.745 | 0.727 [0.626, 0.799] | 0.963 |
+| S30 | ViT-B/16 | 0.845 | 0.721 | 0.715 [0.612, 0.782] | 0.954 |
+| S31 | CNN-SVM | 0.812 | 0.734 | 0.694 [0.587, 0.787] | 0.972 |
+| S32 | AlexNet ensemble | 0.840 | 0.776 | 0.737 [0.635, 0.809] | 0.947 |
+
+**Per class, mean F1 over the 8 families** (test crops / cases): gunshot wound 0.928 (73 / 17), graze wound 0.926 (51 / 20), contusion 0.923 (34 / 14), laceration 0.735 (22 / 13), scratch 0.599 (6 / 5), cut wound 0.547 (20 / 7), penetration wound 0.491 (7 / 5).
+
+**Reading**
+- EfficientNet-B0 is the best per-crop model (macro-F1 0.797, accuracy 87.3%), followed by ResNet152 (0.767). The other six are 0.69–0.74, with overlapping intervals.
+- Macro AUC is 0.947–0.972 for every model, so the crop probabilities rank the classes well even where the top-1 class is wrong.
+- Gunshot, graze and contusion crops are classified well. Cut wound, scratch and penetration are hardest; scratch and penetration have only 6 and 7 test crops from 5 cases each, so their per-class F1 moves by about 0.1–0.2 with one crop.
+- Limits:
+  - A photo with several wounds counts once per crop (30 of 157 test photos give more than one crop; gunshot has 73 crops from 17 cases).
+  - It is the same 62-case test set as the other experiments.
+  - The analysis is post hoc relative to the proposal, with one training seed per setting.
+  - Crops still need manual boxes.
+

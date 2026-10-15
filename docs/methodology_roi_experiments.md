@@ -1,19 +1,22 @@
-# Methodology: Two ROI Experiments for Forensic Wound Classification
+# Methodology: ROI Experiments for Forensic Wound Classification
 
-This document records the methods of the two experiments in this project, in the order they were run. Both experiments ask the same question: **does cropping to the wound region (ROI) improve deep-learning classification of forensic wound photographs over the full photograph?** They differ only in how the ROI crop is made.
+This document records the methods of the three experiments in this project, in the order they were run.
+- **Experiments 1 and 2** ask the same question: **does cropping to the wound region (ROI) improve deep-learning classification of forensic wound photographs over the full photograph?** They differ only in how the ROI crop is made.
+- **Experiment 3** uses the per-box crops of Experiment 2 and reports how well each wound crop is classified on its own, with no comparison.
 
-| | Experiment 1: union ROI | Experiment 2: per-box ROI |
-|---|---|---|
-| ROI crop | All boxes of a photo merged into **one union crop** | **One crop per box**; a photo's prediction is the mean of its crops |
-| Scenarios | S01–S16 (8 families × full image / union ROI) | S17–S24 (8 families, per-box ROI), compared with the full-image scenarios of Experiment 1 |
-| Tickets | T01–T16 | T17 |
-| Status | Main thesis study | Extra experiment, decided after Experiment 1's test results |
+| | Experiment 1: union ROI | Experiment 2: per-box ROI | Experiment 3: per-crop ROI |
+|---|---|---|---|
+| ROI crop | All boxes of a photo merged into **one union crop** | **One crop per box**; a photo's prediction is the mean of its crops | The same crops as Experiment 2, **each crop its own sample** |
+| Unit of evaluation | Photograph | Photograph | Crop |
+| Scenarios | S01–S16 (8 families × full image / union ROI) | S17–S24, compared with the full-image scenarios of Experiment 1 | S25–S32, no comparison |
+| Tickets | T01–T16 | T17 | T18 |
+| Status | Main thesis study | Extra experiment, decided after Experiment 1's test results | Extra experiment, decided after Experiments 1 and 2's test results |
 
 Details, commands and run logs are in the tickets (`tickets/`), the phase specs (`specs/`) and `runbook.md`. All numbers below come from the result files of the runs.
 
 ---
 
-## 1. Shared foundation (both experiments)
+## 1. Shared foundation (all experiments)
 
 ### 1.1 Data
 
@@ -43,7 +46,7 @@ Details, commands and run logs are in the tickets (`tickets/`), the phase specs 
 - Wounds were annotated with bounding boxes in CVAT (7 YOLO 1.1 exports, one wound class per task).
 - Both input paths use the same **1,100 annotated photographs** (418 cases; 779 / 164 / 157 photographs), so a full-image model and an ROI model differ only in the input.
 - *Exclusion record*: 1,106 photographs from 421 cases were collected. 6 had no wound box and were excluded before any model was trained, which also removed 3 cases that had only that one photograph. The split was drawn on the 421 cases, seed 42, before the exclusion; the counts above are after it.
-- The test set is **157 photographs from 62 cases** for every scenario in both experiments.
+- The test set is **157 photographs from 62 cases** for every scenario in all experiments (213 crops from these photographs in Experiment 3).
 
 ### 1.4 Model families
 
@@ -243,7 +246,7 @@ The learning-rate grid, SVM grid, ensemble seeds, epochs and patience are the sa
 | Per-box − full image | +0.073 [+0.009, +0.129], p = 0.028 | 0 of 8 (7 of 8 higher) |
 | Per-box − union ROI | +0.037 [+0.006, +0.071], p = 0.027 | 1 of 8 (EfficientNet-B0) |
 
-- Best test model across both experiments: EfficientNet-B0 on per-box ROI, macro-F1 0.811 [0.703, 0.878], accuracy 87.9%, macro AUC 0.969.
+- Best test model across Experiments 1 and 2: EfficientNet-B0 on per-box ROI, macro-F1 0.811 [0.703, 0.878], accuracy 87.9%, macro AUC 0.969.
 
 **Cross-validation, out of fold (356 cases, 943 photographs)**
 
@@ -268,11 +271,64 @@ The learning-rate grid, SVM grid, ensemble seeds, epochs and patience are the sa
 
 ---
 
-## 4. Limitations common to both experiments
+## 4. Experiment 3: per-crop ROI (S25–S32)
+
+### 4.1 Why and when
+
+- Experiment 2 scored each photograph as the mean of its crops. Experiment 3 asks how well a model classifies **a single wound crop**, with every crop a sample in training, model selection and evaluation.
+- It was decided after the test results of Experiments 1 and 2 had been seen. Its design (§4.2–4.4) was fixed with the researcher before any per-crop model was trained (T18 §2).
+
+### 4.2 Data
+
+- The same 1,667 per-box crops as Experiment 2 (§3.2): train 1,177 / validation 277 / test 213, from 1,100 photographs and 418 cases.
+- Each crop takes its photograph's label and split.
+
+### 4.3 Training and selection
+
+Everything in §1.5 applies, with these differences from Experiment 2:
+
+| Item | Per-crop rule |
+|---|---|
+| Loss weight | None: every crop counts once |
+| Class weights | Inverse class frequency of the **training crops**, normalised to mean 1 |
+| CNN-SVM | Unweighted scaler and SVM, balanced class weights on crop counts |
+| Model selection | Early stopping and learning rate on **crop-level** validation macro-F1 (277 crops); ties go to the lower validation loss |
+
+The learning-rate grid, SVM grid, ensemble seeds, epochs and patience are the same as in Experiments 1 and 2.
+
+### 4.4 Evaluation
+
+- **Primary**: test macro-F1 per crop (213 crops, 62 cases), with a 95% case-level bootstrap interval. 2,000 resamples of cases keep all crops of a case together; seed 42.
+- **Secondary**: accuracy, balanced accuracy, macro precision and recall, macro AUC, per-class precision, recall, F1 and AUC, and confusion matrices.
+- **No comparison**: there is no photograph level and no paired test against the full image or the other ROI designs.
+- **Supplementary**: verification only (`verify_crop.py`). There is no cross-validation and no new Grad-CAM.
+- **Weighting caveat**: a photograph with several wounds counts once per crop. 30 of the 157 test photographs give more than one crop; for example, gunshot wound has 73 test crops from 17 cases.
+
+### 4.5 Results summary
+
+| Scenario | Family | Accuracy | Balanced acc. | Macro-F1 [95% CI] | Macro AUC |
+|---|---|---|---|---|---|
+| S25 | EfficientNet-B0 | 0.873 | 0.841 | **0.797** [0.707, 0.854] | 0.962 |
+| S26 | ResNet152 | 0.864 | 0.804 | 0.767 [0.677, 0.839] | 0.952 |
+| S27 | MobileNetV3-Small | 0.826 | 0.739 | 0.730 [0.608, 0.786] | 0.965 |
+| S28 | GoogLeNet | 0.845 | 0.769 | 0.719 [0.638, 0.778] | 0.947 |
+| S29 | VGG16 | 0.859 | 0.745 | 0.727 [0.626, 0.799] | 0.963 |
+| S30 | ViT-B/16 | 0.845 | 0.721 | 0.715 [0.612, 0.782] | 0.954 |
+| S31 | CNN-SVM | 0.812 | 0.734 | 0.694 [0.587, 0.787] | 0.972 |
+| S32 | AlexNet ensemble | 0.840 | 0.776 | 0.737 [0.635, 0.809] | 0.947 |
+
+- **Best model**: EfficientNet-B0, macro-F1 0.797, followed by ResNet152 at 0.767. The other six models are 0.69–0.74, with overlapping intervals.
+- **Easiest classes**: gunshot wound, graze wound and contusion crops (mean F1 over the 8 families 0.93, 0.93 and 0.92).
+- **Hardest classes**: laceration 0.74, scratch 0.60, cut wound 0.55 and penetration wound 0.49. Scratch and penetration have only 6 and 7 test crops, so one crop moves their F1 by about 0.1–0.2.
+- **Verification**: 157 checks passed, 0 failed, with 1 note: all 21 trained networks ran from one code version.
+
+---
+
+## 5. Limitations common to all experiments
 
 - **Data source**: single hospital, internal validation only, no external test set.
 - **Test set size**: 62 test cases, with only 5 scratch and 7 penetration test photographs. Per-family intervals are about ±0.12–0.13 wide.
-- **Same test set**: the test set has been used for both ROI designs.
+- **Same test set**: the test set has been used for all three ROI analyses.
 - **Variation not captured**: one training seed per setting; the bootstrap resamples cases, not training runs.
 - **Tuning grids**: several chosen learning rates and the CNN-SVM settings lie at the edge of their grids. The grids were not widened after results.
 - **Manual boxes**: ROI crops depend on hand-drawn boxes, so a deployed system would need an automatic wound detector.
@@ -280,7 +336,7 @@ The learning-rate grid, SVM grid, ensemble seeds, epochs and patience are the sa
 
 ---
 
-## 5. Where things are
+## 6. Where things are
 
 | Item | Location |
 |---|---|
@@ -288,7 +344,7 @@ The learning-rate grid, SVM grid, ensemble seeds, epochs and patience are the sa
 | Union crop manifest | `data/roi/roi_manifest.csv` |
 | Per-box crop manifest | `data/roi_box/roi_manifest.csv` |
 | Training code | `src/training/` (`photo.py` holds the per-box weighting and photograph mean) |
-| Evaluation code | `src/evaluation/` (`summarize.py`, `box_summary.py`, `cv_summary.py`, `cv_box_summary.py`, `gradcam.py`, `verify.py`, `verify_box.py`) |
-| HPC results | `/project/a260012_FORWCL/experiments/{main,cv,roi_box,cv_box}` on Raptor |
-| Aggregate results (laptop) | `../results_figures/{main,roi_box,cv_box}` (not in git) |
-| Decision logs | `tickets/T01`–`T16` (Experiment 1), `tickets/T17_box_roi.md` (Experiment 2) |
+| Evaluation code | `src/evaluation/` (`summarize.py`, `box_summary.py`, `cv_summary.py`, `cv_box_summary.py`, `crop_summary.py`, `gradcam.py`, `verify.py`, `verify_box.py`, `verify_crop.py`) |
+| HPC results | `/project/a260012_FORWCL/experiments/{main,cv,roi_box,cv_box,roi_crop}` on Raptor |
+| Aggregate results (laptop) | `../results_figures/{main,roi_box,cv_box,roi_crop}` (not in git) |
+| Decision logs | `tickets/T01`–`T16` (Experiment 1), `tickets/T17_box_roi.md` (Experiment 2), `tickets/T18_crop_roi.md` (Experiment 3) |
