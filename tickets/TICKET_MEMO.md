@@ -69,7 +69,7 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `data/splits/case_level_split_manifest.csv`
   - `src/data/validate_metadata.py` (`LABEL_NORMALIZATION_MAP`)
   - CVAT YOLO 1.1 exports: `~/Downloads/task_*_annotations_2026_09_30_*.zip` locally, `<project>/annotations/cvat_yolo_2026_09_30/` on Raptor
-  - `../Researcher_ROI_results/dataset_information/roi_manifest.csv` (outside the repo; image sizes for the dry run)
+  - `../04_Early_experiments/Researcher_ROI_results/dataset_information/roi_manifest.csv` (outside the repo; image sizes for the dry run; moved from `../Researcher_ROI_results/` on 2026-10-15)
   - `<project>/raw_data/wound_ml_7classes/` (raw images, live run only)
   - `specs/phase2_roi_preprocessing.md`
 - **Created**

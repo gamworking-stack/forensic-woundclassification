@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--reference-manifest",
         type=Path,
-        default=Path("../Researcher_ROI_results/dataset_information/roi_manifest.csv"),
+        default=Path("../04_Early_experiments/Researcher_ROI_results/dataset_information/roi_manifest.csv"),
         help="Optional reference manifest to load image dimensions if local binaries are absent.",
     )
     parser.add_argument(
