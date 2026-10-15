@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+from PIL import Image
 from torch import nn
 
 from src.evaluation.box_summary import main as box_summary_main
@@ -278,7 +279,8 @@ def test_gradcam_box_explains_every_crop_of_the_main_examples(data, tmp_path):
     assert results["matches_prediction_file"].all() and results["matches_photo_prediction_file"].all()
     for family in ("mobilenet_v3_small", "alexnet_ensemble"):
         for k in (1, 2):
-            assert (exp / "gradcam" / f"{family}_set{k}.png").is_file()
+            figure = np.asarray(Image.open(exp / "gradcam" / f"{family}_set{k}.png").convert("L"))
+            assert (figure < 250).mean() > 0.05  # crops are drawn, not just the title (examples.csv holds set as text)
 
 
 # ---------- verification of the per-box run ----------

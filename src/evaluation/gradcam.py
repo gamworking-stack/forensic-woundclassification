@@ -265,7 +265,7 @@ def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: p
             predicted = classes[int(probs.argmax())]
             key = path.relative_to(root).as_posix()
             photo_results.append({
-                "family": family, "input_path": "box", "set": row["set"], "class": row[LABEL_COLUMN],
+                "family": family, "input_path": "box", "set": int(row["set"]), "class": row[LABEL_COLUMN],
                 "case": row[GROUP_COLUMN], "photo": photo, "image": key, "n_crops": len(of_photo),
                 "predicted_class": predicted, "probability": float(probs.max()),
                 "correct": predicted == row[LABEL_COLUMN], "matches_prediction_file": reported.get(key) == predicted,
@@ -286,7 +286,7 @@ def plot_box_family(results: List[Dict[str, Any]], family: str, set_index: int, 
     rows = sorted({r["class"] for r in results})
     fig, axes = plt.subplots(len(rows), 2 * BOX_COLUMNS, figsize=(2.1 * 2 * BOX_COLUMNS, 2.15 * len(rows)), squeeze=False)
     for i, label in enumerate(rows):
-        crops = [r for r in results if r["set"] == set_index and r["class"] == label]
+        crops = [r for r in results if int(r["set"]) == set_index and r["class"] == label]
         for ax in axes[i]:
             ax.set_xticks([]), ax.set_yticks([])
             ax.axis("off")
