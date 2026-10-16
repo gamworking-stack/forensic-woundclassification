@@ -1,0 +1,27 @@
+{
+  "max_box_share": 0.44295940705899994,
+  "max_boxes_per_photo": 35,
+  "train_photos": 779,
+  "train_boxes": 1177,
+  "boxes_by_split": {
+    "test": 213,
+    "train": 1177,
+    "validation": 277
+  },
+  "photos_by_split": {
+    "test": 157,
+    "train": 779,
+    "validation": 164
+  },
+  "box_manifest": "data/roi_box/roi_manifest.csv",
+  "annotation_exports": [
+    "task_12_annotations_2026_09_30_16_02_03_yolo 1.1.zip",
+    "task_14_annotations_2026_09_30_16_00_10_yolo 1.1.zip",
+    "task_15_annotations_2026_09_30_15_39_29_yolo 1.1.zip",
+    "task_16_annotations_2026_09_30_15_34_41_yolo 1.1.zip",
+    "task_17_annotations_2026_09_30_15_31_44_yolo 1.1.zip",
+    "task_18_annotations_2026_09_30_15_17_53_yolo 1.1.zip",
+    "task_19_annotations_2026_09_30_15_14_48_yolo 1.1.zip"
+  ],
+  "checked": "every box padded by the manifest padding_ratio equals its per-box manifest crop"
+}

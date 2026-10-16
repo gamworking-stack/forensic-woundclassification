@@ -269,6 +269,14 @@ srun -p compute -c 4 --mem=16G -t 2:00:00 apptainer exec --bind /project/a260012
 ```
 Outputs: `experiments/roi_crop/crop/<family>/` (prediction, metric and figure files), `experiments/roi_crop/summary/crop_summary_table.csv`, `experiments/roi_crop/verification/verification_report.csv`. `fetch_results.sh roi_crop` copies them to `../results_figures/roi_crop/`.
 
+## Auto-box ROI experiment (T19, extra; planned)
+
+Plan and every decision: `tickets/T19_auto_box_roi.md` (decision record `.scratch/auto-box-roi/map.md`). Step 1, on the laptop (the CVAT exports are there; no images needed):
+```bash
+python src/detection/boxes.py --exports ~/Downloads/task_*_annotations_2026_09_30_*"yolo 1.1"*.zip
+```
+It writes `data/roi_auto/reference_boxes.csv` (the 1,667 unpadded manual boxes, checked against every crop of `data/roi_box/roi_manifest.csv`) and `data/roi_auto/reference_limits.json` (training-split oversize share and box cap for T19 §2.3). Both are committed; later steps read them.
+
 ## Final verification (T16)
 
 After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):
