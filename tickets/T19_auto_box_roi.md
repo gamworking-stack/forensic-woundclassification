@@ -58,7 +58,7 @@ Decided with the researcher after the results of Experiments 1–3 were known. E
 Every arm uses the same order:
 
 1. **Raw boxes**: drop any box whose area share of the image exceeds that of the largest training-split manual box (unpadded); apply NMS at IoU 0.5; keep the top 100 by score. **mAP is computed here.**
-2. **Operating threshold**: the score that maximises pooled box F1 at IoU ≥ 0.5 on the arm's selection data. That is validation for 4F, and train + validation for 4Z and 4P. Every distinct score is a candidate; ties go to the higher threshold.
+2. **Operating threshold**: the score that maximises pooled box F1 at IoU ≥ 0.5 on the arm's selection data, counting the boxes with score ≥ threshold after the per-photo cap and **before any fallback**. The gate's recall (§2.4) is the recall at this threshold, computed the same way. That is validation for 4F, and train + validation for 4Z and 4P. Every distinct score is a candidate; ties go to the higher threshold.
 3. **Final boxes**: apply the threshold, then the per-photo cap (the training-split maximum of manual boxes, 35). A photo with no box keeps its top-scoring box; with none at all, it falls back to the **full image**. Operating-point metrics are computed here.
 4. **Crops**: union ROI (all final boxes merged into one crop) and per-box ROI (one crop per final box), each with 8% padding, exactly as T03/T17 cut them.
 
@@ -91,7 +91,7 @@ Validation and test photos are boxed by the main 4F detector. Its validation box
 
 | Item | Decision |
 |---|---|
-| mAP | `pycocotools` COCO evaluation, one category, 101-point interpolation, maxDets 100. **mAP@0.5 is primary.** Also mAP@0.5:0.95 and AP for small / medium / large boxes. |
+| mAP | `pycocotools` COCO evaluation, one category, 101-point interpolation, maxDets 100. **mAP@0.5 is primary.** Also mAP@0.5:0.95 and AP for small / medium / large boxes. The size bins are **shares of the image area**, cut at the training-split tertiles of manual box share (`reference_limits.json`: 0.99% and 3.79%). COCO's pixel bins would put every manual box in "medium" or "large" (0 small, 44 medium, 1,623 large at source resolution). |
 | Operating point | Greedy one-to-one matching by score at IoU ≥ 0.5. Reported: precision, recall, F1, mean IoU of matched pairs, and the share of photos with no auto box before the fallback. |
 | Photo level (secondary) | Share of photos with at least one manual box found; share with every manual box found; mean per-photo recall. |
 | By wound type | COCO mAP and recall on each type's photos. Precision for type X counts the auto boxes on photos of type X. |

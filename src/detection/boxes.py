@@ -124,7 +124,7 @@ def _check_photo(key: Tuple[str, str], boxes: List[List[float]], crops: List[Dic
 
 
 def training_limits(reference: pd.DataFrame) -> Dict[str, Any]:
-    """The oversize share and the per-photo box cap of T19 §2.3, from the training split only."""
+    """The oversize share, the per-photo box cap (T19 §2.3) and the box-size tertiles, from the training split only."""
     train = reference[reference["split"] == "train"]
     if train.empty:
         raise ValueError("Reference boxes have no training split")
@@ -132,6 +132,8 @@ def training_limits(reference: pd.DataFrame) -> Dict[str, Any]:
                         train["source_height"].to_numpy(float))
     return {
         "max_box_share": float(shares.max()),
+        # Size bins for AP by box size: COCO's pixel bins put every box of a 4000 px photo in "large".
+        "size_bins": [float(np.quantile(shares, 1 / 3)), float(np.quantile(shares, 2 / 3))],
         "max_boxes_per_photo": int(train.groupby(MANIFEST_PHOTO_COLUMN).size().max()),
         "train_photos": int(train[MANIFEST_PHOTO_COLUMN].nunique()),
         "train_boxes": int(len(train)),

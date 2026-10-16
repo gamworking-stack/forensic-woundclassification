@@ -91,6 +91,7 @@ def test_training_limits_and_script_output(reference_inputs, tmp_path):
     limits = training_limits(read_manual_boxes([export], manifest))
     assert limits["max_boxes_per_photo"] == 2 and limits["train_photos"] == 2 and limits["train_boxes"] == 3
     assert limits["max_box_share"] == pytest.approx(0.30)  # 0.6 x 0.5 on IMG_0002; the test photo is ignored
+    assert limits["size_bins"] == pytest.approx(np.quantile([0.20 * 0.10, 0.10 * 0.30, 0.60 * 0.50], [1 / 3, 2 / 3]))
     out = tmp_path / "out"
     assert boxes_main(["--exports", str(export), "--box-manifest", str(manifest), "--output-dir", str(out)]) == 0
     written = json.loads((out / "reference_limits.json").read_text())

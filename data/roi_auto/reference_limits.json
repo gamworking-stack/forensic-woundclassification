@@ -1,5 +1,9 @@
 {
   "max_box_share": 0.44295940705899994,
+  "size_bins": [
+    0.009899871959999989,
+    0.03788757794
+  ],
   "max_boxes_per_photo": 35,
   "train_photos": 779,
   "train_boxes": 1177,
