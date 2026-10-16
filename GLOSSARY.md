@@ -48,6 +48,10 @@ _Avoid_: prediction, detection, pseudo-label
 A model that outputs auto boxes for a photo, with no wound type.
 _Avoid_: annotator, localiser
 
+**Cross-fitted auto box**:
+An auto box on a training photo from a 4F detector that was trained without that photo's case.
+_Avoid_: out-of-fold box, held-out box
+
 **Detector arm**:
 One of the three sources of auto boxes in Experiment 4: **4Z** zero-shot (no training), **4P** public wound model, **4F** fine-tuned on manual boxes of the training split.
 _Avoid_: detector variant, setting

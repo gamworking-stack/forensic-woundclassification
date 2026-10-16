@@ -46,6 +46,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 - [Detection evaluation protocol](issues/07-detection-evaluation-protocol.md): pycocotools mAP@0.5 (primary) on unpadded boxes, F1-chosen threshold, pooled boxes plus photo-level rates, per wound type, case bootstrap 2,000; test scored once after all choices
 - [Classification comparisons and multiplicity](issues/08-comparison-and-statistics.md): primary = non-inferiority of auto vs manual (pooled 8-family macro-F1, margin 0.03), union and per-box, Holm over passing arms; secondary two-sided: retrained auto − manual, auto − full; fallback photos kept, sensitivity excluding them
 - [Retraining rules and GPU budget](issues/09-retraining-rules-and-budget.md): same rules as S01–S32 on auto crops in every split; S33–S56 4Z, S57–S80 4P, S81–S104 4F; one recall gate (≥ 0.50 at the operating threshold) for every arm, amending 4P; no CV, Grad-CAM on 14 examples
+- [4F auto boxes on its own training photos](issues/10-finetuned-train-split-boxes.md): training photos boxed by 5 cross-fitted 4F detectors (existing cv_folds, main lr and epochs fixed, main threshold); validation/test boxed by the main detector; mild validation optimism stated as a limitation
 
 ## Not yet specified
 
