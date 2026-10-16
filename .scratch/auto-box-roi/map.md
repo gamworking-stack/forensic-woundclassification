@@ -20,6 +20,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
   - **Two uses of auto boxes**:
     - Primary: the existing Experiment 1–3 models predict on auto-box crops.
     - Secondary: retrain every scenario of Experiments 1–3 on auto-box crops, **for all three detector arms** (≈72 scenarios plus learning-rate grids).
+  - **Reference boxes**: manual boxes are the unpadded CVAT boxes, for training, scoring and the oversize rule in every arm. The 8% padding is applied only when cutting crops, to auto and manual boxes alike.
   - **From boxes to crops**: same as for manual boxes (union / per-box, 8% padding). The confidence threshold is chosen per detector on validation, by box-matching F1 at IoU ≥ 0.5. Overlapping boxes are merged by NMS (IoU 0.5). Boxes per photo are capped at the training-split maximum of manual boxes. A box covering more of the image than the largest training-split manual box (as an area share) is dropped, in every arm. 4Z, which trains nothing, chooses its threshold on train + validation.
   - **Photos with no box**: lower the threshold and keep the top box. If there is still none, fall back to the full image. Report these counts. The test set stays the same 157 photos.
   - **Detector evaluation, against manual boxes**:
@@ -41,6 +42,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 - [Raptor environment and GPU budget for Experiment 4](issues/03-raptor-environment.md): venvs on /project with transformers 4.52.4 and ultralytics; Grounding DINO and OWLv2 load offline; ~24 GPU-h used so far, no SLURM limit
 - [4Z setup: model, prompts and threshold](issues/04-zero-shot-setup.md): Grounding DINO vs OWLv2 × 4 frozen prompts (incl. proposal-definition prompts) × tiling on/off, winner by mAP@0.5 on train+val; oversize boxes dropped in all arms
 - [4P: which public wound model, or drop the arm](issues/05-public-model-choice.md): Hanterdsith YOLOv8 (3 sizes × colour/grey) + WILLIE MINI if it loads, chosen on train+val; kept only if max recall ≥ 0.50, else dropped as a negative finding; pickle scanned and re-saved
+- [4F training recipe](issues/06-finetuned-detector-recipe.md): Faster R-CNN R50-FPN v2 from COCO, 1 class, 1024 px, flips + mild jitter, lr grid {0.005, 0.01, 0.02} chosen by validation mAP@0.5; reference boxes are unpadded CVAT boxes
 
 ## Not yet specified
 

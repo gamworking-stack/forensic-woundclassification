@@ -13,3 +13,5 @@ How exactly are auto boxes scored against manual boxes?
 - the per-wound-type breakdown, given that a photo's boxes all share its wound type;
 - how the threshold-selection F1 on validation is computed;
 - how a photo with many boxes (up to 35) is weighted.
+
+Note from "4F training recipe": the reference boxes are the unpadded CVAT boxes, not the padded crop coordinates in the manifests.

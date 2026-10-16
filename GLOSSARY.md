@@ -37,8 +37,8 @@ _Avoid_: GSW (in prose)
 ## Wound regions
 
 **Manual box**:
-A rectangle around one wound, drawn by a person in CVAT; its class is the photo's wound type.
-_Avoid_: annotation, ground-truth box (when the source matters)
+A rectangle around one wound, drawn by a person in CVAT, without padding; its class is the photo's wound type.
+_Avoid_: annotation, ground-truth box (when the source matters), crop box
 
 **Auto box**:
 A rectangle around one wound, produced by a wound detector rather than a person.
@@ -53,6 +53,10 @@ One of the three sources of auto boxes in Experiment 4: **4Z** zero-shot (no tra
 _Avoid_: detector variant, setting
 
 ## ROI designs
+
+**Padding**:
+The 8% margin added around a box when its crop is cut; part of the crop, never of the box.
+_Avoid_: margin, context
 
 **Union ROI**:
 One crop per photo, covering all of its boxes (Experiment 1).
