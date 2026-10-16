@@ -44,6 +44,8 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 
 ## Not yet specified
 
+- **A recall gate for 4Z (and 4F)?** 4P now has a pre-set gate (max recall ≥ 0.50 on train + validation). Whether 4Z, which may also find few wounds, should face the same gate before its retraining runs is still open. Settle it with "Retraining rules and GPU budget".
+
 - **Cross-validation and Grad-CAM for Experiment 4**: decide once the GPU cost of the retraining runs is known (after "Retraining rules and GPU budget").
 - **Thesis reporting**: which tables and figures go in the Results chapter, and how Experiment 4 is framed against the limitation "per-box crops still need manual boxes".
 - **Detector failure analysis**: whether to look at where detectors miss or hallucinate wounds (per wound type, per photo condition) beyond the metrics already fixed.
