@@ -283,6 +283,31 @@ def test_gradcam_box_explains_every_crop_of_the_main_examples(data, tmp_path):
             assert (figure < 250).mean() > 0.05  # crops are drawn, not just the title (examples.csv holds set as text)
 
 
+def test_gradcam_all_test_explains_every_crop_of_the_classes_next_to_the_full_image(data, tmp_path):
+    from src.evaluation.gradcam import main as gradcam_main
+    from tests.test_training import run_args
+    main, exp = tmp_path / "main", tmp_path / "roi_box"
+    assert train_main(run_args("mobilenet_v3_small", "full", data, main / "full" / "mobilenet_v3_small", "--smoke")) == 0
+    assert train_main(["--family", "mobilenet_v3_small", *box_args(data, exp / "box" / "mobilenet_v3_small", "--max-epochs", "1")]) == 0
+    classes = ["cut wound", "penetration wound", "scratch"]
+
+    assert gradcam_main(["--experiments-root", str(exp), "--main-root", str(main), "--all-test",
+                         "--classes", *classes, "--box-manifest", str(data["box_manifest"]),
+                         "--roi-manifest", str(data["roi_manifest"]), "--families", "mobilenet_v3_small",
+                         "--no-pretrained", "--device", "cpu"]) == 0
+    results = pd.read_csv(exp / "gradcam_all" / "gradcam_results.csv")
+    crops = pd.read_csv(data["box_manifest"], dtype=str)
+    crops = crops[(crops["split"] == "test") & crops["canonical_wound_label"].isin(classes)]
+    full, box = results[results["input_path"] == "full"], results[results["input_path"] == "box"]
+    assert sorted(box["image"]) == sorted(crops["roi_relative_path"])
+    assert sorted(full["photo"]) == sorted(crops["relative_path"].unique())
+    assert results["matches_prediction_file"].all() and box["matches_photo_prediction_file"].all()
+    assert {"crop_index", "full_cam_in_box", "box_share"} <= set(box.columns)  # NaN here: synthetic rows have no box
+    for label in ("cut_wound", "penetration_wound", "scratch"):
+        figure = np.asarray(Image.open(exp / "gradcam_all" / f"mobilenet_v3_small_{label}.png").convert("L"))
+        assert (figure < 250).mean() > 0.05
+
+
 # ---------- verification of the per-box run ----------
 
 from tests.test_verify import (  # noqa: E402  (fixture and writers of the T16 tests)

@@ -187,6 +187,16 @@ srun -p compute -c 8 --mem=32G -t 2:00:00 apptainer exec --bind /project/a260012
 ```
 Outputs in `experiments/main/gradcam/`: `examples.csv`, `gradcam_results.csv` (prediction, correct, `matches_prediction_file`, and for full images `cam_in_box` vs `box_share`) and `<family>_set<1|2>.png`. **The figures are overlays on patient photographs: they stay on Raptor** (`fetch_results.sh` does not copy them); use them only as the ethics approval allows.
 
+Every test photo of chosen classes, full image (main run) next to each of its per-box crops (T17 run), after T17 has finished:
+```bash
+srun -p compute -c 8 --mem=32G -t 4:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/gradcam.py --device cpu \
+  --experiments-root /project/a260012_FORWCL/experiments/roi_box --box-manifest data/roi_box/roi_manifest.csv \
+  --main-root /project/a260012_FORWCL/experiments/main \
+  --all-test --classes "cut wound" "penetration wound" scratch
+```
+Outputs in `experiments/roi_box/gradcam_all/` (the T14 and T17 `gradcam/` folders are not touched): `examples.csv` (the photos, `set` numbering them within each class), `gradcam_results.csv` (a `full` row per photo and a `box` row per crop, with the photo prediction and `full_cam_in_box` vs `box_share` for that crop's box in the full image) and `<family>_<class>.png`, one row per crop: full input and Grad-CAM with the crop's box, crop input and Grad-CAM. These stay on Raptor too.
+
 ## Cross-validation (T12b, supplementary)
 
 5 case-grouped folds over train+validation (`data/splits/cv_folds.csv`, frozen; rebuild check: `python src/data/create_cv_folds.py`). Each scenario reuses its main-run settings (chosen lr, best epoch as a fixed epoch count, chosen SVM, member seeds), trains on 4 folds and predicts the 5th; the test split is never loaded. Needs the finished main run.

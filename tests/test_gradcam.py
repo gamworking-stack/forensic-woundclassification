@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 import torch
 
-from src.evaluation.gradcam import draw_examples, grad_cam, main as gradcam_main, mass_in_box, wound_box
+from src.evaluation.gradcam import all_test_images, draw_examples, grad_cam, main as gradcam_main, mass_in_box, wound_box
 from src.training.config import FAMILIES
 from src.training.models import build_model
 from src.training.train import main as train_main
@@ -47,6 +47,16 @@ def test_example_draw_is_fixed_and_balanced(data):
     assert sorted(a["set"].unique()) == [1, 2]
 
 
+def test_all_test_images_takes_every_test_image_of_the_classes(data):
+    rows = all_test_images(data["roi_manifest"], ["cut wound", "scratch"])
+    manifest = pd.read_csv(data["roi_manifest"], dtype=str)
+    expected = manifest[(manifest["split"] == "test") & manifest["canonical_wound_label"].isin(["cut wound", "scratch"])]
+    assert sorted(rows["roi_relative_path"]) == sorted(expected["roi_relative_path"])
+    assert rows.groupby("canonical_wound_label")["set"].apply(list).map(lambda s: s == list(range(1, len(s) + 1))).all()
+    with pytest.raises(ValueError, match="No test images"):
+        all_test_images(data["roi_manifest"], ["cut"])
+
+
 def test_wound_box_maps_into_the_padded_input():
     row = {"x1": 100, "y1": 0, "x2": 300, "y2": 200, "source_width": 400, "source_height": 200}
     assert wound_box(row, 100) == pytest.approx((25.0, 25.0, 75.0, 75.0))  # 400x400 square, 50 px offset in y
@@ -75,3 +85,4 @@ def test_end_to_end_on_synthetic_runs(data, tmp_path):
     for family in ("mobilenet_v3_small", "alexnet_ensemble"):
         for k in (1, 2):
             assert (exp / "gradcam" / f"{family}_set{k}.png").is_file()
+
