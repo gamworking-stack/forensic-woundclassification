@@ -16,7 +16,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
     - Primary: can auto boxes replace manual boxes without a drop in classification, measured as auto-ROI − manual-ROI in the same family.
     - Secondary: auto-ROI − full image.
   - **Detector arms**: all three. 4Z is a zero-shot detector, no training. 4P is a public wound model. 4F is Faster R-CNN from torchvision, class-agnostic, fine-tuned on train-split manual boxes and selected on validation.
-  - **4P gate**: 4P goes forward only if it finds at least half of the manual boxes on train + validation (max recall ≥ 0.50 at IoU ≥ 0.5). Otherwise it is dropped as a negative finding, and the retraining covers only the arms that pass. Never train a 4P model ourselves.
+  - **Recall gate, every arm**: an arm goes forward only if recall at its operating threshold is ≥ 0.50 (IoU ≥ 0.5) on its own selection data. Otherwise it is dropped as a negative finding, and the retraining covers only the arms that pass. Never train a 4P model ourselves.
   - **Two uses of auto boxes**:
     - Primary: the existing Experiment 1–3 models predict on auto-box crops.
     - Secondary: retrain every scenario of Experiments 1–3 on auto-box crops, **for all three detector arms** (≈72 scenarios plus learning-rate grids).
@@ -31,7 +31,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
     - every metric per wound type, test set primary.
   - **Experiment 3 with auto boxes**: results only, no comparison, plus the share of auto crops that overlap no manual box.
   - **Test set**: the frozen split, used once more for this experiment. Nothing about a detector or threshold is chosen on test. Reported as a post hoc analysis.
-  - **Supplementary**: verification of every number (T16-style) is required. Cross-validation and Grad-CAM are deferred, see Not yet specified.
+  - **Supplementary**: verification of every number (T16-style) is required. Grad-CAM on the 14 T14 example photos; no cross-validation (see "Retraining rules and GPU budget").
 
 ## Decisions so far
 
@@ -45,12 +45,11 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 - [4F training recipe](issues/06-finetuned-detector-recipe.md): Faster R-CNN R50-FPN v2 from COCO, 1 class, 1024 px, flips + mild jitter, lr grid {0.005, 0.01, 0.02} chosen by validation mAP@0.5; reference boxes are unpadded CVAT boxes
 - [Detection evaluation protocol](issues/07-detection-evaluation-protocol.md): pycocotools mAP@0.5 (primary) on unpadded boxes, F1-chosen threshold, pooled boxes plus photo-level rates, per wound type, case bootstrap 2,000; test scored once after all choices
 - [Classification comparisons and multiplicity](issues/08-comparison-and-statistics.md): primary = non-inferiority of auto vs manual (pooled 8-family macro-F1, margin 0.03), union and per-box, Holm over passing arms; secondary two-sided: retrained auto − manual, auto − full; fallback photos kept, sensitivity excluding them
+- [Retraining rules and GPU budget](issues/09-retraining-rules-and-budget.md): same rules as S01–S32 on auto crops in every split; S33–S56 4Z, S57–S80 4P, S81–S104 4F; one recall gate (≥ 0.50 at the operating threshold) for every arm, amending 4P; no CV, Grad-CAM on 14 examples
 
 ## Not yet specified
 
-- **A recall gate for 4Z (and 4F)?** 4P now has a pre-set gate (max recall ≥ 0.50 on train + validation). Whether 4Z, which may also find few wounds, should face the same gate before its retraining runs is still open. Settle it with "Retraining rules and GPU budget".
 
-- **Cross-validation and Grad-CAM for Experiment 4**: decide once the GPU cost of the retraining runs is known (after "Retraining rules and GPU budget").
 - **Thesis reporting**: which tables and figures go in the Results chapter, and how Experiment 4 is framed against the limitation "per-box crops still need manual boxes".
 - **Detector failure analysis**: whether to look at where detectors miss or hallucinate wounds (per wound type, per photo condition) beyond the metrics already fixed.
 

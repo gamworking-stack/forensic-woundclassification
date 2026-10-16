@@ -38,3 +38,5 @@ Note from "4Z setup: model, prompts and threshold": the oversize-box rule (drop 
    - Record the SHA-256 of the original and of the re-saved file.
 7. **Zurich model**: no waiting. If the Zurich group's model arrives before T19 is frozen, it joins the candidates under the same selection and gate; if later, it is future work.
 8. **Thesis wording if dropped**: "No publicly available wound detector reached the pre-specified recall (≥ 0.50 at IoU ≥ 0.5) on the development photographs; arm 4P was therefore not carried forward." The detector's training domain is reported: simulated, grayscale-filtered wounds, or chronic ulcers.
+
+**Amended by "Retraining rules and GPU budget" (2026-10-16):** the gate in point 4 is now **recall ≥ 0.50 at the operating threshold** (F1-chosen, IoU ≥ 0.5) on train + validation, the same rule for every arm. The max-recall-over-100-boxes form is withdrawn as too lenient.
