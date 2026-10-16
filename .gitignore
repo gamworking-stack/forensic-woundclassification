@@ -35,3 +35,6 @@ logs/*.err
 
 # Local results/ skeleton; run outputs live on Raptor under /project/a260012_FORWCL/experiments
 results/
+
+# Claude Code agent worktrees (their work lives on research/* branches)
+.claude/worktrees/
