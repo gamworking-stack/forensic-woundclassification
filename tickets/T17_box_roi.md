@@ -142,3 +142,23 @@ Requested to bring the per-box run to the same reporting level as the main study
 | Verification | T16 checks for S17–S24 (`src/evaluation/verify_box.py`): files, test set equal to the main run's, selection reproduced on photo level, budget equal to the main run, every number recomputed, Grad-CAM and CV. `verify.py` now scores per-box histories on photo level (no change for the main run) |
 | Reporting | Metrics by wound type (Excel) and slides, from the fetched result files |
 
+
+---
+
+## 8. Grad-CAM on every test photo of three classes (2026-10-16)
+
+Requested by the researcher after §6 and §7, descriptive only: every test photo of cut wound (14), penetration wound (7) and scratch (5), 26 photos with 33 per-box crops, for the 7 T14 families. For every crop, the full image with that crop's box (main run, full-image checkpoint) next to the crop (S17–S24 checkpoint). Code: `gradcam.py --all-test --classes ... --main-root`; outputs in `roi_box/gradcam_all/` (overlays on patient photographs: they stay on Raptor).
+
+| Family | Full: photos correct | Per-box: crops correct | Match prediction files | Full-image map in crop box (box area 0.04) |
+|---|---|---|---|---|
+| EfficientNet-B0 | 13/26 | 19/33 | 58/59 | 0.24 |
+| ResNet152 | 18/26 | 19/33 | 59/59 | 0.29 |
+| MobileNetV3-Small | 13/26 | 18/33 | 48/59 | 0.21 |
+| GoogLeNet | 14/26 | 18/33 | 59/59 | 0.18 |
+| VGG16 | 11/26 | 22/33 | 59/59 | 0.13 |
+| ViT-B/16 | 13/26 | 20/33 | 59/59 | 0.07 |
+| AlexNet ensemble (member seed 43) | 12/26 | 19/33 | 59/59 | 0.11 |
+
+- **Mismatches are precision, not a different model or input.** Grad-CAM runs in fp32 on CPU; the prediction files were made under bf16 autocast on GPU. EfficientNet-B0's one mismatch is a tie (0.40 / 0.40). MobileNetV3-Small's 11 (4 full, 7 per-box) are all low-confidence (file probability 0.22–0.57); rerunning those 11 images on CPU under bf16 autocast reproduced the prediction file's class in all 11 (probability within 0.01), fp32 did not. `cut/PB274011.JPG` is the T14 mismatch, with the same values.
+- **Consequence for the figures**: in those 12 rows the map explains the fp32 predicted class, not the reported one; the panel title shows the fp32 class.
+- **Reading**: on these classes the convolutional full-image models put 3–7x the box's area share of the map inside the crop's box; ViT-B/16 about 2x. Correct counts are on 26 photos and 33 crops of the three hardest, smallest classes and are not comparable between columns (photos vs crops).
