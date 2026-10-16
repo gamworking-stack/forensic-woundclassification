@@ -6,6 +6,7 @@
 # Optional: RUN_NAME (default main), EXTRA_ARGS (passed to train.py), OUTPUT_DIR.
 # INPUT_PATH=box (T17) trains on one crop per annotated box; use RUN_NAME=roi_box.
 # INPUT_PATH=crop (T18) trains on the same crops, each its own sample; use RUN_NAME=roi_crop.
+# AUTO_ARM=4Z|4P|4F (T19) swaps in that arm's auto-box crops; use RUN_NAME=auto_<arm>_<union|box|crop>.
 #SBATCH --job-name=train_single
 #SBATCH --account=a260012
 #SBATCH --partition=gpu
@@ -39,6 +40,16 @@ case "$INPUT_PATH" in
   *)
     echo "INPUT_PATH must be full, roi, box or crop, got: $INPUT_PATH" >&2; exit 1 ;;
 esac
+# T19: AUTO_ARM=4Z|4P|4F trains on that arm's auto-box crops (union crops for roi, per-box for box and crop).
+if [[ -n "${AUTO_ARM:-}" ]]; then
+  case "$INPUT_PATH" in
+    roi) DESIGN=union ;;
+    box|crop) DESIGN=box ;;
+    *) echo "AUTO_ARM needs INPUT_PATH roi, box or crop, got: $INPUT_PATH" >&2; exit 1 ;;
+  esac
+  MANIFEST=data/roi_auto/$AUTO_ARM/$DESIGN/roi_manifest.csv
+  IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_auto_${AUTO_ARM}_$DESIGN"
+fi
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/$FAMILY}"
 export TORCH_HOME="$PROJECT_ROOT/torch_cache"
 export PYTHONUNBUFFERED=1  # log lines reach the .out/.err files immediately

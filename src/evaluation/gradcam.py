@@ -13,6 +13,11 @@ mean of its crops' probabilities.
 With ``--all-test`` (and ``--box-manifest``, ``--main-root``) every test photo of ``--classes`` is
 explained instead of the examples: for every crop of a photo, the full image with that crop's box
 (main run) next to the crop (per-box run), one figure per family and class in ``<exp>/gradcam_all/``.
+
+With ``--auto-arm`` (T19 §2.9) the same models explain the auto-box crops of the example photos:
+union (``--auto-manifest``, main run) with the manual crop and the auto crop side by side, or per-box
+(``--box-manifest`` of the arm, T17 run). Figures go to ``<exp>/gradcam_auto_<arm>/``; for auto crops
+``matches_prediction_file`` is not meaningful (the prediction files hold the manual crops).
 """
 
 from __future__ import annotations
@@ -81,7 +86,17 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                         help="With --all-test: the classes to explain, e.g. 'cut wound' scratch (default: all).")
     parser.add_argument("--main-root", type=Path, default=None,
                         help="With --all-test: the main run, whose full-image checkpoints are explained.")
+    parser.add_argument("--auto-arm", choices=("4Z", "4P", "4F"), default=None,
+                        help="T19: explain this arm's auto-box crops of the --examples photos.")
+    parser.add_argument("--auto-root", type=Path, default=None, help="T19: the arm's crop folder.")
+    parser.add_argument("--auto-manifest", type=Path, default=None, help="T19: the arm's union roi_manifest.csv.")
     args = parser.parse_args(argv)
+    if args.auto_arm is not None:
+        if args.auto_root is None or args.examples is None or (args.auto_manifest is None) == (args.box_manifest is None):
+            parser.error("--auto-arm needs --auto-root, --examples, and --auto-manifest (union) or --box-manifest (box)")
+        return args
+    if args.auto_root is not None or args.auto_manifest is not None:
+        parser.error("--auto-root and --auto-manifest go with --auto-arm")
     if args.all_test:
         if args.box_manifest is None or args.main_root is None or args.examples is not None:
             parser.error("--all-test needs --box-manifest and --main-root, and takes no --examples")
@@ -194,10 +209,10 @@ def mass_in_box(cam: np.ndarray, box) -> Tuple[float, float]:
 
 
 def explain(experiments: Path, family: str, input_path: str, examples: pd.DataFrame,
-            pretrained: bool, device: torch.device) -> List[Dict[str, Any]]:
+            pretrained: bool, device: torch.device, image_root: Optional[Path] = None) -> List[Dict[str, Any]]:
     folder = checkpoint_folder(experiments, input_path, family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
-    classes, size, root = config["classes"], int(config["image_size"]), Path(config["image_root"])
+    classes, size, root = config["classes"], int(config["image_size"]), image_root or Path(config["image_root"])
     model = load_model(folder, family, len(classes), pretrained, device)
     show = T.Compose([PadToSquare(), T.Resize((size, size))])
     to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
@@ -284,11 +299,11 @@ BOX_COLUMNS = 3  # crops shown per photo in the per-box figures
 
 
 def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: pd.DataFrame,
-                pretrained: bool, device: torch.device) -> List[Dict[str, Any]]:
+                pretrained: bool, device: torch.device, image_root: Optional[Path] = None) -> List[Dict[str, Any]]:
     """Maps for every crop of each example photo, with crop- and photo-level predictions (T17)."""
     folder = checkpoint_folder(experiments, "box", family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
-    classes, size, root = config["classes"], int(config["image_size"]), Path(config["image_root"])
+    classes, size, root = config["classes"], int(config["image_size"]), image_root or Path(config["image_root"])
     model = load_model(folder, family, len(classes), pretrained, device)
     show = T.Compose([PadToSquare(), T.Resize((size, size))])
     to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
@@ -417,9 +432,46 @@ def main_all_test(args: argparse.Namespace, device: torch.device) -> int:
     return 0
 
 
+def main_auto(args: argparse.Namespace, device: torch.device) -> int:
+    """T19: the example photos' auto-box crops, explained by the existing union or per-box models."""
+    out = args.experiments_root / f"gradcam_auto_{args.auto_arm}"
+    out.mkdir(parents=True, exist_ok=True)
+    examples = pd.read_csv(args.examples, dtype=str, keep_default_na=False)
+    examples.to_csv(out / "examples.csv", index=False)
+    table = []
+    for family in args.families:
+        if args.box_manifest is not None:
+            crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
+            crops = crops[crops["split"].str.strip().str.lower() == "test"]
+            results = explain_box(args.experiments_root, family, examples, crops, args.pretrained, device, args.auto_root)
+            for k in sorted(examples["set"].unique()):
+                plot_box_family(results, family, int(k), out / f"{family}_set{k}.png")
+        else:
+            auto = pd.read_csv(args.auto_manifest, dtype=str, keep_default_na=False).set_index(MANIFEST_PHOTO_COLUMN)
+            auto_examples = examples.assign(roi_relative_path=auto.loc[examples[MANIFEST_PHOTO_COLUMN], "roi_relative_path"].to_numpy())
+            manual = explain(args.experiments_root, family, "roi", examples, args.pretrained, device)
+            automatic = explain(args.experiments_root, family, "roi", auto_examples, args.pretrained, device, args.auto_root)
+            for r in automatic:
+                r["input_path"] = "auto roi"
+            results = manual + automatic
+            for k in sorted(examples["set"].unique()):
+                by_key = {(r["class"], r["input_path"]): r for r in results if int(r["set"]) == int(k)}
+                rows = [(label, {"manual roi": by_key.get((label, "roi")), "auto roi": by_key.get((label, "auto roi"))})
+                        for label in sorted({r["class"] for r in results})]
+                plot_rows(rows, f"{family} Grad-CAM, manual vs auto ({args.auto_arm}) union crop, test set {k}",
+                          out / f"{family}_set{k}.png")
+        table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
+        print(f"{family}: {sum(r['correct'] for r in results)}/{len(results)} correct", flush=True)
+    pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)
+    print(f"Wrote examples.csv, gradcam_results.csv and figures to {out}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     device = resolve_device(args.device)
+    if args.auto_arm is not None:
+        return main_auto(args, device)
     if args.all_test:
         return main_all_test(args, device)
     if args.box_manifest is not None:

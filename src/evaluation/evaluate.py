@@ -46,6 +46,14 @@ BOX_SCENARIO_IDS = {(BOX_PATH, family): f"S{17 + i:02d}" for i, family in enumer
 # T18 extra experiment: the same crops, each classified and scored on its own.
 CROP_PATH = "crop"
 CROP_SCENARIO_IDS = {(CROP_PATH, family): f"S{25 + i:02d}" for i, family in enumerate(FAMILY_ORDER)}
+# T19 retraining on auto-box crops: S33-S104 reserved by detector arm, union (roi), box, crop in turn.
+ARM_BASE = {"4Z": 33, "4P": 57, "4F": 81}
+
+
+def arm_scenario_ids(arm: str) -> Dict[Tuple[str, str], str]:
+    base = ARM_BASE[arm]
+    return {(path, family): f"S{base + 8 * k + i:02d}"
+            for k, path in enumerate(("roi", BOX_PATH, CROP_PATH)) for i, family in enumerate(FAMILY_ORDER)}
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -56,6 +64,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                         help="A run folder laid out as <full|roi>/<family>/.")
     parser.add_argument("--bootstrap", type=int, default=2000, help="Case-level resamples for test CIs.")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--arm", choices=tuple(ARM_BASE), default=None,
+                        help="T19: an auto-box run of this detector arm (scenario IDs S33-S104).")
     return parser.parse_args(argv)
 
 
@@ -111,13 +121,13 @@ def check_same_test_set(scenarios: List[Tuple[str, str, Path]]) -> None:
                          "Runs with another scope belong in their own experiments root.")
 
 
-def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
+def evaluate_all(root: Path, n_resamples: int, seed: int, arm: Optional[str] = None) -> pd.DataFrame:
     scenarios = find_scenarios(root)
     if not scenarios:
         raise FileNotFoundError(f"No scenario folders with prediction files under {root}")
     check_same_test_set(scenarios)
 
-    ids = {**SCENARIO_IDS, **BOX_SCENARIO_IDS, **CROP_SCENARIO_IDS}
+    ids = arm_scenario_ids(arm) if arm else {**SCENARIO_IDS, **BOX_SCENARIO_IDS, **CROP_SCENARIO_IDS}
     rows = []
     for input_path, family, folder in scenarios:
         scenario_id = ids.get((input_path, family), "")
@@ -145,6 +155,8 @@ def evaluate_all(root: Path, n_resamples: int, seed: int) -> pd.DataFrame:
     expected = {**(SCENARIO_IDS if any(p in INPUT_PATHS for p, _ in done) else {}),
                 **(BOX_SCENARIO_IDS if any(p == BOX_PATH for p, _ in done) else {}),
                 **(CROP_SCENARIO_IDS if any(p == CROP_PATH for p, _ in done) else {})}
+    if arm:
+        expected = {key: sid for key, sid in ids.items() if any(p == key[0] for p, _ in done)}
     for (input_path, family), scenario_id in expected.items():
         if (input_path, family) not in done:
             rows.append({"scenario_id": scenario_id, "input_path": input_path, "family": family,
@@ -163,7 +175,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         ci = test["confidence_intervals"]["macro_f1"]
         print(f"{args.run_dir}: test macro-F1 {test['macro_f1']:.3f} [{ci['low']:.3f}, {ci['high']:.3f}]")
         return 0
-    index = evaluate_all(args.experiments_root, args.bootstrap, args.seed)
+    index = evaluate_all(args.experiments_root, args.bootstrap, args.seed, args.arm)
     counts = index["status"].value_counts().to_dict()
     print(f"Evaluated {counts.get('evaluated', 0)} scenarios, missing {counts.get('missing', 0)}; "
           f"index written to {args.experiments_root / 'evaluation_index.csv'}")

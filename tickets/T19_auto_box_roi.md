@@ -200,16 +200,24 @@ Validation and test photos are boxed by the main 4F detector. Its validation box
 
 | File | Change |
 |---|---|
-| `src/detection/__init__.py`, `boxes.py`, `zero_shot.py`, `public.py`, `finetune.py`, `select.py`, `evaluate_detection.py` | New |
-| `src/data/create_auto_roi_dataset.py` | New |
-| `src/evaluation/predict_on_manifest.py`, `auto_vs_manual.py`, `verify_auto.py` | New |
-| `src/evaluation/evaluate.py`, `gradcam.py` | Scenarios S33–S104; auto-crop Grad-CAM mode |
-| `scripts/slurm/detect.sbatch`, `train_detector.sbatch`, `scripts/hpc/submit_auto.sh` | New |
-| `tests/test_detection.py`, `tests/test_auto_roi.py` | New |
-| `requirements-exp4.txt` | `transformers==4.52.4`, `ultralytics==8.4.178`, `picklescan` (venvs only) |
-| `runbook.md`, `ROADMAP.md`, `tickets/TICKET_MEMO.md`, `GLOSSARY.md` | Commands, scope, memo, terms |
-
----
+| `src/detection/boxes.py` | Reference boxes from CVAT and the shared box rules (§2.1, §2.3) |
+| `src/detection/evaluate_detection.py` | COCO AP, F1 threshold, gate, operating-point metrics, case bootstrap (§2.6) |
+| `src/detection/select.py` | Per-arm choice, threshold and gate → frozen `selection.json` (§2.2–§2.4) |
+| `src/detection/common.py` | Photos, images, write-once detections files, the test guard |
+| `src/detection/zero_shot.py`, `public.py`, `finetune.py` | Arms 4Z, 4P (prepare / detect / WILLIE smoke), 4F (train, cross-fit, detect) |
+| `src/data/create_auto_roi_dataset.py` | Auto union and per-box crops and manifests (§2.3 step 3) |
+| `src/evaluation/predict_on_manifest.py` | Existing models on auto crops; `--check-manual` reproduces the reported predictions |
+| `src/evaluation/auto_vs_manual.py` | Non-inferiority, per-family and secondary comparisons (§2.7) |
+| `src/evaluation/verify_auto.py` | Verification (§3.8) |
+| `src/evaluation/evaluate.py` | `--arm`: scenario ids S33–S104 |
+| `src/evaluation/summarize.py` | `paired_draws` exposed (same resamples; T15 output unchanged) |
+| `src/evaluation/gradcam.py` | `--auto-arm` mode (§2.9) |
+| `scripts/slurm/exp4.sbatch` | One generic T19 job (venv, offline weights, certificates, read-only mode for 4P prepare) |
+| `scripts/slurm/train_single.sbatch`, `scripts/hpc/submit_all.sh` | `AUTO_ARM` swaps in an arm's auto crops for retraining |
+| `requirements.txt`, `requirements-exp4.txt` | `pycocotools`; venv extras (`transformers==4.52.4`, `picklescan`; ultralytics notes) |
+| `tests/test_detection.py`, `tests/test_detection_evaluation.py`, `tests/test_auto_roi.py` | Tests (CPU, synthetic, no downloads) |
+| `runbook.md` | Every Raptor step, in order |
+| `data/roi_auto/reference_boxes.csv`, `reference_limits.json` | The frozen reference (built on the laptop) |
 
 ## 5. Acceptance Check
 

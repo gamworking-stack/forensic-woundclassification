@@ -6,6 +6,8 @@
 # S01-S12 are tuned (T08b): one run per learning rate in lr_<value>/, then a select job.
 # T17 per-box run (S17-S24):  PATHS=box bash scripts/hpc/submit_all.sh roi_box
 # T18 per-crop run (S25-S32): PATHS=crop bash scripts/hpc/submit_all.sh roi_crop
+# T19 retraining on auto boxes (AUTO_ARM is passed to every job): AUTO_ARM=4F PATHS=roi bash scripts/hpc/submit_all.sh auto_4F_union
+#   (and PATHS=box ... auto_4F_box, PATHS=crop ... auto_4F_crop); job names keep the S17/S25-style ids of their path
 set -euo pipefail
 
 RUN_NAME="${1:-main}"

@@ -269,13 +269,106 @@ srun -p compute -c 4 --mem=16G -t 2:00:00 apptainer exec --bind /project/a260012
 ```
 Outputs: `experiments/roi_crop/crop/<family>/` (prediction, metric and figure files), `experiments/roi_crop/summary/crop_summary_table.csv`, `experiments/roi_crop/verification/verification_report.csv`. `fetch_results.sh roi_crop` copies them to `../results_figures/roi_crop/`.
 
-## Auto-box ROI experiment (T19, extra; planned)
+## Auto-box ROI experiment (T19, extra)
 
-Plan and every decision: `tickets/T19_auto_box_roi.md` (decision record `.scratch/auto-box-roi/map.md`). Step 1, on the laptop (the CVAT exports are there; no images needed):
+Plan and every decision: `tickets/T19_auto_box_roi.md` (decision record `.scratch/auto-box-roi/map.md`). Steps marked **(laptop)** need the CVAT exports; everything else runs on Raptor from `~/forensic-woundclassification` after `module load apptainer/1.3.5`. Every Raptor step is one `scripts/slurm/exp4.sbatch` job: `PY_ARGS` is the script and its arguments, `VENV` the venv (default `venv_exp4`); CPU steps add `-p compute --gres=none`.
+
+**0. Reference boxes (laptop, once; committed):**
 ```bash
 python src/detection/boxes.py --exports ~/Downloads/task_*_annotations_2026_09_30_*"yolo 1.1"*.zip
 ```
-It writes `data/roi_auto/reference_boxes.csv` (the 1,667 unpadded manual boxes, checked against every crop of `data/roi_box/roi_manifest.csv`) and `data/roi_auto/reference_limits.json` (training-split oversize share and box cap for T19 §2.3). Both are committed; later steps read them.
+`data/roi_auto/reference_boxes.csv` (1,667 unpadded manual boxes, checked against every per-box crop) and `reference_limits.json` (oversize share 0.443, cap 35, size bins).
+
+**1. Environment (Raptor, once).** `venv_exp4` and `venv_exp4_yolo` exist from the T19 check (`.scratch/auto-box-roi/check_raptor.sh`). Add what is still missing:
+```bash
+P=/project/a260012_FORWCL; SIF=/common/sif/pytorch-24.11-py3.sif; CA=/etc/ssl/certs/ca-certificates.crt
+E="HF_HOME=$P/hf_cache,SSL_CERT_FILE=$CA,REQUESTS_CA_BUNDLE=$CA,PIP_CERT=$CA"
+apptainer exec --bind $P --env "$E" $SIF $P/venv_exp4/bin/pip install -q "transformers==4.52.4" picklescan
+apptainer exec --bind $P --env "$E" $SIF $P/venv_exp4_yolo/bin/pip install -q picklescan safetensors
+```
+Shell variables for the steps below: `X=$P/experiments; RAW=$P/raw_data/wound_ml_7classes; J="sbatch --parsable scripts/slurm/exp4.sbatch"` (prefix `-J name --export=ALL,PY_ARGS="..."` before the script as shown).
+
+**2. Arm 4F (fine-tuned Faster R-CNN).**
+```bash
+for lr in 0.005 0.01 0.02; do
+  sbatch -J 4F_lr$lr --time=24:00:00 --export=ALL,PY_ARGS="src/detection/finetune.py train --lr $lr --output-dir $X/auto_4F/detector/lr$lr --image-root $RAW" scripts/slurm/exp4.sbatch
+done
+# when the three finish: the selection files, then the selection (CPU)
+mkdir -p $X/auto_4F/detection/dev
+for lr in 0.005 0.01 0.02; do ln -s $X/auto_4F/detector/lr$lr/validation.csv $X/auto_4F/detection/dev/lr$lr.csv; done
+sbatch -J 4F_select -p compute --gres=none --export=ALL,PY_ARGS="src/detection/select.py --arm 4F --detections-dir $X/auto_4F/detection/dev --configs lr0.005 lr0.01 lr0.02 --output $X/auto_4F/detection/selection.json" scripts/slurm/exp4.sbatch
+```
+If the gate passed: the five cross-fitted detectors at the chosen learning rate and its best epoch count, then the test detections.
+```bash
+C=$(python3 -c "import json;print(json.load(open('$X/auto_4F/detection/selection.json'))['chosen_config'])")
+BEST=$(python3 -c "import csv;r=list(csv.DictReader(open('$X/auto_4F/detector/$C/history.csv')));print(max(r,key=lambda x:float(x['validation_ap50']))['epoch'])")
+for k in 1 2 3 4 5; do
+  sbatch -J 4F_fold$k --time=24:00:00 --export=ALL,PY_ARGS="src/detection/finetune.py train --lr ${C#lr} --holdout-fold $k --epochs $BEST --output-dir $X/auto_4F/detector/crossfit/fold$k --image-root $RAW" scripts/slurm/exp4.sbatch
+done
+sbatch -J 4F_test --export=ALL,PY_ARGS="src/detection/finetune.py detect --run-dir $X/auto_4F/detector/$C --splits test --selection $X/auto_4F/detection/selection.json --output $X/auto_4F/detection/test/$C.csv --image-root $RAW" scripts/slurm/exp4.sbatch
+```
+(`python3` here is the login node's, standard library only; `max` keeps the first best epoch, as `idxmax` does.)
+
+**3. Arm 4Z (zero-shot).**
+```bash
+for m in gdino owlv2; do
+  sbatch -J 4Z_$m --time=24:00:00 --export=ALL,PY_ARGS="src/detection/zero_shot.py --model $m --splits train validation --output-dir $X/auto_4Z/detection/dev --image-root $RAW" scripts/slurm/exp4.sbatch
+done
+CONFIGS="gdino_P1 owlv2_P1 gdino_P1_tiled owlv2_P1_tiled gdino_P2 owlv2_P2 gdino_P2_tiled owlv2_P2_tiled gdino_P3 owlv2_P3 gdino_P3_tiled owlv2_P3_tiled gdino_P4 owlv2_P4 gdino_P4_tiled owlv2_P4_tiled"  # zero_shot.config_order()
+sbatch -J 4Z_select -p compute --gres=none --export=ALL,PY_ARGS="src/detection/select.py --arm 4Z --detections-dir $X/auto_4Z/detection/dev --configs $CONFIGS --output $X/auto_4Z/detection/selection.json" scripts/slurm/exp4.sbatch
+# if passed: C=<chosen_config>
+sbatch -J 4Z_test --export=ALL,PY_ARGS="src/detection/zero_shot.py --model ${C%%_*} --splits test --config $C --selection $X/auto_4Z/detection/selection.json --output-dir $X/auto_4Z/detection/test --image-root $RAW" scripts/slurm/exp4.sbatch
+```
+
+**4. Arm 4P (public YOLOv8).** Download on the login node, then scan, load once and re-save in a job that can write only one folder; copy the re-saved weights into the run:
+```bash
+REV=0c61ba140e2c800b25e562e092b777082c7a10fe
+apptainer exec --bind $P --env "$E" $SIF $P/venv_exp4/bin/python -c "from huggingface_hub import snapshot_download as s; print(s('trapezius60/forensic_wound_detection', revision='$REV', allow_patterns=['best.pt','best_yolov8m_roboflow_v7.pt','best_yolov8x_robov9.pt']))"
+SNAP=$P/hf_cache/hub/models--trapezius60--forensic_wound_detection/snapshots/$REV
+sbatch -J 4P_prepare -p compute --gres=none --export=ALL,VENV=venv_exp4_yolo,READ_ONLY=1,WRITABLE=$P/scratch_4P,PY_ARGS="src/detection/public.py prepare --weights-dir $P/scratch_4P/weights --snapshot-dir $SNAP" scripts/slurm/exp4.sbatch
+mkdir -p $X/auto_4P && cp -r $P/scratch_4P/weights $X/auto_4P/weights
+sbatch -J 4P_dev --export=ALL,VENV=venv_exp4_yolo,PY_ARGS="src/detection/public.py detect --weights-dir $X/auto_4P/weights --splits train validation --output-dir $X/auto_4P/detection/dev --image-root $RAW" scripts/slurm/exp4.sbatch
+```
+WILLIE MINI gets its one load test (clone `github.com/Qian-Group-HRI/Willie` and download `mini/willie_mini_fold0_best.pt` from `QianGroup/willie-weights` on the login node first): `PY_ARGS="src/detection/public.py willie-smoke --repo <clone> --weights <file> --output $X/auto_4P/willie_smoke.json"`. If it reports `loaded: false`, WILLIE is out (T19 §2.2). If it loads, stop: its inference adapter must be written before it can join the selection. Then:
+```bash
+sbatch -J 4P_select -p compute --gres=none --export=ALL,PY_ARGS="src/detection/select.py --arm 4P --detections-dir $X/auto_4P/detection/dev --configs v8n_colour v8n_grey v8m_colour v8m_grey v8x_colour v8x_grey --output $X/auto_4P/detection/selection.json" scripts/slurm/exp4.sbatch
+# if passed: C=<chosen_config>
+sbatch -J 4P_test --export=ALL,VENV=venv_exp4_yolo,PY_ARGS="src/detection/public.py detect --weights-dir $X/auto_4P/weights --splits test --config $C --selection $X/auto_4P/detection/selection.json --output-dir $X/auto_4P/detection/test --image-root $RAW" scripts/slurm/exp4.sbatch
+```
+
+**5. Per passing arm (`A`, its chosen config `C`): detection metrics and auto crops (CPU).**
+```bash
+sbatch -J ${A}_detmetrics -p compute --gres=none --time=6:00:00 --export=ALL,PY_ARGS="src/detection/evaluate_detection.py --detections $X/auto_$A/detection/test/$C.csv --selection $X/auto_$A/detection/selection.json --split test --output-dir $X/auto_$A/detection/test_metrics" scripts/slurm/exp4.sbatch
+# crops: 4Z/4P use dev/$C.csv + test/$C.csv; 4F uses the five cross-fitted files + dev/$C.csv + test/$C.csv
+DET="$X/auto_$A/detection/dev/$C.csv $X/auto_$A/detection/test/$C.csv"
+[[ $A == 4F ]] && DET="$X/auto_4F/detector/crossfit/fold*/train_fold*.csv $DET"
+sbatch -J ${A}_crops -p compute --gres=none --export=ALL,PY_ARGS="src/data/create_auto_roi_dataset.py --selection $X/auto_$A/detection/selection.json --detections $DET --output-dir data/roi_auto/$A --image-root $RAW --crop-root $P/derived_data/roi_auto_$A" scripts/slurm/exp4.sbatch
+```
+The manifests land in the repo's `data/roi_auto/<arm>/{union,box}/`; commit them from Raptor or copy them back to the laptop.
+
+**6. Primary analysis: existing models on the auto crops (GPU, bf16 as in the reported runs).**
+```bash
+sbatch -J ${A}_primary_union --export=ALL,PY_ARGS="src/evaluation/predict_on_manifest.py --experiments-root $X/main --design union --manifest data/roi_auto/$A/union/roi_manifest.csv --image-root $P/derived_data/roi_auto_${A}_union --output-root $X/auto_$A/primary --check-manual" scripts/slurm/exp4.sbatch
+sbatch -J ${A}_primary_box --export=ALL,PY_ARGS="src/evaluation/predict_on_manifest.py --experiments-root $X/roi_box --design box --manifest data/roi_auto/$A/box/roi_manifest.csv --image-root $P/derived_data/roi_auto_${A}_box --output-root $X/auto_$A/primary --check-manual" scripts/slurm/exp4.sbatch
+```
+`check_manual_<design>.json` must show the same predicted class for (nearly) every manual crop.
+
+**7. Retraining (order 4F → 4Z → 4P; S33-S104):**
+```bash
+AUTO_ARM=$A PATHS=roi  bash scripts/hpc/watch_jobs.sh $(AUTO_ARM=$A PATHS=roi  bash scripts/hpc/submit_all.sh auto_${A}_union)
+AUTO_ARM=$A PATHS=box  bash scripts/hpc/watch_jobs.sh $(AUTO_ARM=$A PATHS=box  bash scripts/hpc/submit_all.sh auto_${A}_box)
+AUTO_ARM=$A PATHS=crop bash scripts/hpc/watch_jobs.sh $(AUTO_ARM=$A PATHS=crop bash scripts/hpc/submit_all.sh auto_${A}_crop)
+# then, for each of the three roots (CPU):  src/evaluation/evaluate.py --experiments-root $X/auto_${A}_<union|box|crop> --arm $A
+```
+
+**8. Comparisons, Grad-CAM and verification (after every passing arm's steps 5-7):**
+```bash
+sbatch -J auto_compare -p compute --gres=none --time=12:00:00 --export=ALL,PY_ARGS="src/evaluation/auto_vs_manual.py --experiments-dir $X --output-dir $X/auto_summary" scripts/slurm/exp4.sbatch
+sbatch -J ${A}_gradcam -p compute --gres=none --export=ALL,PY_ARGS="src/evaluation/gradcam.py --device cpu --experiments-root $X/main --auto-arm $A --auto-root $P/derived_data/roi_auto_${A}_union --auto-manifest data/roi_auto/$A/union/roi_manifest.csv --examples $X/main/gradcam/examples.csv" scripts/slurm/exp4.sbatch
+sbatch -J ${A}_gradcam_box -p compute --gres=none --export=ALL,PY_ARGS="src/evaluation/gradcam.py --device cpu --experiments-root $X/roi_box --auto-arm $A --auto-root $P/derived_data/roi_auto_${A}_box --box-manifest data/roi_auto/$A/box/roi_manifest.csv --examples $X/main/gradcam/examples.csv" scripts/slurm/exp4.sbatch
+sbatch -J auto_verify -p compute --gres=none --export=ALL,PY_ARGS="src/evaluation/verify_auto.py --experiments-dir $X" scripts/slurm/exp4.sbatch
+```
+Outputs: `experiments/auto_summary/` (`primary_noninferiority.csv`, `primary_by_family.csv`, `secondary_*.csv`, `arms.json`, `verification/verification_report.csv`), `auto_<arm>/detection/test_metrics/`, and Grad-CAM overlays in `main|roi_box/gradcam_auto_<arm>/` (patient photographs: they stay on Raptor).
 
 ## Final verification (T16)
 

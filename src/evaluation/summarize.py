@@ -93,9 +93,12 @@ def holm(p_values: List[float]) -> List[float]:
     return adjusted.tolist()
 
 
-def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
-                      n_resamples: int = 2000, seed: int = 42) -> pd.DataFrame:
-    """ROI - full per family and metric, with paired case-level bootstrap intervals and p-values."""
+def paired_draws(pairs: Dict[str, Tuple[Predictions, Predictions]], n_resamples: int = 2000, seed: int = 42
+                 ) -> Tuple[Dict[str, Tuple[Dict[str, float], Dict[str, float]]], Dict[Tuple[str, str], List[float]]]:
+    """Observed scores of both sides per family, and second - first per (family, metric) on each resample.
+
+    Each resample draws one set of test cases and scores every family's two prediction files on it.
+    """
     families = list(pairs)
     case_ids = np.array(sorted(set(pairs[families[0]][0].cases)))
     rows_of = {(f, k): [np.flatnonzero(pairs[f][k].cases == c) for c in case_ids]
@@ -118,6 +121,18 @@ def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
                 full, roi = (scores(f, k, np.concatenate([rows_of[(f, k)][i] for i in picked])) for k in (0, 1))
                 for m in METRICS:
                     draws[(f, m)].append(roi[m] - full[m])
+    return observed, draws
+
+
+def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
+                      n_resamples: int = 2000, seed: int = 42, precomputed=None) -> pd.DataFrame:
+    """ROI - full per family and metric, with paired case-level bootstrap intervals and p-values.
+
+    ``precomputed`` is ``paired_draws``' result for the same pairs, to reuse its resamples.
+    """
+    families = list(pairs)
+    observed, draws = precomputed if precomputed is not None else paired_draws(pairs, n_resamples, seed)
+    case_ids = np.array(sorted(set(pairs[families[0]][0].cases)))
 
     rows = []
     for m in METRICS:
