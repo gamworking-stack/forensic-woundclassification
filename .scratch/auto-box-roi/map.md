@@ -16,7 +16,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
     - Primary: can auto boxes replace manual boxes without a drop in classification, measured as auto-ROI − manual-ROI in the same family.
     - Secondary: auto-ROI − full image.
   - **Detector arms**: all three. 4Z is a zero-shot detector, no training. 4P is a public wound model. 4F is Faster R-CNN from torchvision, class-agnostic, fine-tuned on train-split manual boxes and selected on validation.
-  - **If no public wound model has weights**: 4P falls back to a chronic-wound model if one has public weights. If there is none, drop 4P and record why. Never train a 4P model ourselves.
+  - **4P gate**: 4P goes forward only if it finds at least half of the manual boxes on train + validation (max recall ≥ 0.50 at IoU ≥ 0.5). Otherwise it is dropped as a negative finding, and the retraining covers only the arms that pass. Never train a 4P model ourselves.
   - **Two uses of auto boxes**:
     - Primary: the existing Experiment 1–3 models predict on auto-box crops.
     - Secondary: retrain every scenario of Experiments 1–3 on auto-box crops, **for all three detector arms** (≈72 scenarios plus learning-rate grids).
@@ -40,6 +40,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 - [Which zero-shot detectors can find forensic wounds](issues/01-zero-shot-detectors.md): Grounding DINO, then OWLv2 (Apache-2.0, offline in transformers 4.57.6); expect low accuracy on small wounds, prompts matter most
 - [Raptor environment and GPU budget for Experiment 4](issues/03-raptor-environment.md): venvs on /project with transformers 4.52.4 and ultralytics; Grounding DINO and OWLv2 load offline; ~24 GPU-h used so far, no SLURM limit
 - [4Z setup: model, prompts and threshold](issues/04-zero-shot-setup.md): Grounding DINO vs OWLv2 × 4 frozen prompts (incl. proposal-definition prompts) × tiling on/off, winner by mAP@0.5 on train+val; oversize boxes dropped in all arms
+- [4P: which public wound model, or drop the arm](issues/05-public-model-choice.md): Hanterdsith YOLOv8 (3 sizes × colour/grey) + WILLIE MINI if it loads, chosen on train+val; kept only if max recall ≥ 0.50, else dropped as a negative finding; pickle scanned and re-saved
 
 ## Not yet specified
 
