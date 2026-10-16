@@ -131,6 +131,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 ### Extra experiments (outside the 16-scenario study)
 - **T17** Per-box ROI: one crop per annotated box instead of the union crop (S17-S24, run `roi_box`), photo-level primary outcome (mean of crop probabilities), compared with union ROI and full image on the same test cases. Separate manifest, crops and run; the main study is unchanged. Plan: `tickets/T17_box_roi.md`.
 - **T18** Per-crop ROI: the T17 crops, each its own sample in training, selection and evaluation (S25-S32, run `roi_crop`); crop-level test macro-F1 with case-bootstrap intervals; no photo level and no comparison. Plan: `tickets/T18_crop_roi.md`.
+- **T19** Auto-box ROI (Experiment 4): auto boxes from three wound-detector arms (4Z zero-shot, 4P public model, 4F fine-tuned Faster R-CNN) replace manual boxes; primary = non-inferiority of auto vs manual ROI for the existing union and per-box models (margin 0.03 pooled macro-F1); each arm gated on recall ≥ 0.50; retraining S33-S104 for passing arms. Planned and frozen 2026-10-16, not run. Plan: `tickets/T19_auto_box_roi.md`; decision record: `.scratch/auto-box-roi/map.md`.
 
 ## 6. Risks to track
 
@@ -174,3 +175,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T16 final verification
 - [x] T17 per-box ROI experiment (extra)
 - [x] T18 per-crop ROI experiment (extra)
+- [ ] T19 auto-box ROI experiment (extra; plan frozen 2026-10-16, not run)

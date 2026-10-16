@@ -27,7 +27,7 @@ Also decide:
    - Outcomes are reported as **not inferior / inferior** (upper bound below −Δ) / **inconclusive**.
    - Earlier pooled intervals were about 0.12 wide, so an inconclusive result is possible and will be stated as such.
 2. **Primary comparisons**: existing models predicting on auto-box crops, against the same models on manual-box crops.
-   - **union auto vs union manual** (the S09–S16 models);
+   - **union auto vs union manual** (the union-ROI models, even S02–S16);
    - **per-box auto vs per-box manual** (the S17–S24 models, photo level as the mean of crops);
    - for every detector arm that passes its gate, so up to 3 arms × 2 designs = 6 tests.
    - Experiment 3 with auto boxes stays results only.
@@ -36,7 +36,7 @@ Also decide:
    - Per-family results (8 families within each arm × design) are secondary, Holm over 8 families.
 4. **Secondary comparisons**, two-sided, Holm over 8 families each, pooled effect reported:
    - (i) **retrained** auto − manual;
-   - (ii) auto ROI − full image (the S01–S08 full-image models).
+   - (ii) auto ROI − full image (the full-image models, odd S01–S15).
    - **Arms against each other**: descriptive only, no tests.
 5. **Metric and statistics** as in Experiments 1–2:
    - photo-level test macro-F1;
