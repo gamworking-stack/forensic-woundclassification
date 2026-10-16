@@ -44,6 +44,7 @@ A frozen plan for **Experiment 4 (auto-box ROI)**, written as `tickets/T19_auto_
 - [4P: which public wound model, or drop the arm](issues/05-public-model-choice.md): Hanterdsith YOLOv8 (3 sizes × colour/grey) + WILLIE MINI if it loads, chosen on train+val; kept only if max recall ≥ 0.50, else dropped as a negative finding; pickle scanned and re-saved
 - [4F training recipe](issues/06-finetuned-detector-recipe.md): Faster R-CNN R50-FPN v2 from COCO, 1 class, 1024 px, flips + mild jitter, lr grid {0.005, 0.01, 0.02} chosen by validation mAP@0.5; reference boxes are unpadded CVAT boxes
 - [Detection evaluation protocol](issues/07-detection-evaluation-protocol.md): pycocotools mAP@0.5 (primary) on unpadded boxes, F1-chosen threshold, pooled boxes plus photo-level rates, per wound type, case bootstrap 2,000; test scored once after all choices
+- [Classification comparisons and multiplicity](issues/08-comparison-and-statistics.md): primary = non-inferiority of auto vs manual (pooled 8-family macro-F1, margin 0.03), union and per-box, Holm over passing arms; secondary two-sided: retrained auto − manual, auto − full; fallback photos kept, sensitivity excluding them
 
 ## Not yet specified
 
