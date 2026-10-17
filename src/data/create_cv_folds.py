@@ -44,10 +44,12 @@ def development_rows(path: Path) -> pd.DataFrame:
 
 def fold_score(assignment: np.ndarray, images: np.ndarray, presence: np.ndarray, k: int) -> float:
     """Quadratic deviation from equal class shares per fold; inf if a fold misses a class."""
+    # Images and cases per fold and class; a fold missing any class is rejected
     observed_images = np.vstack([images[assignment == f].sum(axis=0) for f in range(k)])
     observed_presence = np.vstack([presence[assignment == f].sum(axis=0) for f in range(k)])
     if (observed_images == 0).any() or (observed_presence == 0).any():
         return float("inf")
+    # Target is an equal share per fold; penalise squared deviations scaled by the expected count
     expected_images = images.sum(axis=0) / k
     expected_presence = presence.sum(axis=0) / k
     return float((np.square(observed_images - expected_images) / (expected_images + 1.0)).sum()
@@ -56,23 +58,28 @@ def fold_score(assignment: np.ndarray, images: np.ndarray, presence: np.ndarray,
 
 def assign_folds(cases: List[str], scored: pd.DataFrame, k: int, seed: int, trials: int) -> Dict[str, int]:
     """Best of ``trials`` random equal-size assignments of ``cases`` to folds 1..k."""
+    # Case-by-class matrices of the scored rows, and where each matrix row sits in the full case list
     group_ids, _, images, presence = build_group_matrices(scored, GROUP_COLUMN, LABEL_COLUMN)
     index = {case: i for i, case in enumerate(cases)}
     rows = np.array([index[c] for c in group_ids])  # scored cases, in matrix order
+    # Fold labels cycled over the cases give equal-size folds; each trial shuffles them
     rng = np.random.default_rng(seed)
     base = np.arange(len(cases)) % k
     best, best_score = None, float("inf")
+    # Keep the shuffle with the lowest imbalance score
     for _ in range(trials):
         assignment = rng.permutation(base)
         score = fold_score(assignment[rows], images, presence, k)
         if score < best_score:
             best, best_score = assignment.copy(), score
+    # No finite score means no trial put every class in every fold
     if best is None:
         raise RuntimeError("No assignment placed every class in every fold; increase --trials")
     return {case: int(best[i]) + 1 for case, i in index.items()}
 
 
 def fold_report(scored: pd.DataFrame, folds: Dict[str, int]) -> Dict[str, Any]:
+    # Per fold: number of cases and images, and images and cases per class
     df = scored.assign(fold=scored[GROUP_COLUMN].map(folds))
     return {
         str(f): {
@@ -87,14 +94,17 @@ def fold_report(scored: pd.DataFrame, folds: Dict[str, int]) -> Dict[str, Any]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Development cases from both manifests, sorted numerically (shorter IDs first)
     full = development_rows(args.split_manifest)
     roi = development_rows(args.roi_manifest)
     cases = sorted(set(full[GROUP_COLUMN]) | set(roi[GROUP_COLUMN]), key=lambda c: (len(c), c))
 
+    # Assign folds balanced on the ROI rows, then check that no test case received one
     folds = assign_folds(cases, roi, args.folds, args.seed, args.trials)
     test_cases = set(pd.read_csv(args.split_manifest, dtype=str, keep_default_na=False)
                      .query("split == 'test'")[GROUP_COLUMN])
     assert not test_cases & set(folds), "a test case was assigned to a fold"
+    # Report fold contents for both ROI and full-image rows; every fold must hold all 7 classes
     report = {"folds": args.folds, "seed": args.seed, "trials": args.trials,
               "development_cases": len(folds), "scored_on": str(args.roi_manifest),
               "roi_rows": fold_report(roi, folds), "full_rows": fold_report(full, folds), "frozen": True}
@@ -103,6 +113,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if len(part["images_per_class"]) != 7:
                 raise AssertionError(f"fold {f} misses a class in {path_rows}")
 
+    # Save the case-to-fold table and the report, then print each fold's ROI contents
     args.output_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({GROUP_COLUMN: list(folds), "fold": list(folds.values())}) \
         .to_csv(args.output_dir / "cv_folds.csv", index=False)

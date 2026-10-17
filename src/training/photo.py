@@ -46,12 +46,14 @@ def photo_mean(photos: Sequence[str], labels: np.ndarray, probs: np.ndarray
                ) -> Tuple[List[str], np.ndarray, np.ndarray]:
     """Mean crop probabilities per photo; every crop of a photo must have the photo's label."""
     names, codes = photo_groups(photos)
+    # Each photo's label, checking that all its crops agree
     labels = np.asarray(labels)
     photo_labels = np.full(len(names), -1)
     for i, code in enumerate(codes):
         if photo_labels[code] not in (-1, labels[i]):
             raise ValueError(f"Photo {names[code]!r} has crops with different labels")
         photo_labels[code] = labels[i]
+    # Sum the crop probabilities per photo and divide by its crop count
     sums = np.zeros((len(names), probs.shape[1]))
     np.add.at(sums, codes, probs)
     counts = np.bincount(codes, minlength=len(names))[:, None]
@@ -66,13 +68,16 @@ def photo_prediction_frame(crops: pd.DataFrame) -> pd.DataFrame:
     """
     if PHOTO_COLUMN not in crops.columns:
         raise ValueError(f"Crop predictions have no {PHOTO_COLUMN!r} column")
+    # Probability columns and the class names they encode
     prob_columns = [c for c in crops.columns if c.startswith("prob_")]
     classes = [c[len("prob_"):].replace("_", " ") for c in prob_columns]
+    # Identifiers per photo from its first crop, after checking they are the same on every crop
     first = crops.groupby(PHOTO_COLUMN, sort=False).first()
     for column in ("pseudonimized_id", "split", "true_class"):
         varying = crops.groupby(PHOTO_COLUMN, sort=False)[column].nunique()
         if (varying > 1).any():
             raise ValueError(f"Photo {varying[varying > 1].index[0]!r} has crops with different {column}")
+    # Mean probability per photo, then the usual prediction-file columns plus the crop count
     mean = crops.groupby(PHOTO_COLUMN, sort=False)[prob_columns].mean()
     frame = pd.DataFrame({
         "relative_path": first.index.to_numpy(),
@@ -82,6 +87,7 @@ def photo_prediction_frame(crops: pd.DataFrame) -> pd.DataFrame:
         "predicted_class": [classes[i] for i in mean.to_numpy().argmax(axis=1)],
         "n_crops": crops.groupby(PHOTO_COLUMN, sort=False).size().to_numpy(),
     })
+    # Append the averaged probability columns
     for column in prob_columns:
         frame[column] = mean[column].to_numpy()
     return frame

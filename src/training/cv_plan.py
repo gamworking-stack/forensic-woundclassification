@@ -37,6 +37,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def scenario_id(input_path: str, family: str) -> str:
+    # Per-box scenarios are numbered S17 on by family; full/roi pairs interleave from S01
     if input_path == "box":
         return f"S{17 + FAMILY_ORDER.index(family):02d}"
     return f"S{2 * FAMILY_ORDER.index(family) + INPUT_PATHS.index(input_path) + 1:02d}"
@@ -58,6 +59,7 @@ def selected_run(scenario: Path) -> Dict[str, str]:
 
 def member_runs(ensemble: Path) -> List[Dict[str, object]]:
     members = []
+    # Each ensemble member's seed, best epoch and learning rate (from its own run_config.json)
     for row in read_csv(ensemble / "ensemble_members.csv"):
         config = json.loads((Path(row["output_dir"]) / "run_config.json").read_text(encoding="utf-8"))
         members.append({"member": int(row["member"]), "seed": int(row["seed"]),
@@ -67,24 +69,29 @@ def member_runs(ensemble: Path) -> List[Dict[str, object]]:
 
 def plan(main_root: Path, cv_root: Path, folds: int, paths=INPUT_PATHS) -> List[Dict[str, object]]:
     jobs: List[Dict[str, object]] = []
+    # One job per scenario (family x input path) and fold
     for family in FAMILY_ORDER:
         for path in paths:
             sid, scenario = scenario_id(path, family), main_root / path / family
             for k in range(1, folds + 1):
+                # Fold output folder, job name and the fields every job kind shares
                 out = cv_root / path / family / f"fold_{k}"
                 name = f"CV_{sid}_{family}_{path}_f{k}"
                 base = {"family": family, "input_path": path, "fold": k, "lr": "", "epochs": "", "seed": 42,
                         "svm_params_from": "", "output_dir": str(out)}
                 if family in TUNED:
+                    # Fine-tuned families: retrain with the main run's chosen lr for its best epoch count
                     chosen = selected_run(scenario)
                     jobs.append({**base, "job_name": name, "kind": "train",
                                  "lr": chosen["lr"], "epochs": int(chosen["best_epoch"])})
                 elif family == "cnn_svm":
+                    # CNN-SVM: refit the SVM with the setting stored in the main run's config
                     config = scenario / "run_config.json"
                     if not config.is_file():
                         raise FileNotFoundError(f"{config} not found; is the main run finished?")
                     jobs.append({**base, "job_name": name, "kind": "svm", "svm_params_from": str(config)})
                 else:
+                    # AlexNet ensemble: one job per member (own seed, lr, epochs), then a job that soft-votes them
                     for m in member_runs(scenario):
                         jobs.append({**base, "job_name": f"{name}_m{m['member']}", "kind": "member",
                                      "family": "alexnet", "lr": m["lr"], "epochs": m["epochs"], "seed": m["seed"],
@@ -95,12 +102,14 @@ def plan(main_root: Path, cv_root: Path, folds: int, paths=INPUT_PATHS) -> List[
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Build the job list and write it as a tab-separated plan for the SLURM submit script
     jobs = plan(args.main_root, args.cv_root, args.folds, tuple(args.paths))
     with args.output.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         # "-" marks an empty field: bash's read collapses consecutive tabs
         writer.writerows({k: ("-" if v == "" else v) for k, v in job.items()} for job in jobs)
+    # Report how many jobs of each kind were planned
     kinds = {k: sum(j["kind"] == k for j in jobs) for k in ("train", "svm", "member", "combine")}
     print(f"{len(jobs)} CV jobs ({kinds}) written to {args.output}", file=sys.stderr)
     return 0

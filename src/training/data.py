@@ -42,19 +42,23 @@ def load_manifest(
     the validation split and every other development case the train split.
     """
     df = read_csv(manifest)
+    # Normalise split names and reject anything other than train/validation/test
     df["split"] = df["split"].str.strip().str.lower()
     unknown = sorted(set(df["split"]) - set(SPLIT_NAMES))
     if unknown:
         raise ValueError(f"Unexpected split values in {manifest}: {unknown}")
+    # CV run: replace the fixed split with this fold's train/validation assignment
     splits = SPLIT_NAMES
     if cv_folds is not None:
         df = cv_split(df, cv_folds, fold)
         splits = ("train", "validation")
 
+    # Matched scope: keep only full images that also have an ROI crop, so both paths see the same images
     if input_path == "full" and full_scope == "matched":
         roi_paths = set(read_csv(roi_manifest)["relative_path"])
         df = df[df["relative_path"].isin(roi_paths)].reset_index(drop=True)
 
+    # No case may appear in two splits; smoke runs keep 2 images per class per split
     verify_no_case_leakage(df.to_dict("records"), GROUP_COLUMN)
     if smoke:
         df = df.groupby(["split", LABEL_COLUMN], sort=False).head(2).reset_index(drop=True)
@@ -64,14 +68,17 @@ def load_manifest(
 
 def cv_split(df: pd.DataFrame, cv_folds: Path, fold: Optional[int]) -> pd.DataFrame:
     """Development rows only; ``fold`` becomes validation, the other folds train."""
+    # Case-to-fold table; the requested fold must exist in it
     folds = read_csv(cv_folds).set_index(GROUP_COLUMN)["fold"].astype(int)
     if fold not in set(folds):
         raise ValueError(f"Fold {fold} is not in {cv_folds} (folds {sorted(set(folds))})")
+    # Drop the test rows and make sure every development case has a fold
     df = df[df["split"] != "test"].copy()
     assigned = df[GROUP_COLUMN].map(folds)
     if assigned.isna().any():
         missing = sorted(set(df.loc[assigned.isna(), GROUP_COLUMN]))
         raise ValueError(f"{len(missing)} development cases have no fold in {cv_folds}: {missing[:5]}")
+    # The held-out fold becomes validation, all other folds train
     df["split"] = ["validation" if f == fold else "train" for f in assigned]
     return df.reset_index(drop=True)
 
@@ -81,9 +88,11 @@ def class_names(df: pd.DataFrame) -> List[str]:
 
 
 def check_class_coverage(df: pd.DataFrame, splits: Sequence[str] = SPLIT_NAMES) -> None:
+    # All 7 wound classes must be present overall
     classes = class_names(df)
     if len(classes) != EXPECTED_CLASSES:
         raise ValueError(f"Expected {EXPECTED_CLASSES} classes, found {len(classes)}: {classes}")
+    # ...and in every split checked, otherwise per-class metrics are undefined
     for split in splits:
         missing = set(classes) - set(df.loc[df["split"] == split, LABEL_COLUMN])
         if missing:
@@ -97,6 +106,7 @@ def resolve_image_paths(df: pd.DataFrame, input_path: str, image_root: Path) -> 
     """Resolve every row to an image file, failing with the full list of missing rows."""
     paths: List[Path] = []
     missing: List[str] = []
+    # Crop paths name the ROI crop file directly; full images are looked up in the raw photo tree
     for row in df.to_dict("records"):
         if input_path in CROP_INPUT_PATHS:
             candidate: Optional[Path] = image_root / row["roi_relative_path"]
@@ -104,6 +114,7 @@ def resolve_image_paths(df: pd.DataFrame, input_path: str, image_root: Path) -> 
                 candidate = None
         else:
             candidate = find_source_image(image_root, row)
+        # Collect every missing image so one error lists them all
         if candidate is None:
             missing.append(row.get("roi_relative_path") if input_path in CROP_INPUT_PATHS else row["relative_path"])
         else:
@@ -117,6 +128,7 @@ def prepare_rows(df: pd.DataFrame, input_path: str, image_root: Path) -> Tuple[p
     """Add resolved image paths and integer labels; return the rows and the class list."""
     classes = class_names(df)
     paths = resolve_image_paths(df, input_path, image_root)
+    # Attach the absolute path, the path relative to the image root and the class index (sorted names)
     df = df.assign(
         image_path=paths,
         image_relative_path=[p.relative_to(image_root).as_posix() for p in paths],
@@ -126,8 +138,10 @@ def prepare_rows(df: pd.DataFrame, input_path: str, image_root: Path) -> Tuple[p
 
 
 def load_image(path: Path, max_side: Optional[int] = None) -> Image.Image:
+    # Decode, apply the EXIF orientation and convert to RGB
     with Image.open(path) as opened:
         image = ImageOps.exif_transpose(opened).convert("RGB")
+    # Optionally shrink in place so the longest side is max_side (keeps the aspect ratio)
     if max_side is not None:
         image.thumbnail((max_side, max_side), Image.Resampling.BICUBIC)
     return image
@@ -150,11 +164,13 @@ class ManifestImageDataset(Dataset):
         threads: int = 8,
         weights: Optional[Sequence[float]] = None,
     ) -> None:
+        # Keep paths, labels, optional per-sample loss weights and the transform
         self.paths = list(paths)
         self.labels = list(labels)
         self.weights = None if weights is None else [float(w) for w in weights]
         self.transform = transform
         self.cache: Optional[List[Image.Image]] = None
+        # Decode and shrink every image once, in parallel threads, and keep them in memory
         if cache_side is not None:
             with ThreadPoolExecutor(max_workers=max(1, threads)) as pool:
                 self.cache = list(pool.map(lambda p: load_image(p, cache_side), self.paths))
@@ -163,6 +179,7 @@ class ManifestImageDataset(Dataset):
         return len(self.paths)
 
     def __getitem__(self, idx: int):
+        # Cached image or decode from disk, then transform; per-box training also returns the weight
         image = self.cache[idx] if self.cache is not None else load_image(self.paths[idx])
         if self.weights is not None:
             return self.transform(image), self.labels[idx], self.weights[idx]

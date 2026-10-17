@@ -17,6 +17,7 @@ from src.data.validate_metadata import (
 
 
 def test_canonical_classes_count():
+    # Exactly the seven wound classes of the thesis
     assert len(CANONICAL_CLASSES) == 7
     expected = [
         "contusion",
@@ -31,6 +32,7 @@ def test_canonical_classes_count():
 
 
 def test_validate_metadata_synthetic_pass():
+    # Eight images of seven cases covering every class, mixing raw and canonical label spellings
     df = pd.DataFrame(
         {
             "pseudonimized_id": [1, 1, 2, 3, 4, 5, 6, 7],
@@ -57,6 +59,7 @@ def test_validate_metadata_synthetic_pass():
             ],
         }
     )
+    # Validation passes with the right counts and adds the canonical label and image path columns
     val_df, report = validate_metadata(df)
     assert report["status"] == "passed"
     assert len(report["errors"]) == 0
@@ -68,6 +71,7 @@ def test_validate_metadata_synthetic_pass():
 
 
 def test_validate_metadata_missing_class():
+    # A single image, so six classes are missing
     df = pd.DataFrame(
         {
             "pseudonimized_id": [1],
@@ -75,12 +79,14 @@ def test_validate_metadata_missing_class():
             "wound_label": ["cut"],
         }
     )
+    # Validation fails and says a required class is missing
     _, report = validate_metadata(df)
     assert report["status"] == "failed"
     assert any("missing required canonical class" in err.lower() for err in report["errors"])
 
 
 def test_validate_metadata_actual_output():
+    # The committed report for the real metadata passed with the expected totals
     report_path = Path("data/metadata_validation_report.json")
     assert report_path.exists(), "metadata validation report must exist"
 
@@ -95,6 +101,7 @@ def test_validate_metadata_actual_output():
 
 
 if __name__ == "__main__":
+    # Allow running without pytest
     test_canonical_classes_count()
     test_validate_metadata_synthetic_pass()
     test_validate_metadata_missing_class()

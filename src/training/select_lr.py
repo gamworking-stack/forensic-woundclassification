@@ -44,12 +44,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def read_grid_run(folder: Path, lr: str) -> Dict[str, Any]:
     """Best-epoch validation scores of one finished grid run."""
+    # The run must have finished and been trained with the expected learning rate
     for name in ("best.pt", "validation_predictions.csv", "run_config.json"):
         if not (folder / name).is_file():
             raise FileNotFoundError(f"{folder} has no {name}; has its tuning run finished?")
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     if float(config["lr"]) != float(lr):
         raise ValueError(f"{folder} was trained with lr={config['lr']}, expected {lr}")
+    # Best-epoch validation scores come from best.pt
     best = load_checkpoint(folder / "best.pt", torch.device("cpu"))
     return {
         "lr": lr,
@@ -70,6 +72,7 @@ def choose(runs: List[Dict[str, Any]]) -> int:
 
 def resume_args(config: Dict[str, Any], num_workers: Optional[int], device: str) -> List[str]:
     """train.py arguments that reproduce a finished run, resumed, with the test split included."""
+    # The run's own settings, resumed, without --skip-test so the test split gets predicted
     args = [
         "--family", config["family"],
         "--input-path", config["input_path"],
@@ -90,6 +93,7 @@ def resume_args(config: Dict[str, Any], num_workers: Optional[int], device: str)
         "--device", device,
         "--resume",
     ]
+    # Add the on/off flags that differ from the defaults
     for flag, enabled in (("--no-class-weights", not config["class_weights"]),
                           ("--no-pretrained", not config["pretrained"]),
                           ("--no-cache", not config["cache"]),
@@ -101,11 +105,14 @@ def resume_args(config: Dict[str, Any], num_workers: Optional[int], device: str)
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Scenario folder and its tuning log
     scenario = args.scenario_dir
     log = Logger(scenario / "tuning.log")
 
+    # Read every grid run and pick the winner
     runs = [read_grid_run(scenario / f"lr_{lr}", lr) for lr in args.lrs]
     winner = choose(runs)
+    # Write the choice to tuning_summary.csv before the test split is touched
     summary = pd.DataFrame([{**{k: r[k] for k in ("lr", "best_epoch", "validation_macro_f1",
                                                   "validation_loss", "output_dir")},
                              "selected": i == winner} for i, r in enumerate(runs)])
@@ -119,6 +126,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # The test split is touched for the first time here, after the learning rate has been chosen.
     train_main(resume_args(chosen["config"], args.num_workers, args.device))
 
+    # Copy the chosen run's config, history and predictions into the scenario folder (test last)
     source = Path(chosen["output_dir"])
     for name in COPIED_FILES:
         shutil.copy2(source / name, scenario / name)

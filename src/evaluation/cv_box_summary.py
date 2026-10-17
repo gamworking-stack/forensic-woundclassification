@@ -46,6 +46,7 @@ def photo_frame_of(path: Path) -> pd.DataFrame:
 
 def box_out_of_fold(cv_root: Path, family: str, folds: int) -> Tuple[List[Dict[str, float]], Predictions]:
     """Per-fold photo-level summary metrics and the joined photo-level out-of-fold predictions."""
+    # Each fold: average crops into photo rows, save them beside the fold and score them
     frames, per_fold = [], []
     for path in fold_predictions(cv_root, BOX_PATH, family, folds):
         frame = photo_frame_of(path)
@@ -54,15 +55,18 @@ def box_out_of_fold(cv_root: Path, family: str, folds: int) -> Tuple[List[Dict[s
         frame.to_csv(tmp, index=False)
         p = load_predictions(tmp, "validation")
         per_fold.append(summary_metrics(p.y_true, p.y_pred, p.probs))
+    # Join the folds into one out-of-fold photo file and reload it, which re-checks it
     oof_path = cv_root / BOX_PATH / family / "oof_photo_predictions.csv"
     pd.concat(frames, ignore_index=True).to_csv(oof_path, index=False)
     return per_fold, load_predictions(oof_path, "validation")  # a photo in two folds raises here
 
 
 def table_row(family: str, folds: int, per_fold: List[Dict[str, float]], oof: Predictions) -> Dict:
+    # Pooled out-of-fold size and metrics first
     pooled = compute_metrics(oof)
     row = {"scenario_id": BOX_SCENARIO_IDS[(BOX_PATH, family)], "family": family, "input_path": BOX_PATH,
            "folds": folds, "oof_photos": pooled["n_images"], "oof_cases": pooled["n_cases"]}
+    # Mean and SD over folds, the pooled value and each fold's value
     for m in FOLD_METRICS:
         values = np.array([f[m] for f in per_fold])
         row[f"{m}_mean"], row[f"{m}_sd"] = float(values.mean()), float(values.std(ddof=1))
@@ -73,9 +77,11 @@ def table_row(family: str, folds: int, per_fold: List[Dict[str, float]], oof: Pr
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Outputs go to <cv-box-root>/summary
     out = args.cv_box_root / "summary"
     out.mkdir(parents=True, exist_ok=True)
 
+    # Per family: per-box out-of-fold photos and row, plus the T12b full and union predictions
     rows, box, reference = [], {}, {path: {} for path in INPUT_PATHS}
     for family in FAMILY_ORDER:
         per_fold, oof = box_out_of_fold(args.cv_box_root, family, args.folds)
@@ -87,12 +93,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                 raise FileNotFoundError(f"{main_oof} not found; run cv_summary.py on the T12b run first")
             reference[path][family] = load_predictions(main_oof, "validation")
 
+    # Pairing needs the per-box photos to match the T12b union run's images per case and class
     signature = reference["roi"][FAMILY_ORDER[0]].signature()
     for family, p in box.items():
         if p.signature() != signature:
             raise ValueError(f"box/{family} out-of-fold photos differ from the T12b union ROI run "
                              "(cases or images per class); paired comparison is undefined")
 
+    # CV table, then per-box against union ROI and full image, plus the union forest plot
     pd.DataFrame(rows).to_csv(out / "cv_box_table.csv", index=False)
     versus_union = compare(reference["roi"], box, args.bootstrap, args.seed)
     versus_full = compare(reference["full"], box, args.bootstrap, args.seed)
@@ -102,6 +110,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                      "CV out-of-fold macro-F1 (photo level): per-box minus union ROI",
                      out / "cv_box_vs_union_macro_f1.png", labels=("union ROI", "per-box ROI"))
 
+    # Print each family's fold mean, then the macro-F1 differences of both comparisons
     for r in rows:
         print(f"{r['scenario_id']} {r['family']:<20} box macro-F1 {r['macro_f1_mean']:.3f} ± {r['macro_f1_sd']:.3f} "
               f"(out of fold {r['macro_f1_oof']:.3f}, {r['oof_cases']} cases)", flush=True)

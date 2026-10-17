@@ -41,22 +41,26 @@ class Predictions:
 
 def load_predictions(path: Path, split: str) -> Predictions:
     """Read a prediction CSV and check it is internally consistent."""
+    # Read the file and check the ID columns and at least one probability column are there
     df = pd.read_csv(path, dtype={c: str for c in ID_COLUMNS})
     missing = [c for c in ID_COLUMNS if c not in df.columns]
     prob_columns = [c for c in df.columns if c.startswith(PROB_PREFIX)]
     if missing or not prob_columns:
         raise ValueError(f"{path}: missing columns {missing or 'prob_*'}")
+    # Each image must appear once, and every row must belong to the requested split
     if df["relative_path"].duplicated().any():
         dupes = df.loc[df["relative_path"].duplicated(), "relative_path"].tolist()
         raise ValueError(f"{path}: duplicate rows for {dupes[:5]}")
     if not (df["split"] == split).all():
         raise ValueError(f"{path}: expected split {split!r}, found {sorted(df['split'].unique())}")
 
+    # Class names come from the prob_* columns; every true class needs one of them
     classes = [c[len(PROB_PREFIX):].replace("_", " ") for c in prob_columns]
     unknown = sorted(set(df["true_class"]) - set(classes))
     if unknown:
         raise ValueError(f"{path}: true classes {unknown} have no probability column")
 
+    # Probabilities must form a distribution per row and agree with the stored predicted class
     probs = df[prob_columns].to_numpy(dtype=float)
     if (probs < 0).any() or not np.allclose(probs.sum(axis=1), 1.0, atol=1e-4):
         raise ValueError(f"{path}: probabilities must be non-negative and sum to 1 per row")
@@ -64,6 +68,7 @@ def load_predictions(path: Path, split: str) -> Predictions:
     if not (argmax == df["predicted_class"].to_numpy()).all():
         raise ValueError(f"{path}: predicted_class differs from the argmax of the probabilities")
 
+    # Encode classes as column indices; renormalise probabilities to remove rounding drift
     index = {name: i for i, name in enumerate(classes)}
     return Predictions(
         frame=df,
@@ -76,6 +81,7 @@ def load_predictions(path: Path, split: str) -> Predictions:
 
 
 def one_vs_rest_auc(y_true: np.ndarray, probs: np.ndarray, k: int) -> float:
+    # AUC is undefined when the class is all or none of the rows, so report NaN then
     positives = y_true == k
     if positives.all() or not positives.any():
         return float("nan")
@@ -90,6 +96,7 @@ def roc_points(p: Predictions) -> pd.DataFrame:
     mean of the class curves interpolated on the union of their false positive rates; its ``auc``
     is the mean of the class AUCs, the same number as ``macro_auc`` in the metrics JSON.
     """
+    # One ROC curve per class that has both positives and negatives
     frames, class_curves, aucs = [], [], []
     for k, name in enumerate(p.classes):
         auc = one_vs_rest_auc(p.y_true, p.probs, k)
@@ -101,6 +108,7 @@ def roc_points(p: Predictions) -> pd.DataFrame:
         aucs.append(auc)
     if not class_curves:
         raise ValueError("No class has both positives and negatives; ROC curves are undefined")
+    # Macro curve: average the class curves on the union of their false positive rates
     grid = np.unique(np.concatenate([fpr for fpr, _ in class_curves]))
     mean_tpr = np.mean([np.interp(grid, fpr, tpr) for fpr, tpr in class_curves], axis=0)
     frames.append(pd.DataFrame({"curve": "macro average", "fpr": grid, "tpr": mean_tpr,
@@ -115,10 +123,12 @@ def summary_metrics(y_true: np.ndarray, y_pred: np.ndarray, probs: np.ndarray) -
     test set) this is the usual definition; in a bootstrap resample that misses a rare class
     the missing class is left out rather than counted as zero.
     """
+    # Per-class recall and F1 over the classes present in this sample only
     present = np.unique(y_true)
     _, recall, f1, _ = precision_recall_fscore_support(
         y_true, y_pred, labels=present, zero_division=0
     )
+    # Balanced accuracy is the mean per-class recall
     return {
         "accuracy": float(accuracy_score(y_true, y_pred)),
         "balanced_accuracy": float(recall.mean()),
@@ -128,6 +138,7 @@ def summary_metrics(y_true: np.ndarray, y_pred: np.ndarray, probs: np.ndarray) -
 
 
 def compute_metrics(p: Predictions) -> Dict[str, float]:
+    # Per-class scores and AUCs over every class, with support for the weighted averages
     labels = list(range(len(p.classes)))
     precision, recall, f1, support = precision_recall_fscore_support(
         p.y_true, p.y_pred, labels=labels, zero_division=0
@@ -135,6 +146,7 @@ def compute_metrics(p: Predictions) -> Dict[str, float]:
     aucs = np.array([one_vs_rest_auc(p.y_true, p.probs, k) for k in labels])
     weights = support / support.sum()
     present = support > 0
+    # Summary metrics plus macro / weighted averages, log loss and the set's size
     return {
         **summary_metrics(p.y_true, p.y_pred, p.probs),
         "macro_precision": float(precision[present].mean()),
@@ -151,10 +163,12 @@ def compute_metrics(p: Predictions) -> Dict[str, float]:
 
 def class_report(p: Predictions) -> pd.DataFrame:
     """Class-wise precision, recall, F1 and AUC with image and case support, plus averages."""
+    # Per-class precision, recall and F1 at the predicted labels
     labels = list(range(len(p.classes)))
     precision, recall, f1, support = precision_recall_fscore_support(
         p.y_true, p.y_pred, labels=labels, zero_division=0
     )
+    # One row per class, with its image support and the number of distinct cases
     rows = []
     for k, name in enumerate(p.classes):
         mask = p.y_true == k
@@ -167,6 +181,7 @@ def class_report(p: Predictions) -> pd.DataFrame:
             "support_images": int(support[k]),
             "support_cases": int(len(set(p.cases[mask]))),
         })
+    # Macro (plain mean) and support-weighted average rows appended at the bottom
     table = pd.DataFrame(rows)
     totals = {"support_images": int(support.sum()), "support_cases": int(len(set(p.cases)))}
     weights = table["support_images"] / table["support_images"].sum()
@@ -183,10 +198,12 @@ def confusion_table(p: Predictions) -> pd.DataFrame:
 
 def bootstrap_draws(p: Predictions, n_resamples: int = 2000, seed: int = 42) -> Dict[str, np.ndarray]:
     """Summary metrics on resamples of cases drawn with replacement; a case's images stay together."""
+    # Index each case's images so a resample can take a case's images together
     rng = np.random.default_rng(seed)
     case_ids = np.array(sorted(set(p.cases)))
     rows_of = [np.flatnonzero(p.cases == c) for c in case_ids]
     draws: Dict[str, List[float]] = {name: [] for name in BOOTSTRAP_METRICS}
+    # Resample cases with replacement and recompute the summary metrics; silence warnings on rare-class gaps
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for _ in range(n_resamples):
@@ -201,6 +218,7 @@ def bootstrap_draws(p: Predictions, n_resamples: int = 2000, seed: int = 42) -> 
 def case_bootstrap(p: Predictions, n_resamples: int = 2000, seed: int = 42,
                    level: float = 0.95) -> Dict[str, Dict[str, float]]:
     """Percentile confidence intervals from the case-level bootstrap."""
+    # Percentile interval per metric, dropping resamples where the metric was undefined
     tail = (1.0 - level) / 2 * 100
     result = {}
     for name, values in bootstrap_draws(p, n_resamples, seed).items():

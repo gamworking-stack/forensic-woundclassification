@@ -96,9 +96,11 @@ def parse_args() -> argparse.Namespace:
 
 def load_metadata(file_path: Path) -> pd.DataFrame:
     """Load metadata from CSV or Excel file."""
+    # Fail early if the metadata file is missing
     if not file_path.exists():
         raise FileNotFoundError(f"Input metadata file does not exist: {file_path}")
 
+    # Read Excel or CSV depending on the file extension
     suffix = file_path.suffix.lower()
     if suffix in (".xlsx", ".xls"):
         # If excel, prefer 'modified' or first sheet
@@ -125,6 +127,7 @@ def validate_metadata(
     Returns the validated dataframe (with canonical columns added) and
     the validation report dictionary.
     """
+    # Errors fail the validation; warnings are reported but do not block it
     errors: List[str] = []
     warnings: List[str] = []
 
@@ -134,6 +137,7 @@ def validate_metadata(
         if col not in df.columns:
             errors.append(f"Missing required column: '{col}'")
 
+    # Stop here without the required columns, since every later check needs them
     if errors:
         return df, {
             "status": "failed",
@@ -161,6 +165,7 @@ def validate_metadata(
         raw_clean = str(val).strip().lower()
         return LABEL_NORMALIZATION_MAP.get(raw_clean, None)
 
+    # Map every raw label to its canonical class; unknown labels stay empty and are reported as errors
     df["canonical_wound_label"] = df["wound_label"].apply(map_label)
     unmapped = df[df["canonical_wound_label"].isnull()]["wound_label"].unique().tolist()
     if unmapped:
@@ -185,6 +190,7 @@ def validate_metadata(
     dup_mask = df["filename"].duplicated(keep=False)
     dup_count = int(df["filename"].duplicated().sum())
     dup_details: List[Dict[str, Any]] = []
+    # List every repeated filename with the cases and labels it appears under
     if dup_count > 0:
         dup_filenames = df[df["filename"].duplicated()]["filename"].unique().tolist()
         for fname in dup_filenames:
@@ -209,6 +215,7 @@ def validate_metadata(
         if image_root.exists():
             image_existence_checked = True
             missing_paths = []
+            # Look for each image under its canonical label folder, its raw label folder or the root
             for _, row in df.iterrows():
                 fname = str(row["filename"])
                 label_dir = row["canonical_wound_label"]
@@ -220,6 +227,7 @@ def validate_metadata(
                 ]
                 if not any(c.exists() for c in candidates):
                     missing_paths.append(fname)
+            # Warn with the number of images found in none of those places
             missing_images_count = len(missing_paths)
             if missing_images_count > 0:
                 warnings.append(
@@ -242,11 +250,14 @@ def validate_metadata(
     case_wound_counts = df.groupby("pseudonimized_id").size()
     multi_image_cases = int((case_wound_counts > 1).sum())
 
+    # Cases whose wounds span more than one class
     case_label_counts = df.groupby("pseudonimized_id")["canonical_wound_label"].nunique()
     multi_label_cases = int((case_label_counts > 1).sum())
 
+    # The run passes only when no error was recorded
     status = "passed" if len(errors) == 0 else "failed"
 
+    # Collect the counts, warnings and errors into the JSON report
     report: Dict[str, Any] = {
         "status": status,
         "total_records": total_images,
@@ -271,6 +282,7 @@ def validate_metadata(
 def main() -> int:
     args = parse_args()
 
+    # Load the metadata file; a read error ends the run with exit code 1
     print(f"Loading metadata from: {args.input_csv}")
     try:
         df = load_metadata(args.input_csv)
@@ -278,6 +290,7 @@ def main() -> int:
         print(f"Error loading file: {e}", file=sys.stderr)
         return 1
 
+    # Run every check and get the canonicalised table with its report
     print(f"Validating {len(df)} records...")
     validated_df, report = validate_metadata(df, image_root=args.image_root)
 
@@ -290,6 +303,7 @@ def main() -> int:
         json.dump(report, f, indent=2, ensure_ascii=False)
     print(f"Saved validation report to: {args.output_report}")
 
+    # On failure print the errors and exit before writing the validated CSV
     if report["status"] != "passed":
         print("Validation FAILED with the following errors:", file=sys.stderr)
         for err in report["errors"]:
@@ -300,6 +314,7 @@ def main() -> int:
     validated_df.to_csv(args.output_csv, index=False)
     print(f"Saved validated metadata ({len(validated_df)} rows) to: {args.output_csv}")
 
+    # Print the totals and the per-class image and case counts
     print("\n--- Validation Summary ---")
     print(f"Total Records: {report['total_records']}")
     print(f"Total Cases:   {report['total_unique_cases']}")
@@ -309,6 +324,7 @@ def main() -> int:
         case_cnt = report["per_class_case_counts"].get(cls, 0)
         print(f"  - {cls:<20}: {cnt:>4} images ({case_cnt:>3} cases)")
 
+    # List the warnings, which do not fail the validation
     if report["warnings"]:
         print(f"\nWarnings ({len(report['warnings'])}):")
         for warn in report["warnings"]:

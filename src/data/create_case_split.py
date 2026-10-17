@@ -72,6 +72,7 @@ def parse_args() -> argparse.Namespace:
 
 def target_group_counts(number_of_groups: int, ratios: np.ndarray = DEFAULT_SPLIT_RATIOS) -> np.ndarray:
     """Calculate target number of cases in train, val, and test partitions."""
+    # Train and validation get rounded shares; test takes the remainder so the counts add up
     train_count = int(round(number_of_groups * ratios[0]))
     val_count = int(round(number_of_groups * ratios[1]))
     test_count = number_of_groups - train_count - val_count
@@ -83,6 +84,7 @@ def load_dataset(input_csv: Path, group_col: str, label_col: str, expected_class
     if not input_csv.exists():
         raise FileNotFoundError(f"Input file not found: {input_csv}")
 
+    # Read every column as text so case IDs stay strings and empty cells stay empty
     df = pd.read_csv(input_csv, dtype=str, keep_default_na=False)
 
     # If label_col not in df but fallback available
@@ -92,11 +94,13 @@ def load_dataset(input_csv: Path, group_col: str, label_col: str, expected_class
         else:
             raise KeyError(f"Label column '{label_col}' not found in {input_csv}")
 
+    # Both columns must exist; strip stray whitespace from their values
     for col in (group_col, label_col):
         if col not in df.columns:
             raise KeyError(f"Required column '{col}' not found in {input_csv}")
         df[col] = df[col].astype(str).str.strip()
 
+    # Refuse to split if the number of classes differs from the expected count
     labels = sorted(df[label_col].unique())
     if len(labels) != expected_classes:
         raise ValueError(f"Expected {expected_classes} classes, but found {len(labels)}: {labels}")
@@ -108,9 +112,11 @@ def build_group_matrices(
     df: pd.DataFrame, group_col: str, label_col: str
 ) -> Tuple[np.ndarray, List[str], np.ndarray, np.ndarray]:
     """Build group-by-class contingency matrices for images and case presence."""
+    # Sorted case IDs and class names fix the row and column order of the matrices
     group_ids = np.array(sorted(df[group_col].unique()), dtype=object)
     labels = sorted(df[label_col].unique())
 
+    # Images per case and class, then a 0/1 matrix of whether a case has that class at all
     image_counts = (
         pd.crosstab(df[group_col], df[label_col])
         .reindex(index=group_ids, columns=labels, fill_value=0)
@@ -127,12 +133,14 @@ def candidate_score(
     ratios: np.ndarray = DEFAULT_SPLIT_RATIOS,
 ) -> float:
     """Evaluate discrepancy between candidate split distributions and ideal ratios."""
+    # Expected per-split counts: each split ratio times the class totals
     image_totals = image_matrix.sum(axis=0)
     presence_totals = presence_matrix.sum(axis=0)
 
     expected_images = ratios[:, None] * image_totals[None, :]
     expected_presence = ratios[:, None] * presence_totals[None, :]
 
+    # Observed image and case counts per split and class under this assignment
     observed_images = np.vstack(
         [image_matrix[assignment == i].sum(axis=0) for i in range(3)]
     )
@@ -158,26 +166,31 @@ def find_optimal_split(
     trials: int = 50_000,
 ) -> Tuple[np.ndarray, float, np.ndarray]:
     """Search candidate random group assignments and pick the one with lowest loss."""
+    # Fixed case counts per split and a seeded generator so the search is reproducible
     counts = target_group_counts(number_of_groups)
     rng = np.random.default_rng(seed)
     best_assignment: np.ndarray | None = None
     best_score = float("inf")
 
+    # Block boundaries in a shuffled order: first train, then validation, the rest test
     train_end = counts[0]
     val_end = train_end + counts[1]
 
     for _ in range(trials):
+        # Shuffle the cases and cut the order into train, validation and test blocks
         order = rng.permutation(number_of_groups)
         assignment = np.empty(number_of_groups, dtype=np.int8)
         assignment[order[:train_end]] = 0
         assignment[order[train_end:val_end]] = 1
         assignment[order[val_end:]] = 2
 
+        # Keep the assignment with the lowest imbalance score seen so far
         score = candidate_score(assignment, image_matrix, presence_matrix)
         if score < best_score:
             best_score = score
             best_assignment = assignment.copy()
 
+    # Fail if no trial met the every-class-in-every-split constraint
     if best_assignment is None or not np.isfinite(best_score):
         raise RuntimeError(
             "No candidate split placed all 7 classes in every partition. "
@@ -189,11 +202,13 @@ def find_optimal_split(
 
 def verify_leakage(df: pd.DataFrame, group_col: str, expected_group_counts: np.ndarray) -> None:
     """Assert zero leakage across train, val, and test subsets."""
+    # Each case must appear in exactly one split
     splits_per_group = df.groupby(group_col)["split"].nunique()
     if not splits_per_group.eq(1).all():
         leaked_groups = splits_per_group[splits_per_group > 1].index.tolist()
         raise AssertionError(f"Case leakage detected! Groups spanning multiple splits: {leaked_groups}")
 
+    # The case sets of the three splits must be pairwise disjoint
     group_sets = {
         name: set(df.loc[df["split"] == name, group_col])
         for name in SPLIT_NAMES
@@ -203,6 +218,7 @@ def verify_leakage(df: pd.DataFrame, group_col: str, expected_group_counts: np.n
     assert group_sets["train"].isdisjoint(group_sets["test"]), "Leakage between train and test!"
     assert group_sets["validation"].isdisjoint(group_sets["test"]), "Leakage between validation and test!"
 
+    # Case counts per split must match the planned targets
     observed = np.array([len(group_sets[name]) for name in SPLIT_NAMES])
     if not np.array_equal(observed, expected_group_counts):
         raise AssertionError(f"Group count mismatch: observed={observed}, expected={expected_group_counts}")
@@ -210,9 +226,11 @@ def verify_leakage(df: pd.DataFrame, group_col: str, expected_group_counts: np.n
 
 def generate_summary(df: pd.DataFrame, group_col: str, label_col: str) -> pd.DataFrame:
     """Generate detailed breakdown of image counts and unique cases per split and class."""
+    # Image and case counts for every split and class pair
     img_counts = df.groupby(["split", label_col], observed=True).size().rename("image_count")
     grp_counts = df.groupby(["split", label_col], observed=True)[group_col].nunique().rename("case_count")
 
+    # Add each split's share of the class's images and cases, in percent
     summary = pd.concat([img_counts, grp_counts], axis=1).reset_index()
     summary["image_pct_in_class"] = summary.groupby(label_col)["image_count"].transform(
         lambda s: s / s.sum() * 100.0
@@ -225,6 +243,7 @@ def generate_summary(df: pd.DataFrame, group_col: str, label_col: str) -> pd.Dat
 
 def main() -> int:
     args = parse_args()
+    # Load the validated metadata and build the case-by-class matrices
     print(f"Loading validated metadata: {args.input_csv}")
     df = load_dataset(args.input_csv, args.group_column, args.label_column, args.expected_classes)
 
@@ -236,10 +255,12 @@ def main() -> int:
         f"Optimizing grouped split across {len(group_ids)} cases, {len(labels)} classes "
         f"(seed={args.seed}, trials={args.trials:,})..."
     )
+    # Search for the most class-balanced assignment of cases to splits
     assignment, score, group_counts = find_optimal_split(
         len(group_ids), image_matrix, presence_matrix, seed=args.seed, trials=args.trials
     )
 
+    # One row per case with its split name
     group_df = pd.DataFrame({
         args.group_column: group_ids,
         "split": [SPLIT_NAMES[idx] for idx in assignment],
@@ -265,6 +286,7 @@ def main() -> int:
     group_df.to_csv(assignment_path, index=False)
     summary_df.to_csv(summary_path, index=False)
 
+    # Write the JSON report: settings, score, and case and image counts per split
     split_img_counts = split_df["split"].value_counts().to_dict()
 
     report: Dict[str, Any] = {
@@ -290,6 +312,7 @@ def main() -> int:
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 
+    # Print the allocation and where the files were saved
     print("\n--- Split Generation Summary ---")
     print(f"Total Rows:     {len(split_df):,}")
     print(f"Total Cases:    {len(group_ids):,}")

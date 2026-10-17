@@ -40,6 +40,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def scenario_folder(root: Path, input_path: str, family: str) -> Path:
+    # The scenario must already have been evaluated (test predictions and metrics)
     folder = root / input_path / family
     for name in ("test_predictions.csv", "test_metrics.json"):
         if not (folder / name).is_file():
@@ -52,6 +53,7 @@ def summary_table(root: Path) -> pd.DataFrame:
     rows = []
     for (input_path, family), scenario_id in sorted(SCENARIO_IDS.items(), key=lambda kv: kv[1]):
         folder = scenario_folder(root, input_path, family)
+        # Copy the size and headline metrics, then the low/high bounds of each interval
         m = json.loads((folder / "test_metrics.json").read_text(encoding="utf-8"))
         row = {"scenario_id": scenario_id, "family": family, "input_path": input_path,
                "test_images": m["n_images"], "test_cases": m["n_cases"],
@@ -65,9 +67,11 @@ def summary_table(root: Path) -> pd.DataFrame:
 
 def load_pairs(root: Path) -> Dict[str, Tuple[Predictions, Predictions]]:
     """(full, roi) test predictions per family; all 16 must share the same test cases."""
+    # Load the full and ROI test predictions of every family
     pairs = {family: tuple(load_predictions(scenario_folder(root, path, family) / "test_predictions.csv", "test")
                            for path in INPUT_PATHS)
              for family in FAMILY_ORDER}
+    # Pairing by case needs every file to cover the same test cases
     reference = set(pairs[FAMILY_ORDER[0]][0].cases)
     for family, preds in pairs.items():
         for path, p in zip(INPUT_PATHS, preds):
@@ -84,6 +88,7 @@ def bootstrap_p(draws: np.ndarray) -> float:
 
 def holm(p_values: List[float]) -> List[float]:
     """Holm step-down adjusted p-values, in the input order."""
+    # Walk p-values from smallest up, scaling by the remaining count and keeping the running max
     order = np.argsort(p_values)
     adjusted = np.empty(len(p_values))
     running = 0.0
@@ -99,6 +104,7 @@ def paired_draws(pairs: Dict[str, Tuple[Predictions, Predictions]], n_resamples:
 
     Each resample draws one set of test cases and scores every family's two prediction files on it.
     """
+    # Shared case list, and each file's row indices per case so a resample keeps a case's images together
     families = list(pairs)
     case_ids = np.array(sorted(set(pairs[families[0]][0].cases)))
     rows_of = {(f, k): [np.flatnonzero(pairs[f][k].cases == c) for c in case_ids]
@@ -110,7 +116,9 @@ def paired_draws(pairs: Dict[str, Tuple[Predictions, Predictions]], n_resamples:
             return summary_metrics(p.y_true, p.y_pred, p.probs)
         return summary_metrics(p.y_true[idx], p.y_pred[idx], p.probs[idx])
 
+    # Scores on the real test set of both sides
     observed = {f: (scores(f, 0), scores(f, 1)) for f in families}
+    # Each resample draws one case set and stores ROI - full for every family and metric
     draws = {(f, m): [] for f in families for m in METRICS}
     rng = np.random.default_rng(seed)
     with warnings.catch_warnings():
@@ -130,6 +138,7 @@ def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
 
     ``precomputed`` is ``paired_draws``' result for the same pairs, to reuse its resamples.
     """
+    # Reuse the draws when given, so several tables can share one set of resamples
     families = list(pairs)
     observed, draws = precomputed if precomputed is not None else paired_draws(pairs, n_resamples, seed)
     case_ids = np.array(sorted(set(pairs[families[0]][0].cases)))
@@ -138,14 +147,17 @@ def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
     for m in METRICS:
         family_rows = []
         for f in families:
+            # Observed difference, 95% percentile interval and p-value, skipping undefined resamples
             d = np.array(draws[(f, m)])
             d = d[~np.isnan(d)]
             full, roi = observed[f][0][m], observed[f][1][m]
             family_rows.append({"family": f, "metric": m, "full": full, "roi": roi, "difference": roi - full,
                                 "ci_low": float(np.percentile(d, 2.5)), "ci_high": float(np.percentile(d, 97.5)),
                                 "p_value": bootstrap_p(d), "n_cases": len(case_ids), "resamples": len(d)})
+        # Holm adjustment across the eight families of this metric
         for row, adjusted in zip(family_rows, holm([r["p_value"] for r in family_rows])):
             row["p_holm"] = adjusted
+        # Pooled row: mean difference over families, its interval from the per-resample family means
         pooled = np.nanmean(np.array([draws[(f, m)] for f in families]), axis=0)
         pooled = pooled[~np.isnan(pooled)]
         rows += family_rows + [{
@@ -156,6 +168,7 @@ def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
             "ci_low": float(np.percentile(pooled, 2.5)), "ci_high": float(np.percentile(pooled, 97.5)),
             "p_value": bootstrap_p(pooled), "p_holm": np.nan, "n_cases": len(case_ids), "resamples": len(pooled),
         }]
+    # Fixed column order for the output table
     columns = ["family", "metric", "full", "roi", "difference", "ci_low", "ci_high",
                "p_value", "p_holm", "n_cases", "resamples"]
     return pd.DataFrame(rows, columns=columns)
@@ -164,9 +177,11 @@ def paired_comparison(pairs: Dict[str, Tuple[Predictions, Predictions]],
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     root = args.experiments_root
+    # Outputs go to <experiments-root>/summary
     out = root / "summary"
     out.mkdir(parents=True, exist_ok=True)
 
+    # Summary table, paired comparison and the macro-F1 forest plot
     table = summary_table(root)
     table.to_csv(out / "summary_table.csv", index=False)
     comparison = paired_comparison(load_pairs(root), args.bootstrap, args.seed)
@@ -174,6 +189,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     plot_full_vs_roi(comparison[comparison["metric"] == "macro_f1"], POOLED,
                      "Test macro-F1: ROI minus full image", out / "full_vs_roi_macro_f1.png")
 
+    # Print the macro-F1 differences per family
     for row in comparison[comparison["metric"] == "macro_f1"].to_dict("records"):
         print(f"{row['family']:<22} ROI-full {row['difference']:+.3f} [{row['ci_low']:+.3f}, {row['ci_high']:+.3f}] "
               f"p={row['p_value']:.3f} holm={row['p_holm']:.3f}", flush=True)

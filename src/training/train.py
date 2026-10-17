@@ -69,6 +69,7 @@ def compute_class_weights(train_labels: np.ndarray, num_classes: int,
 
     With ``sample_weight`` (T17 photo weights) the frequency is the weighted count, i.e. photos.
     """
+    # Class counts (photo-weighted for per-box crops), inverted and scaled to mean 1
     counts = np.bincount(train_labels, weights=sample_weight, minlength=num_classes).astype(float)
     inverse = 1.0 / counts
     return torch.tensor(inverse / inverse.mean(), dtype=torch.float32)
@@ -76,14 +77,17 @@ def compute_class_weights(train_labels: np.ndarray, num_classes: int,
 
 def main(argv: Optional[List[str]] = None) -> int:
     cfg = parse_args(argv)
+    # Output folder and run log
     out = cfg.output_dir
     out.mkdir(parents=True, exist_ok=True)
     log = Logger(out / "train.log")
 
+    # Seed, device and the family's input size
     seed_everything(cfg.seed)
     device = resolve_device(cfg.device)
     image_size = cfg.image_size or input_size(cfg.family)
 
+    # Load the scenario's rows (CV fold split if given) and resolve image paths and labels
     df = load_manifest(cfg.manifest, cfg.input_path, cfg.full_scope, cfg.roi_manifest, cfg.smoke,
                        cfg.cv_folds, cfg.fold)
     df, classes = prepare_rows(df, cfg.input_path, cfg.image_root)
@@ -92,6 +96,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     per_box = cfg.input_path in PHOTO_INPUT_PATHS
     train_labels = df.loc[df["split"] == "train", "label_index"].to_numpy()
     train_weights = photo_weights(manifest_photos(df[df["split"] == "train"])) if per_box else None
+    # Cross-entropy with inverse-frequency class weights (unless turned off) and label smoothing
     class_weights = compute_class_weights(train_labels, len(classes), train_weights)
     criterion = nn.CrossEntropyLoss(
         weight=class_weights.to(device) if cfg.class_weights else None,
@@ -100,6 +105,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     def make_loader(split: str, train: bool, generator: Optional[torch.Generator] = None
                     ) -> Tuple[pd.DataFrame, DataLoader]:
+        # One split's dataset: augmentation only for train, photo weights only for per-box train
         rows = df[df["split"] == split]
         dataset = ManifestImageDataset(
             rows["image_path"].tolist(),
@@ -109,6 +115,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             threads=max(cfg.num_workers, 4),
             weights=photo_weights(manifest_photos(rows)) if per_box and train else None,
         )
+        # Shuffle only for training; seeded workers and generator keep the batch order reproducible
         loader = DataLoader(
             dataset,
             batch_size=cfg.batch_size,
@@ -123,6 +130,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         return rows, loader
 
+    # Record the run's settings, class weights, data counts and provenance
     run_config = {
         **cfg.to_json(),
         "image_size": image_size,
@@ -141,12 +149,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     with (out / "run_config.json").open("w", encoding="utf-8") as f:
         json.dump(run_config, f, indent=2, ensure_ascii=False)
 
+    # With --resume, restore history and early-stopping state from last.pt; note if training is done
     last_path, best_path = out / "last.pt", out / "best.pt"
     state = load_checkpoint(last_path, device) if cfg.resume and last_path.exists() else None
     history: List[Dict[str, Any]] = state["history"] if state else []
     stopper = EarlyStopping(**state["early_stopping"]) if state else EarlyStopping(cfg.patience)
     finished = stopper.stopped or len(history) >= cfg.max_epochs
 
+    # Pretrained backbone with a new head for the wound classes
     model = build_model(cfg.family, len(classes), cfg.pretrained).to(device)
     log(f"{cfg.family} | {cfg.input_path} | {device} | {image_size}px | "
         f"images {run_config['images_per_split']} | cases {run_config['cases_per_split']}")
@@ -154,10 +164,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     if finished:
         log(f"Training already finished at epoch {len(history)} (best epoch {stopper.best_epoch}).")
     else:
+        # AdamW and a seeded generator for the training loader's shuffling
         optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
         generator = torch.Generator()
         generator.manual_seed(cfg.seed)
         start_epoch, elapsed_before = 1, 0.0
+        # Resuming: restore weights, optimiser, RNG streams and generator, and continue the clock
         if state:
             model.load_state_dict(state["model"])
             optimizer.load_state_dict(state["optimizer"])
@@ -167,16 +179,19 @@ def main(argv: Optional[List[str]] = None) -> int:
             elapsed_before = history[-1]["elapsed_minutes"]
             log(f"Resuming from epoch {start_epoch}")
 
+        # Loaders for training and validation
         _, train_loader = make_loader("train", True, generator)
         val_rows, val_loader = make_loader("validation", False)
         started = time.time()
         for epoch in range(start_epoch, cfg.max_epochs + 1):
+            # Train one epoch, then score it on validation
             train_loss, train_y, train_pred = train_one_epoch(model, train_loader, criterion, optimizer, device)
             val_loss, val_y, val_probs = predict(model, val_loader, criterion, device)
             train_m = classification_metrics(train_y, train_pred, len(classes))
             if per_box:  # selection metric on photo level: mean of each photo's crop probabilities
                 _, val_y, val_probs = photo_mean(manifest_photos(val_rows), val_y, val_probs)
             val_m = classification_metrics(val_y, val_probs.argmax(axis=1), len(classes))
+            # One history row per epoch, saved to CSV and logged right away
             row = {
                 "model": cfg.family,
                 "epoch": epoch,
@@ -191,6 +206,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             pd.DataFrame(history, columns=HISTORY_COLUMNS).to_csv(out / "training_history.csv", index=False)
             log(json.dumps(row))
 
+            # New best on validation: save best.pt with its scores
             if stopper.step(epoch, val_m["macro_f1"], val_loss):
                 save_checkpoint(best_path, {
                     "model": model.state_dict(),
@@ -200,6 +216,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     "family": cfg.family,
                     "classes": classes,
                 })
+            # Always save last.pt with everything needed to resume exactly
             save_checkpoint(last_path, {
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
@@ -209,18 +226,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "rng": capture_rng(),
                 "generator": generator.get_state(),
             })
+            # Stop once patience has run out
             if stopper.stopped:
                 log(f"Early stopping {cfg.family} at epoch {epoch}; "
                     f"best validation macro-F1={stopper.best_f1:.6f} at epoch {stopper.best_epoch}")
                 break
         del train_loader, val_loader  # shut down persistent workers before predicting
 
+    # Splits to predict; nothing to do if a finished run already wrote them
     prediction_splits = ("validation",) if cfg.skip_test else ("validation", "test")
     prediction_paths = {split: out / f"{split}_predictions.csv" for split in prediction_splits}
     if finished and all(p.exists() for p in prediction_paths.values()):
         log("Prediction files already present; nothing to do.")
         return 0
 
+    # Load the best (or last, for fixed-epoch CV) weights
     chosen = load_checkpoint(best_path if cfg.checkpoint == "best" else last_path, device)
     model.load_state_dict(chosen["model"])
     # The test split is loaded here for the first time, after training has ended.

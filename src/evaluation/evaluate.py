@@ -51,6 +51,7 @@ ARM_BASE = {"4Z": 33, "4P": 57, "4F": 81}
 
 
 def arm_scenario_ids(arm: str) -> Dict[Tuple[str, str], str]:
+    # Each arm owns 24 IDs: 8 families for union ROI, then 8 for box, then 8 for crop
     base = ARM_BASE[arm]
     return {(path, family): f"S{base + 8 * k + i:02d}"
             for k, path in enumerate(("roi", BOX_PATH, CROP_PATH)) for i, family in enumerate(FAMILY_ORDER)}
@@ -73,14 +74,17 @@ def evaluate_scenario(run_dir: Path, title: str, n_resamples: int, seed: int) ->
     """Write all metric files for one scenario; return its test metrics."""
     results: Dict[str, Any] = {}
     for split in SPLITS:
+        # Headline metrics; only the test split gets case-bootstrap confidence intervals
         p = load_predictions(run_dir / f"{split}_predictions.csv", split)
         metrics: Dict[str, Any] = {"scenario": title, "split": split, **compute_metrics(p)}
         if split == "test":
             metrics["confidence_intervals"] = case_bootstrap(p, n_resamples, seed)
             metrics["bootstrap"] = {"unit": "case", "resamples": n_resamples, "seed": seed, "level": 0.95}
+        # Metrics JSON and the class-wise report next to the prediction files
         with (run_dir / f"{split}_metrics.json").open("w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=2)
         class_report(p).to_csv(run_dir / f"{split}_classification_report.csv", index=False)
+        # Confusion matrix and ROC curves, each saved as CSV and as a figure
         table = confusion_table(p)
         table.to_csv(run_dir / f"{split}_confusion_matrix.csv")
         plot_confusion_matrix(table, f"{title} | {split}", run_dir / f"{split}_confusion_matrix.png")
@@ -96,6 +100,7 @@ def find_scenarios(root: Path) -> List[Tuple[str, str, Path]]:
 
     Only direct children count, so ensemble member folders one level deeper are skipped.
     """
+    # Look in each input-path folder for family folders holding both split prediction files
     found = []
     for input_path in (*INPUT_PATHS, BOX_PATH, CROP_PATH):
         base = root / input_path
@@ -109,6 +114,7 @@ def find_scenarios(root: Path) -> List[Tuple[str, str, Path]]:
 
 def check_same_test_set(scenarios: List[Tuple[str, str, Path]]) -> None:
     """Every scenario must be tested on the same cases with the same images per class."""
+    # Images per (case, class) of each scenario's test file, compared with the first one
     signatures = {
         f"{input_path}/{family}": load_predictions(folder / "test_predictions.csv", "test").signature()
         for input_path, family, folder in scenarios
@@ -122,14 +128,17 @@ def check_same_test_set(scenarios: List[Tuple[str, str, Path]]) -> None:
 
 
 def evaluate_all(root: Path, n_resamples: int, seed: int, arm: Optional[str] = None) -> pd.DataFrame:
+    # Find the scenarios and refuse to go on if their test sets differ
     scenarios = find_scenarios(root)
     if not scenarios:
         raise FileNotFoundError(f"No scenario folders with prediction files under {root}")
     check_same_test_set(scenarios)
 
+    # Scenario IDs: the T19 arm's range, or the main, box and crop studies
     ids = arm_scenario_ids(arm) if arm else {**SCENARIO_IDS, **BOX_SCENARIO_IDS, **CROP_SCENARIO_IDS}
     rows = []
     for input_path, family, folder in scenarios:
+        # Evaluate each scenario and keep its test summary for the index
         scenario_id = ids.get((input_path, family), "")
         title = f"{scenario_id} {family} ({input_path})".strip()
         test = evaluate_scenario(folder, title, n_resamples, seed)
@@ -150,17 +159,21 @@ def evaluate_all(root: Path, n_resamples: int, seed: int, arm: Optional[str] = N
         })
         print(f"{title}: test macro-F1 {test['macro_f1']:.3f} [{ci['low']:.3f}, {ci['high']:.3f}]", flush=True)
 
+    # Scenarios already evaluated, to spot the expected ones still missing
     done = {(r["input_path"], r["family"]) for r in rows}
     # List the missing scenarios of each study present in this root (main S01-S16, box S17-S24, crop S25-S32).
     expected = {**(SCENARIO_IDS if any(p in INPUT_PATHS for p, _ in done) else {}),
                 **(BOX_SCENARIO_IDS if any(p == BOX_PATH for p, _ in done) else {}),
                 **(CROP_SCENARIO_IDS if any(p == CROP_PATH for p, _ in done) else {})}
+    # For a T19 arm, expect every family of each path that has at least one run
     if arm:
         expected = {key: sid for key, sid in ids.items() if any(p == key[0] for p, _ in done)}
+    # Add a 'missing' row for each expected scenario without prediction files
     for (input_path, family), scenario_id in expected.items():
         if (input_path, family) not in done:
             rows.append({"scenario_id": scenario_id, "input_path": input_path, "family": family,
                          "status": "missing"})
+    # Sort by scenario ID (unnumbered ones last) and write evaluation_index.csv
     index = pd.DataFrame(rows)
     index["sort_key"] = index["scenario_id"].replace("", "S99")
     index = index.sort_values(["sort_key", "input_path", "family"]).drop(columns="sort_key")
@@ -170,11 +183,13 @@ def evaluate_all(root: Path, n_resamples: int, seed: int, arm: Optional[str] = N
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # One scenario folder: evaluate it and print its test macro-F1
     if args.run_dir is not None:
         test = evaluate_scenario(args.run_dir, args.run_dir.name, args.bootstrap, args.seed)
         ci = test["confidence_intervals"]["macro_f1"]
         print(f"{args.run_dir}: test macro-F1 {test['macro_f1']:.3f} [{ci['low']:.3f}, {ci['high']:.3f}]")
         return 0
+    # Whole run: evaluate every scenario and report how many were evaluated or missing
     index = evaluate_all(args.experiments_root, args.bootstrap, args.seed, args.arm)
     counts = index["status"].value_counts().to_dict()
     print(f"Evaluated {counts.get('evaluated', 0)} scenarios, missing {counts.get('missing', 0)}; "

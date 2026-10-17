@@ -23,6 +23,7 @@ class PadToSquare:
         width, height = image.size
         if width == height:
             return image
+        # Paste the image centred on a square canvas of the fill colour
         side = max(width, height)
         canvas = Image.new("RGB", (side, side), self.fill)
         canvas.paste(image, ((side - width) // 2, (side - height) // 2))
@@ -44,7 +45,9 @@ class AddGaussianNoise:
 
 def build_transforms(image_size: int, train: bool) -> T.Compose:
     """Eval: pad, resize, normalize. Train adds the proposal's augmentations (no hue/saturation)."""
+    # Always pad to square first so the resize keeps the aspect ratio
     steps = [PadToSquare(), T.Resize((image_size, image_size))]
+    # Training: flips, small rotation, mild square zoom-in crop and brightness/contrast jitter
     if train:
         steps += [
             T.RandomHorizontalFlip(),
@@ -53,6 +56,7 @@ def build_transforms(image_size: int, train: bool) -> T.Compose:
             T.RandomResizedCrop(image_size, scale=(0.85, 1.0), ratio=(1.0, 1.0)),
             T.ColorJitter(brightness=0.2, contrast=0.2),
         ]
+    # To a [0, 1] tensor; training adds Gaussian noise; then ImageNet normalisation
     steps.append(T.ToTensor())
     if train:
         steps.append(AddGaussianNoise())

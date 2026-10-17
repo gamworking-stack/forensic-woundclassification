@@ -57,6 +57,7 @@ def crop_scenarios():
 # 1. Files -----------------------------------------------------------------------------------------
 
 def check_files(report: Report, root: Path) -> None:
+    # Each scenario must hold every expected file, and each figure must be a real PNG
     for sid, family in crop_scenarios():
         folder = root / CROP_PATH / family
         missing = [n for n in SCENARIO_FILES if not (folder / n).is_file()]
@@ -64,6 +65,7 @@ def check_files(report: Report, root: Path) -> None:
         report.add("files", f"{sid} crop/{family}", not missing and not bad_png,
                    f"missing {missing}, not PNG {bad_png}" if missing or bad_png
                    else f"{len(SCENARIO_FILES)} files incl. 4 figures")
+    # The run-wide index and summary table must exist too
     for name in SUMMARY_FILES:
         report.add("files", name, (root / name).is_file())
 
@@ -71,6 +73,7 @@ def check_files(report: Report, root: Path) -> None:
 # 2. Test set --------------------------------------------------------------------------------------
 
 def check_test_set(report: Report, root: Path, assignments: Dict[str, str], manifest: Path) -> None:
+    # The manifest's test crops, which every scenario must be tested on
     rows = pd.read_csv(manifest, dtype=str, keep_default_na=False)
     expected = sorted(rows.loc[rows["split"].str.strip().str.lower() == "test", "roi_relative_path"])
     differ = []
@@ -78,6 +81,7 @@ def check_test_set(report: Report, root: Path, assignments: Dict[str, str], mani
         folder = root / CROP_PATH / family
 
         def run(folder=folder, sid=sid, family=family) -> None:
+            # Per split: only that split's cases, and crop-level rows (no photo column)
             for split in SPLITS:
                 p = load_predictions(folder / f"{split}_predictions.csv", split)
                 wrong = sorted({c for c in p.cases if assignments.get(c) != split})
@@ -86,6 +90,7 @@ def check_test_set(report: Report, root: Path, assignments: Dict[str, str], mani
                            f"{len(set(p.cases))} cases, {len(p.cases)} crops"
                            + (f"; not {split}: {wrong[:5]}" if wrong else "")
                            + ("; photo column present (photo-level scoring)" if photo else ""))
+                # The test file must hold exactly the manifest's test crops
                 if split == "test" and sorted(p.frame["relative_path"]) != expected:
                     differ.append(family)
         report.guard("test set", f"{sid} crop/{family}", run)
@@ -96,6 +101,7 @@ def check_test_set(report: Report, root: Path, assignments: Dict[str, str], mani
 # 3. Selection -------------------------------------------------------------------------------------
 
 def check_selection(report: Report, root: Path) -> None:
+    # Run the T16 selection check that fits each family: lr grid, SVM tuning or ensemble
     for sid, family in crop_scenarios():
         folder, item = root / CROP_PATH / family, f"{sid} crop/{family}"
 
@@ -107,6 +113,7 @@ def check_selection(report: Report, root: Path) -> None:
             else:
                 check_ensemble(report, folder, item)
         report.guard("selection", item, run)
+    # Every trained network must select per crop and train without loss weights
     configs = [read_json(p) for p in root.glob(f"{CROP_PATH}/*/*/run_config.json")]
     units = Counter((c.get("selection_unit"), c.get("loss_weights")) for c in configs)
     report.add("selection", "trained networks select per crop, without loss weights",
@@ -116,6 +123,7 @@ def check_selection(report: Report, root: Path) -> None:
 # 4. Budget ----------------------------------------------------------------------------------------
 
 def check_budget(report: Report, root: Path, main_root: Path) -> None:
+    # Gather every per-crop network's config and one config of the main run
     crop = [read_json(p) for p in sorted(root.glob(f"{CROP_PATH}/*/*/run_config.json"))]
     main = [read_json(p) for p in sorted(main_root.glob("*/*/lr_*/run_config.json"))[:1]]
     for key in BUDGET_KEYS:
@@ -123,10 +131,12 @@ def check_budget(report: Report, root: Path, main_root: Path) -> None:
             values = Counter(json.dumps(c.get(key) is not None) for c in crop)
             report.add("budget", key, set(values) == {"true"}, f"class weights set in {dict(values)} networks")
             continue
+        # Every other budget setting: one value over all networks, equal to the main run's
         values = Counter(json.dumps(c.get(key)) for c in crop)
         same_as_main = not main or json.dumps(main[0].get(key)) in values
         report.add("budget", key, len(values) == 1 and same_as_main,
                    f"{dict(values)} over {len(crop)} networks; main {json.dumps(main[0].get(key)) if main else '?'}")
+    # Record which code version trained them (a NOTE, not a pass/fail check)
     commits = Counter((c.get("git_commit", "?")[:7], c.get("git_dirty")) for c in crop)
     report.add("budget", "code version (commit, dirty)", None, str(dict(commits)))
 
@@ -134,6 +144,7 @@ def check_budget(report: Report, root: Path, main_root: Path) -> None:
 # 5. Numbers ---------------------------------------------------------------------------------------
 
 def check_numbers(report: Report, root: Path, n_boot: int) -> None:
+    # Recompute each scenario's metrics from its predictions and compare with the saved metrics files
     rows = []
     for sid, family in crop_scenarios():
         folder = root / CROP_PATH / family
@@ -144,6 +155,7 @@ def check_numbers(report: Report, root: Path, n_boot: int) -> None:
                 fresh = compute_metrics(p)
                 saved = read_json(folder / f"{split}_metrics.json")
                 off = [k for k, v in fresh.items() if not close(v, saved[k])]
+                # On test, redo the bootstrap intervals with the saved seed and build the summary row
                 if split == "test":
                     if n_boot:
                         boot = saved["bootstrap"]
@@ -156,10 +168,13 @@ def check_numbers(report: Report, root: Path, n_boot: int) -> None:
                            f"macro-F1 {fresh['macro_f1']:.4f}" + (f"; differ: {off}" if off else ""))
         report.guard("numbers", f"{sid} crop/{family}", run)
 
+    # Then the run-wide tables
     def tables() -> None:
+        # evaluation_index.csv: 8 evaluated scenarios in S25-S32 order
         index = pd.read_csv(root / "evaluation_index.csv")
         report.add("numbers", "evaluation_index.csv", len(index) == 8 and (index["status"] == "evaluated").all()
                    and index["scenario_id"].tolist() == [sid for sid, _ in crop_scenarios()], f"{len(index)} rows")
+        # crop_summary_table.csv: same families and every numeric column equal to the rebuilt rows
         saved = pd.read_csv(root / "summary" / "crop_summary_table.csv")
         fresh = pd.DataFrame(rows)
         numeric = [c for c in fresh.columns if c not in ("scenario_id", "family")]
@@ -171,17 +186,20 @@ def check_numbers(report: Report, root: Path, n_boot: int) -> None:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # Read the arguments and the frozen case-to-split assignment
     args = parse_args(argv)
     root = args.crop_root
     assignments = dict(pd.read_csv(args.split_assignments, dtype=str).itertuples(index=False, name=None))
     report = Report()
 
+    # Run checks 1-5 in order; guarded checks turn errors into FAIL rows instead of crashing
     check_files(report, root)
     check_test_set(report, root, assignments, args.crop_manifest)
     check_selection(report, root)
     report.guard("budget", "configs", lambda: check_budget(report, root, args.main_root))
     check_numbers(report, root, args.bootstrap)
 
+    # Write the report, print counts per check and every non-PASS row; exit 1 on any FAIL
     out = root / "verification"
     out.mkdir(exist_ok=True)
     table = pd.DataFrame(report.rows, columns=["check", "item", "status", "detail"])

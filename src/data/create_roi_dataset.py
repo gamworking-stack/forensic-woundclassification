@@ -126,9 +126,11 @@ def read_manifest(manifest_path: Path, group_col: str) -> List[Dict[str, Any]]:
     if not manifest_path.exists():
         raise FileNotFoundError(f"Manifest not found: {manifest_path}")
 
+    # Read every manifest row as a dict of strings
     with manifest_path.open(newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
 
+    # Check the required columns, then that every split name is known
     required = {group_col, "split", "filename"}
     if not rows or not required.issubset(rows[0].keys()):
         raise ValueError(f"Manifest missing required columns: {required.difference(rows[0].keys() if rows else set())}")
@@ -137,15 +139,18 @@ def read_manifest(manifest_path: Path, group_col: str) -> List[Dict[str, Any]]:
         if row["split"].strip().lower() not in SPLIT_NAMES:
             raise ValueError(f"Unexpected split value: {row['split']!r}")
 
+    # Refuse a manifest where a case spans two splits
     verify_no_case_leakage(rows, group_col)
     return rows
 
 
 def verify_no_case_leakage(rows: List[Dict[str, Any]], group_col: str) -> None:
     """Raise if any case appears in more than one split."""
+    # Collect the case IDs of each split
     groups_by_split: Dict[str, Set[str]] = defaultdict(set)
     for row in rows:
         groups_by_split[str(row["split"]).strip().lower()].add(str(row[group_col]))
+    # Every pair of splits must share no case
     for i, first in enumerate(SPLIT_NAMES):
         for second in SPLIT_NAMES[i + 1:]:
             shared = groups_by_split[first] & groups_by_split[second]
@@ -167,12 +172,15 @@ def parse_yolo_export(
     Returns the normalized class names, the valid boxes per image stem, and every rejected line
     with the reason it was rejected.
     """
+    # Valid boxes per image stem, and the rejected lines with their reasons
     annotations: Dict[str, List[Tuple[str, List[float]]]] = defaultdict(list)
     invalid_lines: List[Dict[str, Any]] = []
     with zipfile.ZipFile(export_path) as archive:
+        # Class names from obj.names, normalised to canonical labels; a line's class ID indexes this list
         names_content = archive.read("obj.names").decode("utf-8-sig")
         labels = [normalize_label(line) for line in names_content.splitlines() if line.strip()]
 
+        # One YOLO label file per image under obj_train_data/
         members = sorted(
             n for n in archive.namelist() if n.startswith("obj_train_data/") and n.endswith(".txt")
         )
@@ -180,10 +188,12 @@ def parse_yolo_export(
             stem = Path(member).stem
             content = archive.read(member).decode("utf-8-sig")
             for line_number, line in enumerate(content.splitlines(), start=1):
+                # Each line is "class cx cy w h" in normalised coordinates; blank lines are skipped
                 parts = line.strip().split()
                 if not parts:
                     continue
 
+                # Record a rejected line with its export, image stem, line number and reason
                 def reject(reason: str) -> None:
                     invalid_lines.append({
                         "annotation_export": export_path.name,
@@ -193,6 +203,7 @@ def parse_yolo_export(
                         "reason": reason,
                     })
 
+                # Reject lines with the wrong field count, an unknown class or a box outside the image
                 if len(parts) != 5:
                     reject("wrong_field_count")
                     continue
@@ -204,6 +215,7 @@ def parse_yolo_export(
                 if any(v < 0 or v > 1 for v in box) or box[2] <= 0 or box[3] <= 0:
                     reject("box_out_of_bounds")
                     continue
+                # Keep the valid box under its image stem with its class name
                 annotations[stem].append((labels[class_id], box))
 
     return labels, annotations, invalid_lines
@@ -211,11 +223,13 @@ def parse_yolo_export(
 
 def compute_union_box(boxes: List[List[float]], width: int, height: int, padding: float) -> Tuple[int, int, int, int]:
     """Compute padded union bounding box in pixel coordinates."""
+    # Convert the normalised centre boxes to pixels and take their enclosing rectangle
     x1 = min((cx - bw / 2.0) * width for cx, cy, bw, bh in boxes)
     y1 = min((cy - bh / 2.0) * height for cx, cy, bw, bh in boxes)
     x2 = max((cx + bw / 2.0) * width for cx, cy, bw, bh in boxes)
     y2 = max((cy + bh / 2.0) * height for cx, cy, bw, bh in boxes)
 
+    # Pad each side by a share of the box size, clipped to the image borders
     pad_x = (x2 - x1) * padding
     pad_y = (y2 - y1) * padding
 
@@ -233,15 +247,18 @@ def find_source_image(image_root: Path, row: Dict[str, Any]) -> Optional[Path]:
     The raw tree is organised by raw ``wound_label`` folder (e.g. ``gsw/``), and some manifest
     filenames omit the extension (``IMG_0235`` for ``IMG_0235.JPG``).
     """
+    # Try the raw label folder, then the canonical label folder, then the root
     fname = str(row["filename"]).strip()
     folders = [str(row.get("wound_label", "")).strip(), str(row.get("canonical_wound_label", "")).strip(), ""]
     for folder in dict.fromkeys(folders):
         directory = image_root / folder if folder else image_root
+        # A filename with an image extension must exist exactly as written
         if Path(fname).suffix.lower() in IMAGE_EXTENSIONS:
             candidate = directory / fname
             if candidate.is_file():
                 return candidate
             continue
+        # Without an extension, accept a single image file with that stem; several are ambiguous
         matches = sorted(
             p for p in directory.glob(f"{glob.escape(fname)}.*")
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
@@ -258,9 +275,11 @@ def load_dimension_cache(reference_manifest: Optional[Path]) -> Dict[Tuple[str, 
 
     Dry runs use this when the raw images live on the HPC cluster rather than on local disk.
     """
+    # No reference manifest means an empty cache
     cache: Dict[Tuple[str, str], Tuple[int, int]] = {}
     if reference_manifest is None or not reference_manifest.exists():
         return cache
+    # Read the reference and key each image's width and height by (label, stem)
     df = pd.read_csv(reference_manifest, dtype=str)
     missing = {"filename", "source_width", "source_height"}.difference(df.columns)
     if missing:
@@ -276,6 +295,7 @@ def resolve_export_files(exports_arg: List[Path]) -> List[Path]:
     Shell globs such as ``task_*_annotations_*.zip`` also match browser re-downloads like
     ``task_17_... (1).zip``; parsing the same archive twice would collide on every annotation.
     """
+    # Collect the zip files given directly or found in the given directories
     candidates: List[Path] = []
     for item in exports_arg:
         item = Path(item).expanduser()
@@ -286,12 +306,14 @@ def resolve_export_files(exports_arg: List[Path]) -> List[Path]:
         else:
             raise FileNotFoundError(f"Annotation export not found: {item}")
 
+    # Keep one file per content hash, preferring the name without a " (n)" suffix
     kept_by_digest: Dict[str, Path] = {}
     for path in candidates:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         kept = kept_by_digest.get(digest)
         if kept is None or (BROWSER_COPY_SUFFIX.search(kept.stem) and not BROWSER_COPY_SUFFIX.search(path.stem)):
             kept_by_digest[digest] = path
+    # Return the kept files in their original order
     kept_paths = set(kept_by_digest.values())
     return [p for p in dict.fromkeys(candidates) if p in kept_paths]
 
@@ -326,14 +348,17 @@ def build_roi_records(
     Live mode: dimensions come from the EXIF-oriented source image and crops are saved under
     ``output_dir/<split>/<label>/``.
     """
+    # Index the manifest rows by (canonical label, filename stem), the key annotations use
     lookup: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
     for row in source_rows:
         lookup[manifest_key(row)].append(row)
     dimensions = dimensions or {}
 
+    # Results, and which export each (label, stem) was annotated in, to catch collisions
     result = RoiBuildResult()
     annotated_in: Dict[Tuple[str, str], str] = {}
 
+    # Record a manifest row that yields no crop, with the reason
     def drop(row: Dict[str, Any], reason: str) -> None:
         result.dropped.append({
             group_col: row[group_col],
@@ -345,20 +370,24 @@ def build_roi_records(
         result.status[f"dropped_{reason}"] += 1
 
     for export in exports:
+        # Parse each export and keep its rejected lines for the summary
         _, annotations, invalid_lines = parse_yolo_export(export)
         result.invalid_annotation_lines.extend(invalid_lines)
         result.status["invalid_annotation_lines"] += len(invalid_lines)
         for stem, labeled_boxes in sorted(annotations.items()):
+            # Group this image's boxes by wound class
             boxes_by_label: Dict[str, List[List[float]]] = defaultdict(list)
             for label, box in labeled_boxes:
                 boxes_by_label[label].append(box)
 
             for label, boxes in boxes_by_label.items():
+                # The same (label, stem) annotated in two exports is an error
                 key = (label, stem)
                 if key in annotated_in:
                     raise ValueError(f"Annotation collision for {key}: {annotated_in[key]} and {export.name}")
                 annotated_in[key] = export.name
 
+                # Find the single manifest row for this annotation; unmatched ones are only counted
                 candidates = lookup.get(key, [])
                 if not candidates:
                     result.unmatched_annotations.append(
@@ -370,6 +399,7 @@ def build_roi_records(
                     raise ValueError(f"Ambiguous manifest match for annotation {key}: {len(candidates)} rows")
                 source_row = candidates[0]
 
+                # Image size: from the EXIF-rotated source image in live mode, else from the dimension cache
                 image: Optional[Image.Image] = None
                 source_relative_path = ""
                 if image_root is not None:
@@ -387,14 +417,17 @@ def build_roi_records(
                     drop(source_row, "missing_dimensions")
                     continue
 
+                # Split name for the crop path; union mode makes one crop from all boxes, individual mode one per box
                 split = source_row["split"].strip().lower()
                 crop_groups = [boxes] if crop_mode == "union" else [[b] for b in boxes]
                 for crop_index, crop_boxes in enumerate(crop_groups, start=1):
+                    # Padded crop box in pixels; drop crops narrower or shorter than the minimum size
                     x1, y1, x2, y2 = compute_union_box(crop_boxes, source_w, source_h, padding)
                     if (x2 - x1) < min_size or (y2 - y1) < min_size:
                         drop(source_row, "small_crop")
                         continue
 
+                    # Crop path is <split>/<label>/<stem>_<suffix>.jpg; save the JPEG only in live mode
                     suffix = "roi" if crop_mode == "union" else f"bbox{crop_index:02d}"
                     roi_relative_path = f"{split}/{safe_folder(label)}/{stem}_{suffix}.jpg"
                     if image is not None and output_dir is not None:
@@ -402,6 +435,7 @@ def build_roi_records(
                         out_path.parent.mkdir(parents=True, exist_ok=True)
                         image.crop((x1, y1, x2, y2)).save(out_path, format="JPEG", quality=95)
 
+                    # Copy the source manifest row (case and split inherited) and add the crop details
                     out_row = dict(source_row)
                     out_row.update({
                         "canonical_wound_label": label,
@@ -422,10 +456,12 @@ def build_roi_records(
                     result.rows.append(out_row)
                     result.status["crops_created"] += 1
 
+    # Manifest rows that no export annotated are dropped as no_annotation
     for row in source_rows:
         if manifest_key(row) not in annotated_in:
             drop(row, "no_annotation")
 
+    # Final counts of manifest rows and rows without a usable annotation
     result.status["manifest_rows"] = len(source_rows)
     result.status["manifest_rows_without_usable_annotation"] = result.status["dropped_no_annotation"]
     return result
@@ -433,6 +469,7 @@ def build_roi_records(
 
 def main() -> int:
     args = parse_args()
+    # Resolve paths and check the mode: a live run needs an existing image root
     manifest_path = args.manifest.resolve()
     output_dir = args.output_dir.resolve()
     group_col = args.group_column
@@ -444,9 +481,11 @@ def main() -> int:
         print(f"Error: image root not found: {args.image_root}", file=sys.stderr)
         return 1
 
+    # Read and validate the case-level split manifest
     print(f"Reading authoritative split manifest: {manifest_path}")
     source_rows = read_manifest(manifest_path, group_col)
 
+    # Resolve the export archives, dropping byte-identical duplicates, and list what is used
     candidate_exports = [Path(p).expanduser() for p in args.exports]
     export_files = resolve_export_files(candidate_exports)
     if not export_files:
@@ -462,6 +501,7 @@ def main() -> int:
     for name in duplicate_exports:
         print(f"  (skipped byte-identical duplicate: {name})")
 
+    # A dry run takes image sizes from the reference manifest instead of reading images
     dimension_cache: Dict[Tuple[str, str], Tuple[int, int]] = {}
     if args.dry_run:
         if not args.reference_manifest.exists():
@@ -471,10 +511,12 @@ def main() -> int:
         dimension_cache = load_dimension_cache(args.reference_manifest)
         print(f"Loaded image dimension cache for {len(dimension_cache)} images from {args.reference_manifest}")
 
+    # Optionally wipe the previous output (live mode only), then make sure the folder exists
     if args.clear_output and output_dir.exists() and not args.dry_run:
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Match annotations to manifest rows and compute (and in live mode save) the crops
     result = build_roi_records(
         source_rows,
         export_files,
@@ -486,14 +528,17 @@ def main() -> int:
         output_dir=None if args.dry_run else output_dir,
         group_col=group_col,
     )
+    # The ROI rows must still keep every case in a single split
     verify_no_case_leakage(result.rows, group_col)
 
+    # Write the ROI manifest, one row per crop
     manifest_out = output_dir / "roi_manifest.csv"
     with manifest_out.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(result.rows[0].keys()) if result.rows else [])
         writer.writeheader()
         writer.writerows(result.rows)
 
+    # Crop and case counts per split and class, and the dropped rows split by reason type
     crops_by_split = dict(Counter(r["split"] for r in result.rows))
     crops_by_class = dict(Counter(r["canonical_wound_label"] for r in result.rows))
     cases_by_split = {
@@ -506,6 +551,7 @@ def main() -> int:
     unannotated = [d for d in result.dropped if d["reason"] == "no_annotation"]
     skipped = [d for d in result.dropped if d["reason"] != "no_annotation"]
 
+    # Settings, counts and every dropped or rejected record, written to crop_summary.json
     summary = {
         "source_manifest": str(manifest_path),
         "image_root": None if args.dry_run else str(args.image_root.resolve()),
@@ -533,6 +579,7 @@ def main() -> int:
     with summary_out.open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
+    # Print the totals and the crops per split and class
     print("\n--- ROI Dataset Preprocessing Summary ---")
     print(f"Total Source Manifest Rows:  {result.status['manifest_rows']:,}")
     print(f"Total ROI Crops Generated:   {result.status['crops_created']:,} across {summary['unique_cases']} cases")
@@ -550,6 +597,7 @@ def main() -> int:
     print(f"\nManifest saved: {manifest_out}")
     print(f"Summary saved:  {summary_out}")
 
+    # Warn when annotated images were skipped, since those are real losses
     if skipped:
         print(f"\nWarning: {len(skipped)} annotated records were skipped; see skipped_records in {summary_out}",
               file=sys.stderr)

@@ -24,6 +24,7 @@ from src.data.create_roi_dataset import (
 
 def write_yolo_zip(path: Path, names, annotations) -> Path:
     """Write a minimal CVAT YOLO 1.1 export: obj.names + obj_train_data/<stem>.txt."""
+    # Class list first, then one label file per image stem
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("obj.names", "\n".join(names) + "\n")
         for stem, lines in annotations.items():
@@ -34,17 +35,20 @@ def write_yolo_zip(path: Path, names, annotations) -> Path:
 def test_resolve_export_files_skips_byte_identical_archives():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
+        # An export, a byte-identical re-download of it, and a genuinely different export
         original = write_yolo_zip(tmp / "task_17.zip", ["scratch"], {"IMG_1": ["0 0.5 0.5 0.2 0.2"]})
         copy = tmp / "task_17 (1).zip"
         copy.write_bytes(original.read_bytes())
         other = write_yolo_zip(tmp / "task_18.zip", ["cut"], {"IMG_2": ["0 0.5 0.5 0.2 0.2"]})
 
+        # The duplicate download is dropped so its boxes are not read twice
         resolved = resolve_export_files([original, copy, other])
 
         assert resolved == [original, other], resolved
 
 
 def test_normalize_label():
+    # CVAT short names map to the canonical class names; canonical names pass through unchanged
     assert normalize_label("cut") == "cut wound"
     assert normalize_label("graze") == "graze wound"
     assert normalize_label("gsw") == "gunshot wound"
@@ -60,6 +64,7 @@ def test_compute_union_box_single_box():
     # pad=0.08: delta_x = 200 * 0.08 = 16.
     # Expected: x1=384, y1=384, x2=616, y2=616.
     box = [[0.5, 0.5, 0.2, 0.2]]
+    # Normalised YOLO box becomes a padded pixel box
     x1, y1, x2, y2 = compute_union_box(box, width=1000, height=1000, padding=0.08)
     assert x1 == 384
     assert y1 == 384
@@ -77,6 +82,7 @@ def test_compute_union_box_multiple_boxes():
         [0.2, 0.2, 0.1, 0.1],
         [0.7, 0.7, 0.2, 0.2],
     ]
+    # One box covering both wounds, padded by 8% of the union's span
     x1, y1, x2, y2 = compute_union_box(boxes, width=1000, height=1000, padding=0.08)
     assert x1 == 98
     assert y1 == 98
@@ -87,6 +93,7 @@ def test_compute_union_box_multiple_boxes():
 def test_compute_union_box_boundary_clamping():
     # Box touching image border
     boxes = [[0.05, 0.05, 0.1, 0.1]]  # x: [0, 100], y: [0, 100]
+    # Padding must not push the box outside the image
     x1, y1, x2, y2 = compute_union_box(boxes, width=1000, height=1000, padding=0.08)
     assert x1 == 0  # clamped to 0
     assert y1 == 0  # clamped to 0
@@ -97,6 +104,7 @@ def test_compute_union_box_boundary_clamping():
 def test_resolve_export_files_prefers_original_name_over_browser_copy():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
+        # Original export plus a browser copy with " (1)" in its name
         original = write_yolo_zip(tmp / "task_17 1.1.zip", ["scratch"], {"IMG_1": ["0 0.5 0.5 0.2 0.2"]})
         copy = tmp / "task_17 1.1 (1).zip"
         copy.write_bytes(original.read_bytes())
@@ -107,22 +115,26 @@ def test_resolve_export_files_prefers_original_name_over_browser_copy():
 
 def test_find_source_image_resolves_raw_label_folder_and_missing_extension():
     with tempfile.TemporaryDirectory() as tmp:
+        # Raw photo folders use the short CVAT label names, not the canonical ones
         root = Path(tmp)
         (root / "cut").mkdir()
         (root / "cut" / "IMG_0235.JPG").write_bytes(b"jpeg")
         (root / "gsw").mkdir()
         (root / "gsw" / "P1010419.JPG").write_bytes(b"jpeg")
 
+        # Manifest rows: one without a file extension, one with, and one whose photo does not exist
         no_extension = {"filename": "IMG_0235", "wound_label": "cut", "canonical_wound_label": "cut wound"}
         with_extension = {"filename": "P1010419.JPG", "wound_label": "gsw", "canonical_wound_label": "gunshot wound"}
         absent = {"filename": "IMG_9999", "wound_label": "cut", "canonical_wound_label": "cut wound"}
 
+        # Both real photos are found; the absent one gives None instead of an error
         assert find_source_image(root, no_extension) == root / "cut" / "IMG_0235.JPG"
         assert find_source_image(root, with_extension) == root / "gsw" / "P1010419.JPG"
         assert find_source_image(root, absent) is None
 
 
 def manifest_row(case_id, filename, wound_label, canonical, split):
+    # Minimal manifest row with the columns the ROI code reads
     return {
         "pseudonimized_id": case_id,
         "wound_id": "1.0",
@@ -142,26 +154,31 @@ SYNTHETIC_MANIFEST = [
 
 def test_build_roi_records_dry_run_inherits_split_and_reports_unannotated():
     with tempfile.TemporaryDirectory() as tmp:
+        # Export with a box for IMG_A and one for IMG_Z, which is not in the manifest
         export = write_yolo_zip(
             Path(tmp) / "task_1.zip",
             ["cut", "scratch"],
             {"IMG_A": ["0 0.5 0.5 0.2 0.2"], "IMG_Z": ["1 0.5 0.5 0.1 0.1"]},
         )
 
+        # Dry run: image sizes are given, so no photos are read or cropped
         result = build_roi_records(
             SYNTHETIC_MANIFEST,
             [export],
             dimensions={("cut wound", "IMG_A"): (1000, 500)},
         )
 
+    # Only IMG_A gets an ROI row, keeping the case, split and class of its source row
     assert len(result.rows) == 1
     row = result.rows[0]
     assert (row["pseudonimized_id"], row["split"], row["canonical_wound_label"]) == ("1", "train", "cut wound")
     # x: 400..600 padded by 16 px; y: 200..300 padded by 8 px
     assert (row["x1"], row["y1"], row["x2"], row["y2"]) == (384, 192, 616, 308)
+    # Source size recorded and the crop path placed under its split and class
     assert (row["source_width"], row["source_height"]) == (1000, 500)
     assert row["roi_relative_path"] == "train/cut wound/IMG_A_roi.jpg"
 
+    # IMG_B has no box, so it is dropped with a reason; IMG_Z is reported as an orphan annotation
     assert [(d["pseudonimized_id"], d["filename"], d["split"], d["reason"]) for d in result.dropped] == [
         ("2", "IMG_B.JPG", "test", "no_annotation")
     ]
@@ -171,25 +188,30 @@ def test_build_roi_records_dry_run_inherits_split_and_reports_unannotated():
 def test_build_roi_records_live_mode_crops_exif_oriented_image_and_drops_missing_source():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
+        # Real photo on disk for IMG_A only; IMG_B's photo is missing
         image_root, output_dir = tmp / "raw", tmp / "roi"
         (image_root / "cut").mkdir(parents=True)
         # Stored portrait 500x1000 with EXIF orientation 6 -> displayed (and annotated) as 1000x500.
         exif = Image.Exif()
         exif[0x0112] = 6
         Image.new("RGB", (500, 1000), "red").save(image_root / "cut" / "IMG_A.JPG", exif=exif)
+        # Both images have boxes
         export = write_yolo_zip(
             tmp / "task_1.zip",
             ["cut", "scratch"],
             {"IMG_A": ["0 0.5 0.5 0.2 0.2"], "IMG_B": ["1 0.5 0.5 0.2 0.2"]},
         )
 
+        # Live run: reads the photo, applies its EXIF rotation and writes the crop
         result = build_roi_records(SYNTHETIC_MANIFEST, [export], image_root=image_root, output_dir=output_dir)
 
+        # Box coordinates and size are in the rotated (displayed) frame the annotator saw
         assert len(result.rows) == 1
         row = result.rows[0]
         assert (row["x1"], row["y1"], row["x2"], row["y2"]) == (384, 192, 616, 308)
         assert (row["source_width"], row["source_height"]) == (1000, 500)
         assert row["source_relative_path"] == "cut/IMG_A.JPG"
+        # Crop on disk has the padded box size; IMG_B is dropped because its photo is missing
         with Image.open(output_dir / "train" / "cut wound" / "IMG_A_roi.jpg") as crop:
             assert crop.size == (232, 116)
         assert [(d["filename"], d["reason"]) for d in result.dropped] == [("IMG_B.JPG", "source_image_missing")]
@@ -199,6 +221,7 @@ def test_build_roi_records_rejects_same_image_annotated_in_two_distinct_exports(
     with tempfile.TemporaryDirectory() as tmp:
         first = write_yolo_zip(Path(tmp) / "task_1.zip", ["cut"], {"IMG_A": ["0 0.5 0.5 0.2 0.2"]})
         second = write_yolo_zip(Path(tmp) / "task_2.zip", ["cut"], {"IMG_A": ["0 0.4 0.4 0.2 0.2"]})
+        # Two different exports both annotate IMG_A; silently picking one must not happen
         try:
             build_roi_records(SYNTHETIC_MANIFEST, [first, second], dimensions={("cut wound", "IMG_A"): (100, 100)})
         except ValueError as error:
@@ -209,6 +232,7 @@ def test_build_roi_records_rejects_same_image_annotated_in_two_distinct_exports(
 
 def test_parse_yolo_export_normalizes_labels_and_skips_invalid_lines():
     with tempfile.TemporaryDirectory() as tmp:
+        # Two valid lines and three broken ones: bad class id, width over 1, too few fields
         export = write_yolo_zip(
             Path(tmp) / "task_1.zip",
             ["gsw", "Penetrating wound (sharp&blunt)"],
@@ -224,11 +248,13 @@ def test_parse_yolo_export_normalizes_labels_and_skips_invalid_lines():
         )
         labels, annotations, invalid_lines = parse_yolo_export(export)
 
+    # Labels are normalised and only the two valid boxes are kept
     assert labels == ["gunshot wound", "penetration wound"]
     assert annotations["IMG_A"] == [
         ("gunshot wound", [0.5, 0.5, 0.2, 0.2]),
         ("penetration wound", [0.3, 0.3, 0.1, 0.1]),
     ]
+    # Each broken line is reported with its line number and why it was skipped
     assert [(i["stem"], i["line_number"], i["reason"]) for i in invalid_lines] == [
         ("IMG_A", 3, "class_id_out_of_range"),
         ("IMG_A", 4, "box_out_of_bounds"),
@@ -245,10 +271,12 @@ AUDIT_FULL = pd.DataFrame([
 
 
 def roi_rows(*filenames):
+    # ROI manifest stand-in: the full-manifest rows of the named images
     return AUDIT_FULL[AUDIT_FULL["filename"].isin(filenames)].copy()
 
 
 def test_audit_identifies_full_images_missing_from_roi():
+    # Image C is missing from the ROI set
     audit = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "B.JPG", "D.JPG"))
 
     assert [(m["pseudonimized_id"], m["filename"], m["split"]) for m in audit.missing_from_roi] == [
@@ -257,11 +285,13 @@ def test_audit_identifies_full_images_missing_from_roi():
     # Case 2 had only this image, so the whole case leaves the ROI path.
     assert audit.missing_from_roi[0]["case_lost_entirely"] is True
 
+    # Losing B still leaves A for case 1, so the case is not lost
     partial = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "C", "D.JPG"))
     assert [(m["filename"], m["case_lost_entirely"]) for m in partial.missing_from_roi] == [("B.JPG", False)]
 
 
 def test_audit_explains_each_missing_image_with_its_crop_drop_reason():
+    # C has a recorded drop reason, B does not
     drop_reasons = {("scratch", "C"): "no_annotation"}
     audit = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "D.JPG"), drop_reasons=drop_reasons)
 
@@ -272,15 +302,18 @@ def test_audit_explains_each_missing_image_with_its_crop_drop_reason():
 
 
 def test_audit_problems_flags_unexplained_losses_but_accepts_explained_ones():
+    # Same loss of C audited with and without its drop reason
     roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
     explained = audit_full_vs_roi(AUDIT_FULL, roi, drop_reasons={("scratch", "C"): "no_annotation"})
     unexplained = audit_full_vs_roi(AUDIT_FULL, roi)
 
+    # Only the unexplained loss counts as a problem
     assert not any("drop reason" in p for p in audit_problems(explained))
     assert any("drop reason" in p and "C" in p for p in audit_problems(unexplained))
 
 
 def test_audit_rejects_manifest_with_unknown_split():
+    # A split name outside train/validation/test must stop the audit
     bad_roi = roi_rows("A.JPG")
     bad_roi["split"] = "holdout"
     try:
@@ -292,6 +325,7 @@ def test_audit_rejects_manifest_with_unknown_split():
 
 
 def test_audit_table_compares_images_and_cases_per_split_and_class():
+    # Retention table rows keyed by (split, class), compared on the count and percentage columns
     table = audit_full_vs_roi(AUDIT_FULL, roi_rows("A.JPG", "B.JPG", "D.JPG")).table
     rows = {(r["split"], r["canonical_wound_label"]): r for r in table.to_dict("records")}
     columns = ["full_images", "roi_images", "image_retention_pct", "full_cases", "roi_cases", "case_retention_pct"]
@@ -299,6 +333,7 @@ def test_audit_table_compares_images_and_cases_per_split_and_class():
     def counts(split, label):
         return tuple(rows[(split, label)][c] for c in columns)
 
+    # Per-cell, per-class and overall totals after losing image C
     assert counts("train", "cut wound") == (2, 2, 100.0, 1, 1, 100.0)
     assert counts("test", "scratch") == (1, 0, 0.0, 1, 0, 0.0)
     assert counts("all", "scratch") == (2, 1, 50.0, 2, 1, 50.0)
@@ -309,6 +344,7 @@ def test_audit_table_compares_images_and_cases_per_split_and_class():
 
 
 def test_audit_reports_roi_rows_that_break_split_inheritance():
+    # Corrupt the ROI rows: D moved to train, B given a different case, plus an image not in the full set
     roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
     roi.loc[roi["filename"] == "D.JPG", "split"] = "train"
     roi.loc[roi["filename"] == "B.JPG", "pseudonimized_id"] = "9"
@@ -316,6 +352,7 @@ def test_audit_reports_roi_rows_that_break_split_inheritance():
 
     audit = audit_full_vs_roi(AUDIT_FULL, pd.concat([roi, stray], ignore_index=True))
 
+    # Each kind of broken inheritance is reported once
     assert sorted((d["filename"], d["type"]) for d in audit.discrepancies) == [
         ("B.JPG", "case_mismatch"),
         ("D.JPG", "split_mismatch"),
@@ -328,20 +365,24 @@ def test_audit_has_no_discrepancies_for_faithful_roi_subset():
 
 
 def test_audit_coverage_reports_missing_classes_and_case_leakage_per_path():
+    # Move one image of case 1 to test so the case sits in two splits
     leaky_roi = roi_rows("A.JPG", "B.JPG", "D.JPG")
     leaky_roi.loc[leaky_roi["filename"] == "B.JPG", "split"] = "test"
 
     coverage = audit_full_vs_roi(AUDIT_FULL, leaky_roi).coverage
 
+    # The full path is clean but has classes missing from some splits
     assert coverage["full"]["leaked_cases"] == []
     assert coverage["full"]["missing_classes"] == {
         "train": ["scratch"], "validation": ["cut wound"], "test": ["cut wound"],
     }
+    # The ROI path reports case 1 as leaked and scratch missing from test
     assert coverage["roi"]["leaked_cases"] == ["1"]
     assert coverage["roi"]["missing_classes"]["test"] == ["scratch"]
 
 
 def test_roi_manifest_integrity():
+    # The committed ROI manifest has the expected images and cases
     manifest_path = Path("data/roi/roi_manifest.csv")
     assert manifest_path.exists(), "data/roi/roi_manifest.csv must exist"
 
@@ -373,6 +414,7 @@ def test_roi_manifest_integrity():
 
 
 def test_crop_summary_json():
+    # The crop summary written by the ROI script must match the frozen counts
     summary_path = Path("data/roi/crop_summary.json")
     assert summary_path.exists(), "data/roi/crop_summary.json must exist"
 
@@ -393,6 +435,7 @@ def test_crop_summary_json():
         assert len(summary["crops_by_split_and_class"][split_name]) == 7, split_name
     assert len(summary["annotation_exports"]) == 7
 
+    # Exactly these six photos had no usable box
     unannotated = {(r["pseudonimized_id"], r["filename"], r["split"]) for r in summary["unannotated_records"]}
     assert unannotated == {
         ("94", "ZZ140321.JPG", "validation"),
@@ -405,11 +448,13 @@ def test_crop_summary_json():
 
 
 def test_full_vs_roi_audit_report():
+    # The committed audit report must match the known state of the data
     report_path = Path("data/audits/full_vs_roi_audit_report.json")
     assert report_path.exists(), "data/audits/full_vs_roi_audit_report.json must exist"
     with open(report_path) as f:
         report = json.load(f)
 
+    # The only images lost to the ROI path are the six unannotated ones
     missing = {(m["pseudonimized_id"], m["filename"], m["canonical_wound_label"], m["split"])
                for m in report["missing_from_roi"]}
     assert missing == {
@@ -420,11 +465,13 @@ def test_full_vs_roi_audit_report():
         ("388", "IMG_3520.JPG", "scratch", "train"),
         ("415", "P1071425", "cut wound", "train"),
     }
+    # Audit passed: every loss explained, no discrepancies, test split down by one image
     assert report["audit_passed"] is True and report["problems"] == []
     assert {m["reason"] for m in report["missing_from_roi"]} == {"no_annotation"}
     assert report["discrepancies"] == []
     assert report["images_by_split"]["test"] == {"full": 158, "roi": 157}
 
+    # Neither path leaks cases or misses a class in any split
     for path_name in ("full", "roi"):
         coverage = report["coverage"][path_name]
         assert coverage["leaked_cases"] == [], path_name
@@ -440,16 +487,19 @@ def test_full_vs_roi_audit_report():
 
 
 def test_full_vs_roi_audit_table_matches_manifests():
+    # Rebuild the audit table's numbers from the two manifests
     full = pd.read_csv("data/splits/case_level_split_manifest.csv", dtype=str)
     roi = pd.read_csv("data/roi/roi_manifest.csv", dtype=str)
     table = pd.read_csv("data/audits/full_vs_roi_audit_table.csv")
 
+    # Overall row: image and case totals equal the manifest counts
     overall = table[(table["split"] == "all") & (table["canonical_wound_label"] == "all")].iloc[0]
     assert (overall["full_images"], overall["roi_images"]) == (len(full), len(roi))
     assert (overall["full_cases"], overall["roi_cases"]) == (
         full["pseudonimized_id"].nunique(), roi["pseudonimized_id"].nunique()
     )
 
+    # Every non-empty (split, class) cell equals the manifest's own count
     grid = table[(table["split"] != "all") & (table["canonical_wound_label"] != "all")]
     for path, df in (("full", full), ("roi", roi)):
         expected = df.groupby(["split", "canonical_wound_label"]).size()
@@ -458,6 +508,7 @@ def test_full_vs_roi_audit_table_matches_manifests():
 
 
 if __name__ == "__main__":
+    # Allow running without pytest: call every test_ function in name order
     tests = [fn for name, fn in sorted(globals().items()) if name.startswith("test_") and callable(fn)]
     for test in tests:
         test()

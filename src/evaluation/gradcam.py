@@ -91,12 +91,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--auto-root", type=Path, default=None, help="T19: the arm's crop folder.")
     parser.add_argument("--auto-manifest", type=Path, default=None, help="T19: the arm's union roi_manifest.csv.")
     args = parser.parse_args(argv)
+    # T19 mode needs its own folders and exactly one of the union or per-box manifests
     if args.auto_arm is not None:
         if args.auto_root is None or args.examples is None or (args.auto_manifest is None) == (args.box_manifest is None):
             parser.error("--auto-arm needs --auto-root, --examples, and --auto-manifest (union) or --box-manifest (box)")
         return args
     if args.auto_root is not None or args.auto_manifest is not None:
         parser.error("--auto-root and --auto-manifest go with --auto-arm")
+    # --all-test needs the per-box and main runs; otherwise the T17 options come as a pair
     if args.all_test:
         if args.box_manifest is None or args.main_root is None or args.examples is not None:
             parser.error("--all-test needs --box-manifest and --main-root, and takes no --examples")
@@ -109,8 +111,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def draw_examples(roi_manifest: Path, per_class: int, seed: int) -> pd.DataFrame:
     """``per_class`` test images per class from distinct cases, drawn once with ``seed``."""
+    # Test rows of the ROI manifest
     rows = pd.read_csv(roi_manifest, dtype=str, keep_default_na=False)
     rows = rows[rows["split"].str.strip().str.lower() == "test"]
+    # Per class, draw distinct cases at random and take each one's first image; 'set' numbers the draws
     rng = np.random.default_rng(seed)
     picked = []
     for label in sorted(rows[LABEL_COLUMN].unique()):
@@ -123,6 +127,7 @@ def draw_examples(roi_manifest: Path, per_class: int, seed: int) -> pd.DataFrame
 
 def all_test_images(roi_manifest: Path, classes: Optional[List[str]]) -> pd.DataFrame:
     """Every test image of ``classes`` (all classes if None); ``set`` numbers the images within a class."""
+    # Test rows of the ROI manifest, limited to the requested classes (which must exist)
     rows = pd.read_csv(roi_manifest, dtype=str, keep_default_na=False)
     rows = rows[rows["split"].str.strip().str.lower() == "test"]
     if classes is not None:
@@ -130,6 +135,7 @@ def all_test_images(roi_manifest: Path, classes: Optional[List[str]]) -> pd.Data
         if unknown:
             raise ValueError(f"No test images of class {unknown}; test classes are {sorted(rows[LABEL_COLUMN].unique())}")
         rows = rows[rows[LABEL_COLUMN].isin(classes)]
+    # Stable order, then number the images within each class
     rows = rows.sort_values([LABEL_COLUMN, "roi_relative_path"]).reset_index(drop=True)
     rows["set"] = rows.groupby(LABEL_COLUMN).cumcount() + 1
     return rows
@@ -138,9 +144,11 @@ def all_test_images(roi_manifest: Path, classes: Optional[List[str]]) -> pd.Data
 def checkpoint_folder(experiments: Path, input_path: str, family: str) -> Path:
     """Folder of the run whose best.pt produced the scenario's reported predictions."""
     scenario = experiments / input_path / family
+    # AlexNet ensemble: the folder of its representative member
     if family == "alexnet_ensemble":
         members = pd.read_csv(scenario / "ensemble_members.csv")
         return Path(members.loc[members["representative"].astype(str) == "True", "output_dir"].item())
+    # Tuned scenario: the folder of the selected trial; otherwise the scenario folder itself
     if (scenario / "tuning_summary.csv").is_file():
         summary = pd.read_csv(scenario / "tuning_summary.csv")
         return Path(summary.loc[summary["selected"].astype(str) == "True", "output_dir"].item())
@@ -156,12 +164,14 @@ def tokens_to_map(tokens: torch.Tensor) -> torch.Tensor:
 
 def grad_cam(model: nn.Module, family: str, x: torch.Tensor) -> Tuple[np.ndarray, np.ndarray]:
     """Grad-CAM for the predicted class, upsampled to ``x`` and scaled to [0, 1]; and the probabilities."""
+    # Forward hook on the target layer keeps its activation and, on backward, its gradient
     store: Dict[str, torch.Tensor] = {}
 
     def hook(_module, _inputs, output):
         store["act"] = output
         output.register_hook(lambda grad: store.__setitem__("grad", grad))
 
+    # Forward pass and backprop from the predicted class's logit; always remove the hook
     handle = TARGET_LAYERS["alexnet" if family == "alexnet_ensemble" else family](model).register_forward_hook(hook)
     try:
         model.zero_grad(set_to_none=True)
@@ -170,11 +180,14 @@ def grad_cam(model: nn.Module, family: str, x: torch.Tensor) -> Tuple[np.ndarray
         logits[0, int(probs.argmax())].backward()
     finally:
         handle.remove()
+    # ViT tokens are reshaped into a patch grid so they can be treated like a CNN feature map
     act, grad = store["act"].detach(), store["grad"].detach()
     if family == "vit_b16":
         act, grad = tokens_to_map(act), tokens_to_map(grad)
+    # Channel weights = mean gradient; the map is the ReLU of the weighted sum of activations
     weights = grad.mean(dim=(2, 3), keepdim=True)
     cam = F.relu((weights * act).sum(dim=1, keepdim=True))
+    # Upsample to the input size and scale to [0, 1] (all zeros if nothing is positive)
     cam = F.interpolate(cam, size=x.shape[-2:], mode="bilinear", align_corners=False)[0, 0]
     peak = cam.max()
     cam = cam / peak if peak > 0 else torch.zeros_like(cam)
@@ -182,6 +195,7 @@ def grad_cam(model: nn.Module, family: str, x: torch.Tensor) -> Tuple[np.ndarray
 
 
 def load_model(folder: Path, family: str, num_classes: int, pretrained: bool, device: torch.device) -> nn.Module:
+    # Build the architecture (AlexNet for the ensemble) and load the scenario's best weights
     model = build_model("alexnet" if family == "alexnet_ensemble" else family, num_classes, pretrained)
     model.load_state_dict(load_checkpoint(folder / "best.pt", device)["model"])
     for module in model.modules():  # in-place activations would overwrite the hooked tensors
@@ -192,43 +206,53 @@ def load_model(folder: Path, family: str, num_classes: int, pretrained: bool, de
 
 def wound_box(row: Dict[str, Any], size: int) -> Optional[Tuple[float, float, float, float]]:
     """The manifest's padded union box in the padded, resized model input (full path)."""
+    # Box and source size from the manifest row; None if the row has no usable box
     try:
         x1, y1, x2, y2, w, h = (float(row[k]) for k in ("x1", "y1", "x2", "y2", "source_width", "source_height"))
     except (KeyError, ValueError):
         return None
+    # Follow PadToSquare (centre padding) and the resize to the model input size
     side = max(w, h)
     dx, dy, s = (side - w) / 2, (side - h) / 2, size / side
     return ((x1 + dx) * s, (y1 + dy) * s, (x2 + dx) * s, (y2 + dy) * s)
 
 
 def mass_in_box(cam: np.ndarray, box) -> Tuple[float, float]:
+    # Undefined without a box or with an empty map
     if box is None or cam.sum() <= 0:
         return float("nan"), float("nan")
+    # Share of the map's mass inside the box, and the box's share of the image area
     x1, y1, x2, y2 = (int(round(v)) for v in box)
     return float(cam[y1:y2, x1:x2].sum() / cam.sum()), float((x2 - x1) * (y2 - y1) / cam.size)
 
 
 def explain(experiments: Path, family: str, input_path: str, examples: pd.DataFrame,
             pretrained: bool, device: torch.device, image_root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    # Checkpoint, run config and model of the scenario
     folder = checkpoint_folder(experiments, input_path, family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     classes, size, root = config["classes"], int(config["image_size"]), image_root or Path(config["image_root"])
     model = load_model(folder, family, len(classes), pretrained, device)
+    # Same preprocessing as training (pad, resize, normalise) and the scenario's reported test predictions
     show = T.Compose([PadToSquare(), T.Resize((size, size))])
     to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
     reported = pd.read_csv(folder / "test_predictions.csv", dtype=str).set_index("relative_path")["predicted_class"]
 
     results = []
+    # Find each example's image: the ROI crop, or the source photo for the full path
     for row in examples.to_dict("records"):
         path = root / row["roi_relative_path"] if input_path == "roi" else find_source_image(root, row)
         if path is None or not Path(path).is_file():
             raise FileNotFoundError(f"{input_path} image for {row['roi_relative_path']} not found under {root}")
         # Same pixels as prediction: the in-memory cache shrinks the longest side to 2 x size first.
         image = show(load_image(Path(path), 2 * size if config.get("cache", True) else None))
+        # Grad-CAM and the predicted class, keyed like the prediction file for the agreement check
         cam, probs = grad_cam(model, family, to_input(image).unsqueeze(0).to(device))
         predicted = classes[int(probs.argmax())]
         key = Path(path).relative_to(root).as_posix()
+        # Full path only: share of the map inside the annotated wound box
         in_box, box_share = mass_in_box(cam, wound_box(row, size)) if input_path == "full" else (np.nan, np.nan)
+        # Keep the numbers plus the image, map and box (underscore keys) for the figures
         results.append({
             "family": family, "input_path": input_path, "set": row["set"], "class": row[LABEL_COLUMN],
             "case": row[GROUP_COLUMN], "image": key, "predicted_class": predicted,
@@ -248,6 +272,7 @@ def mean_of(results: List[Dict[str, Any]], key: str) -> float:
 
 def plot_family(results: List[Dict[str, Any]], family: str, set_index: int, path: Path) -> None:
     """One row per class: full input, full Grad-CAM, ROI input, ROI Grad-CAM."""
+    # One row per class with its full and ROI results from this example set
     labels = sorted({r["class"] for r in results})
     by_key = {(r["class"], r["input_path"]): r for r in results if r["set"] == set_index}
     rows = [(label, {p: by_key.get((label, p)) for p in INPUT_PATHS}) for label in labels]
@@ -257,8 +282,10 @@ def plot_family(results: List[Dict[str, Any]], family: str, set_index: int, path
 def plot_class_crops(full: List[Dict[str, Any]], crops: List[Dict[str, Any]], family: str, label: str,
                      path: Path) -> None:
     """One row per test crop of ``label`` (--all-test): full input and Grad-CAM with the crop's box, crop and Grad-CAM."""
+    # Full-image results by photo, and this class's crops in photo order
     full_by_photo = {r["photo"]: r for r in full if r["class"] == label}
     of_class = sorted((r for r in crops if r["class"] == label), key=lambda r: (int(r["set"]), r["image"]))
+    # Each row pairs the photo's full image (with this crop's box drawn) with the crop itself
     rows = []
     for r in of_class:
         photo = "✔" if r["photo_correct"] else "✘"
@@ -271,24 +298,30 @@ def plot_class_crops(full: List[Dict[str, Any]], crops: List[Dict[str, Any]], fa
 
 def plot_rows(rows: List[Tuple[str, Dict[str, Optional[Dict[str, Any]]]]], title: str, path: Path) -> None:
     """One row per (name, {input path: result}), two columns per path: input and Grad-CAM."""
+    # Grid with an input column and a Grad-CAM column for each input path
     fig, axes = plt.subplots(len(rows), 4, figsize=(8.4, 2.15 * len(rows)), squeeze=False)
     for i, (label, by_path) in enumerate(rows):
         for j, (input_path, r) in enumerate(by_path.items()):
+            # Blank axes; a missing result leaves its cells empty
             image_ax, cam_ax = axes[i, 2 * j], axes[i, 2 * j + 1]
             for ax in (image_ax, cam_ax):
                 ax.set_xticks([]), ax.set_yticks([])
             if r is None:
                 continue
+            # The input, and the input overlaid with the map
             image_ax.imshow(r["_image"])
             cam_ax.imshow(r["_image"])
             cam_ax.imshow(r["_cam"], cmap="inferno", alpha=0.5, vmin=0, vmax=1)
+            # Dashed wound (or crop) box on the map, when there is one
             if r.get("_box") is not None:
                 x1, y1, x2, y2 = r["_box"]
                 cam_ax.add_patch(Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, edgecolor="white",
                                            linewidth=1, linestyle="--"))
+            # Titles: right/wrong mark, predicted class and probability; the row label on the first column
             mark = "✔" if r["correct"] else "✘"
             cam_ax.set_title(f"{mark} {r['predicted_class']} {r['probability']:.2f}", fontsize=7)
             image_ax.set_title(f"{input_path}: {label}" if j == 0 else input_path, fontsize=7)
+    # Shared title, then save and close
     fig.suptitle(title, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -301,12 +334,14 @@ BOX_COLUMNS = 3  # crops shown per photo in the per-box figures
 def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: pd.DataFrame,
                 pretrained: bool, device: torch.device, image_root: Optional[Path] = None) -> List[Dict[str, Any]]:
     """Maps for every crop of each example photo, with crop- and photo-level predictions (T17)."""
+    # Checkpoint, run config, model and preprocessing of the per-box scenario
     folder = checkpoint_folder(experiments, "box", family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     classes, size, root = config["classes"], int(config["image_size"]), image_root or Path(config["image_root"])
     model = load_model(folder, family, len(classes), pretrained, device)
     show = T.Compose([PadToSquare(), T.Resize((size, size))])
     to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
+    # Reported crop predictions, and photo predictions from averaging them, for the agreement checks
     crop_file = pd.read_csv(folder / "test_predictions.csv", dtype=str)
     reported = crop_file.set_index("relative_path")["predicted_class"]
     probs_columns = [c for c in crop_file.columns if c.startswith("prob_")]
@@ -314,11 +349,13 @@ def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: p
         .set_index("relative_path")["predicted_class"]
 
     results = []
+    # All per-box crops of each example photo
     for row in examples.to_dict("records"):
         photo = row[MANIFEST_PHOTO_COLUMN]
         of_photo = crops[crops[MANIFEST_PHOTO_COLUMN] == photo].sort_values("roi_relative_path")
         if of_photo.empty:
             raise ValueError(f"No per-box crops for example photo {photo!r}")
+        # Explain each crop with the same preprocessing as prediction
         photo_results, all_probs = [], []
         for crop in of_photo.to_dict("records"):
             path = root / crop["roi_relative_path"]
@@ -327,6 +364,7 @@ def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: p
             image = show(load_image(path, 2 * size if config.get("cache", True) else None))
             cam, probs = grad_cam(model, family, to_input(image).unsqueeze(0).to(device))
             all_probs.append(probs)
+            # Crop-level record, checked against the crop prediction file
             predicted = classes[int(probs.argmax())]
             key = path.relative_to(root).as_posix()
             photo_results.append({
@@ -336,6 +374,7 @@ def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: p
                 "correct": predicted == row[LABEL_COLUMN], "matches_prediction_file": reported.get(key) == predicted,
                 "checkpoint": str(folder / "best.pt"), "_image": np.asarray(image), "_cam": cam,
             })
+        # Photo prediction = mean of its crops' probabilities, added to every crop's record
         mean = np.mean(all_probs, axis=0)
         photo_predicted = classes[int(mean.argmax())]
         for r in photo_results:
@@ -348,14 +387,17 @@ def explain_box(experiments: Path, family: str, examples: pd.DataFrame, crops: p
 
 def plot_box_family(results: List[Dict[str, Any]], family: str, set_index: int, path: Path) -> None:
     """One row per class: up to BOX_COLUMNS crops of the example photo, each as input and Grad-CAM."""
+    # One row per class, input and Grad-CAM columns for up to BOX_COLUMNS crops
     rows = sorted({r["class"] for r in results})
     fig, axes = plt.subplots(len(rows), 2 * BOX_COLUMNS, figsize=(2.1 * 2 * BOX_COLUMNS, 2.15 * len(rows)), squeeze=False)
     for i, label in enumerate(rows):
+        # This class's crops from the example set; start with every cell hidden
         crops = [r for r in results if int(r["set"]) == set_index and r["class"] == label]
         for ax in axes[i]:
             ax.set_xticks([]), ax.set_yticks([])
             ax.axis("off")
         for j, r in enumerate(crops[:BOX_COLUMNS]):
+            # Show the crop and its overlaid map, titled with the crop prediction
             image_ax, cam_ax = axes[i, 2 * j], axes[i, 2 * j + 1]
             image_ax.axis("on"), cam_ax.axis("on")
             image_ax.imshow(r["_image"])
@@ -363,10 +405,12 @@ def plot_box_family(results: List[Dict[str, Any]], family: str, set_index: int, 
             cam_ax.imshow(r["_cam"], cmap="inferno", alpha=0.5, vmin=0, vmax=1)
             mark = "✔" if r["correct"] else "✘"
             cam_ax.set_title(f"{mark} {r['predicted_class']} {r['probability']:.2f}", fontsize=7)
+            # First crop also carries the photo prediction, and the crop count if not all are shown
             if j == 0:
                 photo_mark = "✔" if r["photo_correct"] else "✘"
                 more = f", {r['n_crops']} crops" if r["n_crops"] > BOX_COLUMNS else ""
                 image_ax.set_title(f"{label}: photo {photo_mark} {r['photo_predicted_class']}{more}", fontsize=7)
+    # Title, save and close
     fig.suptitle(f"{family} Grad-CAM, per-box crops, test set {set_index}", fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -374,24 +418,30 @@ def plot_box_family(results: List[Dict[str, Any]], family: str, set_index: int, 
 
 
 def main_box(args: argparse.Namespace, device: torch.device) -> int:
+    # Outputs to <exp>/gradcam; reuse the main run's example photos and keep a copy
     out = args.experiments_root / "gradcam"
     out.mkdir(parents=True, exist_ok=True)
     examples = pd.read_csv(args.examples, dtype=str, keep_default_na=False)
     examples.to_csv(out / "examples.csv", index=False)
+    # Test-split crops of the per-box manifest
     crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
     crops = crops[crops["split"].str.strip().str.lower() == "test"]
     table = []
     for family in args.families:
+        # Per family: explain every crop, one figure per example set
         results = explain_box(args.experiments_root, family, examples, crops, args.pretrained, device)
         for k in sorted(examples["set"].unique()):
             plot_box_family(results, family, int(k), out / f"{family}_set{k}.png")
+        # Keep the numbers (not the images) for the results table
         table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
+        # Report crop and photo accuracy and agreement with the prediction files
         photos = {r["photo"]: r for r in results}.values()
         print(f"{family}: crops {sum(r['correct'] for r in results)}/{len(results)} correct, "
               f"photos {sum(r['photo_correct'] for r in photos)}/{len(photos)} correct, "
               f"{sum(r['matches_prediction_file'] for r in results)}/{len(results)} crops and "
               f"{sum(r['matches_photo_prediction_file'] for r in photos)}/{len(photos)} photos match prediction files",
               flush=True)
+    # One results table for all families
     pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)
     print(f"Wrote examples.csv, gradcam_results.csv and figures to {out}")
     return 0
@@ -399,19 +449,24 @@ def main_box(args: argparse.Namespace, device: torch.device) -> int:
 
 def main_all_test(args: argparse.Namespace, device: torch.device) -> int:
     """Every test photo of --classes: the full image (main run) and each of its per-box crops (this run)."""
+    # Outputs to <exp>/gradcam_all; every test photo of the chosen classes
     out = args.experiments_root / "gradcam_all"
     out.mkdir(parents=True, exist_ok=True)
     photos = all_test_images(args.roi_manifest, args.classes)
     photos.to_csv(out / "examples.csv", index=False)
+    # Test-split crops, indexed by path to look up each crop's box
     crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
     crops = crops[crops["split"].str.strip().str.lower() == "test"]
     crop_rows = crops.set_index("roi_relative_path")
     table = []
     for family in args.families:
+        # Explain the full photos with the main run's model, tagged by photo
         full = explain(args.main_root, family, "full", photos, args.pretrained, device)
         for r, photo in zip(full, photos[MANIFEST_PHOTO_COLUMN]):
             r["photo"] = photo
+        # Explain every per-box crop of those photos with this run's model
         boxes = explain_box(args.experiments_root, family, photos, crops, args.pretrained, device)
+        # Map each crop's box into its full image and measure how much of the full-image map falls inside
         size_of = {r["photo"]: r["_image"].shape[0] for r in full}
         cam_of = {r["photo"]: r["_cam"] for r in full}
         for r in boxes:
@@ -419,14 +474,17 @@ def main_all_test(args: argparse.Namespace, device: torch.device) -> int:
             r["crop_index"] = crop["crop_index"]
             r["_full_box"] = wound_box(crop.to_dict(), size_of[r["photo"]])
             r["full_cam_in_box"], r["box_share"] = mass_in_box(cam_of[r["photo"]], r["_full_box"])
+        # One figure per class
         for label in sorted(photos[LABEL_COLUMN].unique()):
             plot_class_crops(full, boxes, family, label, out / f"{family}_{label.replace(' ', '_')}.png")
+        # Keep the numbers and report accuracy, agreement and full-image CAM in the crop box
         table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in full + boxes]
         print(f"{family}: full {sum(r['correct'] for r in full)}/{len(full)} photos correct, "
               f"per-box {sum(r['correct'] for r in boxes)}/{len(boxes)} crops correct, "
               f"{sum(r['matches_prediction_file'] for r in full + boxes)}/{len(full) + len(boxes)} match "
               f"prediction files, full-image CAM in crop box {mean_of(boxes, 'full_cam_in_box'):.2f} "
               f"(box area {mean_of(boxes, 'box_share'):.2f})", flush=True)
+    # One results table for all families
     pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)
     print(f"Wrote examples.csv, gradcam_results.csv and figures to {out}")
     return 0
@@ -474,6 +532,7 @@ def main_auto(args: argparse.Namespace, device: torch.device) -> int:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Pick the device, then hand off to the T19, all-test or T17 mode if requested
     device = resolve_device(args.device)
     if args.auto_arm is not None:
         return main_auto(args, device)
@@ -481,6 +540,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return main_all_test(args, device)
     if args.box_manifest is not None:
         return main_box(args, device)
+    # T14 default: draw the example images once and save them for later runs
     out = args.experiments_root / "gradcam"
     out.mkdir(parents=True, exist_ok=True)
     examples = draw_examples(args.roi_manifest, args.per_class, args.seed)
@@ -488,16 +548,19 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     table = []
     for family in args.families:
+        # Per family: explain the examples on both input paths, one figure per example set
         results = [r for p in INPUT_PATHS
                    for r in explain(args.experiments_root, family, p, examples, args.pretrained, device)]
         for k in sorted(examples["set"].unique()):
             plot_family(results, family, int(k), out / f"{family}_set{k}.png")
+        # Keep the numbers and report accuracy, agreement and full-image CAM in the wound box
         table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
         full = [r for r in results if r["input_path"] == "full"]
         print(f"{family}: {sum(r['correct'] for r in results)}/{len(results)} correct, "
               f"{sum(r['matches_prediction_file'] for r in results)}/{len(results)} match prediction files, "
               f"full-image CAM in wound box {mean_of(full, 'cam_in_box'):.2f} "
               f"(box area {mean_of(full, 'box_share'):.2f})", flush=True)
+    # One results table for all families
     pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)
     print(f"Wrote examples.csv, gradcam_results.csv and figures to {out}")
     return 0

@@ -17,6 +17,7 @@ from src.data.create_case_split import (
 
 
 def test_target_group_counts():
+    # 421 cases split 70/15/15 with rounding; the three parts must add back to 421
     counts = target_group_counts(421)
     assert counts[0] == 295  # 70% of 421 = 294.7 -> 295
     assert counts[1] == 63   # 15% of 421 = 63.15 -> 63
@@ -25,6 +26,7 @@ def test_target_group_counts():
 
 
 def test_manifest_leakage_and_integrity():
+    # The frozen split manifest exists and lists every one of the 1106 images
     manifest_path = Path("data/splits/case_level_split_manifest.csv")
     assert manifest_path.exists(), "Manifest file must exist"
 
@@ -59,12 +61,14 @@ def test_manifest_leakage_and_integrity():
 
 
 def test_split_report_metadata():
+    # The split report records the frozen seed, totals and a passed leakage check
     report_path = Path("data/splits/case_level_split_report.json")
     assert report_path.exists(), "Split report JSON must exist"
 
     with open(report_path) as f:
         report = json.load(f)
 
+    # Seed, image and case totals, and per-split case counts as frozen
     assert report["seed"] == 42
     assert report["total_records"] == 1106
     assert report["total_unique_cases"] == 421
@@ -76,6 +80,7 @@ def test_split_report_metadata():
 
 
 if __name__ == "__main__":
+    # Allow running without pytest
     test_target_group_counts()
     test_manifest_leakage_and_integrity()
     test_split_report_metadata()

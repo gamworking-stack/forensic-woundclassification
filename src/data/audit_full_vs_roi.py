@@ -50,18 +50,21 @@ def build_audit_table(
     """
 
     def subset(df: pd.DataFrame, split: str, label: str) -> pd.DataFrame:
+        # Rows of one split and class; "all" keeps every split or class
         if split != ALL:
             df = df[df["split"] == split]
         if label != ALL:
             df = df[df["canonical_wound_label"] == label]
         return df
 
+    # For every split and class, plus "all" rollups, count images and cases on both paths
     records = []
     for split in [*SPLIT_NAMES, ALL]:
         for label in [*classes, ALL]:
             full, roi = subset(full_df, split, label), subset(roi_df, split, label)
             full_images, roi_images = len(full), len(roi)
             full_cases, roi_cases = full[group_col].nunique(), roi[group_col].nunique()
+            # Store the counts, the losses and the retention percentages
             records.append({
                 "split": split,
                 "canonical_wound_label": label,
@@ -79,10 +82,12 @@ def build_audit_table(
 
 def find_discrepancies(full_df: pd.DataFrame, roi_df: pd.DataFrame, group_col: str) -> List[Dict[str, Any]]:
     """ROI rows that are not in the full manifest or no longer carry their source case and split."""
+    # Join each ROI row to its full-manifest row on (label, filename)
     columns = [*JOIN_KEYS, group_col, "split"]
     joined = roi_df[columns].merge(
         full_df[columns], on=JOIN_KEYS, how="left", suffixes=("_roi", "_full"), indicator=True
     )
+    # Flag ROI rows with no source row, or whose case or split differs from it
     discrepancies: List[Dict[str, Any]] = []
     for row in joined.to_dict("records"):
         base = {"filename": row["filename"], "canonical_wound_label": row["canonical_wound_label"]}
@@ -100,6 +105,7 @@ def find_discrepancies(full_df: pd.DataFrame, roi_df: pd.DataFrame, group_col: s
 
 def path_coverage(df: pd.DataFrame, classes: List[str], group_col: str) -> Dict[str, Any]:
     """Case leakage and per-split class completeness for one input path."""
+    # Cases in more than one split, and classes absent from each split
     splits_per_case = df.groupby(group_col)["split"].nunique()
     return {
         "leaked_cases": sorted(splits_per_case[splits_per_case > 1].index.tolist()),
@@ -112,9 +118,11 @@ def path_coverage(df: pd.DataFrame, classes: List[str], group_col: str) -> Dict[
 
 def validate_manifest(df: pd.DataFrame, name: str, group_col: str) -> None:
     """Raise if a manifest lacks the audit columns or uses an unknown split name."""
+    # The join, case and split columns must all be present
     missing = {group_col, "split", *JOIN_KEYS}.difference(df.columns)
     if missing:
         raise ValueError(f"{name} manifest missing columns: {sorted(missing)}")
+    # Only train, validation and test are allowed as splits
     unknown = sorted(set(df["split"]).difference(SPLIT_NAMES))
     if unknown:
         raise ValueError(f"{name} manifest has unknown split values: {unknown}")
@@ -131,13 +139,16 @@ def audit_full_vs_roi(
     ``drop_reasons`` maps (canonical label, filename) to the reason create_roi_dataset.py gave
     for not cropping that image; missing images without one are marked ``unexplained``.
     """
+    # Check both manifests before comparing them
     validate_manifest(full_df, "full", group_col)
     validate_manifest(roi_df, "ROI", group_col)
     drop_reasons = drop_reasons or {}
 
+    # Full-manifest images with no ROI row are the ones lost on the ROI path
     joined = full_df.merge(roi_df[JOIN_KEYS], on=JOIN_KEYS, how="left", indicator=True)
     missing = joined[joined["_merge"] == "left_only"]
     columns = [group_col, "filename", "canonical_wound_label", "split"]
+    # Give each lost image its drop reason and whether its whole case is gone from the ROI path
     roi_cases = set(roi_df[group_col])
     missing_records = [
         {
@@ -147,6 +158,7 @@ def audit_full_vs_roi(
         }
         for record in missing[columns].to_dict("records")
     ]
+    # Bundle the lost images, count table, discrepancies and coverage of both paths
     classes = sorted(full_df["canonical_wound_label"].unique())
     return AuditResult(
         classes=classes,
@@ -162,6 +174,7 @@ def audit_full_vs_roi(
 
 def load_drop_reasons(crop_summary: Path) -> Dict[Tuple[str, str], str]:
     """Read per-image drop reasons from create_roi_dataset.py's crop_summary.json."""
+    # Both unannotated and skipped records carry a reason; key them by (label, filename)
     with crop_summary.open(encoding="utf-8") as f:
         summary = json.load(f)
     dropped = summary.get("unannotated_records", []) + summary.get("skipped_records", [])
@@ -170,12 +183,14 @@ def load_drop_reasons(crop_summary: Path) -> Dict[Tuple[str, str], str]:
 
 def audit_problems(audit: AuditResult) -> List[str]:
     """Integrity failures that make the full vs ROI comparison unfair."""
+    # Broken case or split inheritance, and lost images without a recorded reason
     problems = []
     if audit.discrepancies:
         problems.append(f"{len(audit.discrepancies)} ROI rows break split/case inheritance")
     unexplained = [m["filename"] for m in audit.missing_from_roi if m["reason"] == "unexplained"]
     if unexplained:
         problems.append(f"images missing from ROI with no recorded drop reason: {unexplained}")
+    # On either path: case leakage, or a split missing a class
     for path_name, cov in audit.coverage.items():
         if cov["leaked_cases"]:
             problems.append(f"{path_name}: cases in more than one split: {cov['leaked_cases']}")
@@ -227,20 +242,24 @@ def table_row(table: pd.DataFrame, split: str, label: str) -> Dict[str, Any]:
 def main() -> int:
     args = parse_args()
     group_col = args.group_column
+    # All three inputs must exist
     for path in (args.full_manifest, args.roi_manifest, args.crop_summary):
         if not path.exists():
             print(f"Error: input not found: {path}", file=sys.stderr)
             return 1
 
+    # Load both manifests as text and run the audit with the drop reasons
     full_df = pd.read_csv(args.full_manifest, dtype=str)
     roi_df = pd.read_csv(args.roi_manifest, dtype=str)
     audit = audit_full_vs_roi(full_df, roi_df, group_col, drop_reasons=load_drop_reasons(args.crop_summary))
     problems = audit_problems(audit)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    # Save the split x class count table
     table_out = args.output_dir / "full_vs_roi_audit_table.csv"
     audit.table.to_csv(table_out, index=False)
 
+    # Build the JSON report: pass/fail, totals, lost images, retention by class and images by split
     overall = table_row(audit.table, ALL, ALL)
     report = {
         "full_manifest": str(args.full_manifest),
@@ -283,6 +302,7 @@ def main() -> int:
     with report_out.open("w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 
+    # Print the totals, each lost image with its reason, and retention per class
     totals = report["totals"]
     print("--- Full vs ROI Audit ---")
     print(f"Images: full {totals['full_images']:,} -> ROI {totals['roi_images']:,} ({totals['images_lost']} lost)")
@@ -298,6 +318,7 @@ def main() -> int:
     print(f"\nTable saved:  {table_out}")
     print(f"Report saved: {report_out}")
 
+    # Any integrity problem fails the audit with exit code 1
     if problems:
         for problem in problems:
             print(f"Error: {problem}", file=sys.stderr)

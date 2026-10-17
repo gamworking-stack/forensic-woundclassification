@@ -36,6 +36,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def fold_predictions(cv_root: Path, input_path: str, family: str, folds: int) -> List[Path]:
+    # Each fold's held-out predictions are its validation file; all folds must be there
     paths = [cv_root / input_path / family / f"fold_{k}" / "validation_predictions.csv" for k in range(1, folds + 1)]
     missing = [str(p) for p in paths if not p.is_file()]
     if missing:
@@ -46,10 +47,12 @@ def fold_predictions(cv_root: Path, input_path: str, family: str, folds: int) ->
 def out_of_fold(cv_root: Path, input_path: str, family: str, folds: int) -> Tuple[List[Dict[str, float]], Predictions]:
     """Per-fold summary metrics and the joined out-of-fold predictions (written next to the folds)."""
     paths = fold_predictions(cv_root, input_path, family, folds)
+    # Score each fold on its own held-out cases
     per_fold = []
     for p in paths:
         pred = load_predictions(p, "validation")
         per_fold.append(summary_metrics(pred.y_true, pred.y_pred, pred.probs))
+    # Join the folds into one out-of-fold file and reload it, which re-checks it
     joined = pd.concat([pd.read_csv(p, dtype=str) for p in paths], ignore_index=True)
     oof_path = cv_root / input_path / family / "oof_predictions.csv"
     joined.to_csv(oof_path, index=False)
@@ -58,9 +61,11 @@ def out_of_fold(cv_root: Path, input_path: str, family: str, folds: int) -> Tupl
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Outputs go to <cv-root>/summary
     out = args.cv_root / "summary"
     out.mkdir(parents=True, exist_ok=True)
 
+    # Per family and input path: fold scores and pooled out-of-fold scores in one row
     rows, pairs = [], {}
     for family in FAMILY_ORDER:
         oof = []
@@ -70,6 +75,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             row = {"scenario_id": SCENARIO_IDS[(input_path, family)], "family": family, "input_path": input_path,
                    "folds": args.folds, "oof_images": pooled["n_images"], "oof_cases": pooled["n_cases"]}
             for m in FOLD_METRICS:
+                # Mean and SD over folds, the pooled out-of-fold value and each fold's value
                 values = np.array([f[m] for f in per_fold])
                 row[f"{m}_mean"], row[f"{m}_sd"] = float(values.mean()), float(values.std(ddof=1))
                 row[f"{m}_oof"] = pooled[m]
@@ -78,6 +84,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             oof.append(pred)
         pairs[family] = tuple(oof)
 
+    # Pairing needs every scenario's out-of-fold file to cover the same cases
     reference = set(pairs[FAMILY_ORDER[0]][0].cases)
     for family, preds in pairs.items():
         for input_path, p in zip(INPUT_PATHS, preds):
@@ -85,6 +92,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 raise ValueError(f"{input_path}/{family} out-of-fold cases differ from "
                                  f"{INPUT_PATHS[0]}/{FAMILY_ORDER[0]}; paired comparison is undefined")
 
+    # CV table, paired ROI - full comparison and its macro-F1 forest plot
     table = pd.DataFrame(rows).sort_values("scenario_id")
     table.to_csv(out / "cv_table.csv", index=False)
     comparison = paired_comparison(pairs, args.bootstrap, args.seed)
@@ -92,6 +100,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     plot_full_vs_roi(comparison[comparison["metric"] == "macro_f1"], POOLED,
                      "CV out-of-fold macro-F1: ROI minus full image", out / "cv_full_vs_roi_macro_f1.png")
 
+    # Print each scenario's fold mean, then the paired macro-F1 differences
     for r in table.to_dict("records"):
         print(f"{r['scenario_id']} {r['family']:<20} {r['input_path']:<4} macro-F1 {r['macro_f1_mean']:.3f} "
               f"± {r['macro_f1_sd']:.3f} (out of fold {r['macro_f1_oof']:.3f}, {r['oof_cases']} cases)", flush=True)

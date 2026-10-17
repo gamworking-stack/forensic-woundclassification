@@ -57,6 +57,7 @@ LINEAR_C = (0.001, 0.01, 0.1, 1.0)
 
 
 def svm_grid() -> List[Dict[str, Any]]:
+    # RBF kernel over every C x gamma pair, then the linear kernel over its own C values
     grid: List[Dict[str, Any]] = [{"kernel": "rbf", "C": c, "gamma": g} for c in RBF_C for g in RBF_GAMMA]
     grid += [{"kernel": "linear", "C": c} for c in LINEAR_C]
     return grid
@@ -64,8 +65,10 @@ def svm_grid() -> List[Dict[str, Any]]:
 
 def grid_edges(params: Dict[str, Any]) -> List[str]:
     """Grid limits the chosen setting sits on; a best value on the edge means the grid may be too narrow."""
+    # C on the smallest or largest value of its kernel's C list
     c_values = RBF_C if params["kernel"] == "rbf" else LINEAR_C
     edges = [f"C={params['C']}" for limit in (min(c_values), max(c_values)) if params["C"] == limit]
+    # gamma on the smallest or largest numeric value ('scale' has no edge)
     numeric_gammas = [g for g in RBF_GAMMA if g != "scale"]
     if params["kernel"] == "rbf" and params["gamma"] in (min(numeric_gammas), max(numeric_gammas)):
         edges.append(f"gamma={params['gamma']}")
@@ -83,22 +86,27 @@ def fit_svm(params: Dict[str, Any], seed: int, x: np.ndarray, y: np.ndarray,
             weight: Optional[np.ndarray] = None, probability: bool = False) -> Pipeline:
     """Fit the pipeline; with ``weight`` (T17 photo weights) both steps use it and the class
     weights are 'balanced' on the weighted counts instead of the row counts."""
+    # Unweighted fit: sklearn's 'balanced' class weights from row counts
     if weight is None:
         return make_svm(params, seed, probability).fit(x, y)
+    # Weighted fit: 'balanced' class weights from the photo-weighted class counts (sklearn's formula)
     counts = np.bincount(y, weights=weight)
     class_weight = {int(c): float(weight.sum() / (len(counts) * counts[c])) for c in np.unique(y)}
+    # Pass the photo weights to both the scaler and the SVM
     return make_svm(params, seed, probability, class_weight).fit(
         x, y, scale__sample_weight=weight, svm__sample_weight=weight)
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hybrid CNN-SVM on one input path (full image or ROI).")
+    # Input path and data locations
     parser.add_argument("--input-path", required=True, choices=("full", "roi", "box", "crop"))
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"))
     parser.add_argument("--full-scope", choices=("matched", "all"), default="matched")
+    # Backbones whose features are concatenated, and the feature-extraction settings
     parser.add_argument("--extractors", nargs="+", choices=EXTRACTOR_CHOICES, default=list(DEFAULT_EXTRACTORS))
     parser.add_argument("--image-size", type=int, default=None, help="Override the 384 px input (tests only).")
     parser.add_argument("--batch-size", type=int, default=64)
@@ -108,11 +116,13 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--no-pretrained", dest="pretrained", action="store_false")
     parser.add_argument("--no-cache", dest="cache", action="store_false")
     parser.add_argument("--smoke", action="store_true", help="2 images per class per split.")
+    # CV fold run, or a fixed SVM setting taken from a finished main run
     parser.add_argument("--cv-folds", type=Path, default=None,
                         help="CV run (T12b): fold table; test rows are dropped and --fold is validation.")
     parser.add_argument("--fold", type=int, default=None)
     parser.add_argument("--svm-params-from", type=Path, default=None,
                         help="run_config.json of a finished CNN-SVM run; fit its best_params instead of the grid.")
+    # The two CV options must come as a pair
     args = parser.parse_args(argv)
     if (args.cv_folds is None) != (args.fold is None):
         parser.error("--cv-folds and --fold go together")
@@ -121,6 +131,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 @torch.no_grad()
 def extract(model: torch.nn.Module, loader: DataLoader, device: torch.device) -> np.ndarray:
+    # Run each batch through the frozen backbone (bfloat16 on GPU) and stack the float32 feature vectors
     model.eval()
     features = []
     for images, _ in loader:
@@ -132,25 +143,30 @@ def extract(model: torch.nn.Module, loader: DataLoader, device: torch.device) ->
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Output and feature-cache folders and the run log
     out = args.output_dir
     feature_dir = out / "features"
     feature_dir.mkdir(parents=True, exist_ok=True)
     log = Logger(out / "train.log")
 
+    # Seed, device, and the shared input size (from the first extractor)
     seed_everything(args.seed)
     device = resolve_device(args.device)
     image_size = args.image_size or input_size(args.extractors[0])
 
+    # Load the scenario's rows (CV fold split if given) and resolve image paths and labels
     df = load_manifest(args.manifest, args.input_path, args.full_scope, args.roi_manifest, args.smoke,
                        args.cv_folds, args.fold)
     cv = args.cv_folds is not None
     df, classes = prepare_rows(df, args.input_path, args.image_root)
+    # Rows and labels per split; per-box crops also get photo weights (1 / crops per photo)
     splits = ("train", "validation") if cv else SPLIT_NAMES
     rows = {split: df[df["split"] == split] for split in splits}
     labels = {split: rows[split]["label_index"].to_numpy() for split in splits}
     per_box = args.input_path in PHOTO_INPUT_PATHS
     weights = {split: photo_weights(manifest_photos(rows[split])) if per_box else None for split in splits}
 
+    # Record the run's settings, data counts and provenance
     run_config: Dict[str, Any] = {
         **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
         "family": "cnn_svm",
@@ -164,6 +180,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
 
+    # The config is rewritten as results (feature size, chosen SVM) are added
     def write_config() -> None:
         with (out / "run_config.json").open("w", encoding="utf-8") as f:
             json.dump(run_config, f, indent=2, ensure_ascii=False)
@@ -174,16 +191,19 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     def split_features(split: str) -> np.ndarray:
         """Concatenated features for one split, reusing cached files that match its rows."""
+        # Expected image order and one cache file per extractor for this split
         split_rows = rows[split]
         expected_paths = split_rows["image_relative_path"].to_numpy()
         cache_files = {fam: feature_dir / f"{fam}_{split}.npz" for fam in args.extractors}
 
+        # A cache file is reused only if it holds exactly this split's images in the same order
         def cached(fam: str) -> bool:
             if not cache_files[fam].exists():
                 return False
             with np.load(cache_files[fam], allow_pickle=False) as saved:
                 return np.array_equal(saved["relative_path"], expected_paths)
 
+        # Extract missing features with eval transforms, one backbone in memory at a time
         todo = [fam for fam in args.extractors if not cached(fam)]
         if todo:
             dataset = ManifestImageDataset(
@@ -195,6 +215,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
             loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
                                 num_workers=args.num_workers, pin_memory=device.type == "cuda")
+            # Save each extractor's features with their image paths, then free the GPU memory
             for fam in todo:
                 log(f"Extracting {fam} features for {split}")
                 model, _ = feature_extractor(fam, args.pretrained)
@@ -204,16 +225,19 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
 
+        # Concatenate all extractors' cached features side by side
         parts = []
         for fam in args.extractors:
             with np.load(cache_files[fam], allow_pickle=False) as saved:
                 parts.append(saved["features"])
         return np.concatenate(parts, axis=1)
 
+    # Train and validation features only; test is not extracted yet
     x_train, x_val = split_features("train"), split_features("validation")
     run_config["feature_dim"] = int(x_train.shape[1])
     log(f"Features: train {x_train.shape}, validation {x_val.shape}")
 
+    # Either reuse the main run's chosen SVM (CV) or tune the grid on validation
     if args.svm_params_from:
         best = json.loads(args.svm_params_from.read_text(encoding="utf-8"))["best_params"]
         run_config["best_params"] = best
@@ -223,6 +247,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         best = tune(x_train, x_val, labels, classes, args.seed, out, log, run_config,
                     train_weight=weights["train"], val_photos=val_photos)
 
+    # Fit the chosen SVM on train only and write the validation predictions
     val_model = fit_svm(best, args.seed, x_train, labels["train"], weights["train"], probability=True)
     prediction_frame(rows["validation"], labels["validation"], val_model.predict_proba(x_val), classes,
                      photo=per_box).to_csv(out / "validation_predictions.csv", index=False)
@@ -233,6 +258,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # The test split is touched for the first time here, after the SVM has been chosen.
     x_test = split_features("test")
+    # Refit on train+validation (photo-weighted for per-box crops) and predict test once
     final = fit_svm(best, args.seed, np.vstack([x_train, x_val]),
                     np.concatenate([labels["train"], labels["validation"]]),
                     np.concatenate([weights["train"], weights["validation"]]) if per_box else None,
@@ -251,9 +277,11 @@ def tune(x_train, x_val, labels, classes, seed, out, log, run_config,
 
     With ``val_photos`` (T17) the score is on photo level, from the mean of the crop probabilities.
     """
+    # Fit one SVM per grid setting on train and score it on validation
     grid = svm_grid()
     tuning = []
     for params in grid:
+        # Score per image, or per photo from the mean of each photo's crop probabilities
         if val_photos is None:
             y_val = labels["validation"]
             pred = fit_svm(params, seed, x_train, labels["train"], train_weight).predict(x_val)
@@ -261,6 +289,7 @@ def tune(x_train, x_val, labels, classes, seed, out, log, run_config,
             model = fit_svm(params, seed, x_train, labels["train"], train_weight, probability=True)
             _, y_val, probs = photo_mean(val_photos, labels["validation"], model.predict_proba(x_val))
             pred = probs.argmax(axis=1)
+        # Keep this setting's validation macro-F1 and balanced accuracy, logged as it goes
         metrics = classification_metrics(y_val, pred, len(classes))
         tuning.append({
             "kernel": params["kernel"],
@@ -270,14 +299,17 @@ def tune(x_train, x_val, labels, classes, seed, out, log, run_config,
             "validation_balanced_accuracy": metrics["balanced_accuracy"],
         })
         log(json.dumps(tuning[-1]))
+    # Save the whole tuning table
     pd.DataFrame(tuning).to_csv(out / "svm_validation_tuning.csv", index=False)
 
     # Highest validation macro-F1; ties go to the earlier grid entry.
     best_index = max(range(len(grid)), key=lambda i: (tuning[i]["validation_macro_f1"], -i))
     best = grid[best_index]
+    # Store the choice and its score in the run config
     run_config["best_params"] = best
     run_config["best_validation_macro_f1"] = tuning[best_index]["validation_macro_f1"]
     log(f"Chosen SVM {best} (validation macro-F1={tuning[best_index]['validation_macro_f1']:.6f})")
+    # Warn when the winner sits on the edge of the grid
     edges = grid_edges(best)
     if edges:
         log(f"WARNING: chosen SVM is on the edge of the grid ({', '.join(edges)}); consider widening it")

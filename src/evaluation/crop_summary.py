@@ -29,6 +29,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def summary_row(family: str, metrics: dict) -> dict:
+    # Crop count, headline metrics and the low/high bound of each interval
     row = {"scenario_id": CROP_SCENARIO_IDS[(CROP_PATH, family)], "family": family,
            "test_crops": metrics["n_images"], "test_cases": metrics["n_cases"],
            **{name: metrics[name] for name in TABLE_METRICS}}
@@ -41,6 +42,7 @@ def summary_row(family: str, metrics: dict) -> dict:
 def summary_table(root: Path) -> pd.DataFrame:
     rows = []
     for family in FAMILY_ORDER:
+        # Every family must already have been evaluated; copy its test metrics into one row
         path = root / CROP_PATH / family / "test_metrics.json"
         if not path.is_file():
             raise FileNotFoundError(f"{path} not found; train every S25-S32 scenario and run evaluate.py first")
@@ -50,6 +52,7 @@ def summary_table(root: Path) -> pd.DataFrame:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Write the table to <crop-root>/summary and print each scenario's macro-F1
     table = summary_table(args.crop_root)
     out = args.crop_root / "summary"
     out.mkdir(parents=True, exist_ok=True)

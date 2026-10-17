@@ -45,6 +45,7 @@ def parse_args() -> argparse.Namespace:
 def compare(expected: pd.DataFrame, actual: pd.DataFrame) -> list[str]:
     """Return human-readable differences between two ROI manifests (empty when identical)."""
     problems: list[str] = []
+    # Each crop path must be unique in both manifests, or the row comparison is meaningless
     for name, df in (("expected", expected), ("actual", actual)):
         dupes = df[KEY_COLUMN][df[KEY_COLUMN].duplicated()].tolist()
         if dupes:
@@ -52,6 +53,7 @@ def compare(expected: pd.DataFrame, actual: pd.DataFrame) -> list[str]:
     if problems:
         return problems
 
+    # Index by crop path and report crops present in only one of the manifests
     exp = expected.set_index(KEY_COLUMN)
     act = actual.set_index(KEY_COLUMN)
     missing = sorted(set(exp.index) - set(act.index))
@@ -61,6 +63,7 @@ def compare(expected: pd.DataFrame, actual: pd.DataFrame) -> list[str]:
     if extra:
         problems.append(f"{len(extra)} crops only in live run, e.g. {extra[:5]}")
 
+    # For crops in both, compare each checked column and report how many rows differ, with one example
     shared = sorted(set(exp.index) & set(act.index))
     for col in COMPARED_COLUMNS:
         if col not in exp.columns or col not in act.columns:
@@ -77,15 +80,18 @@ def compare(expected: pd.DataFrame, actual: pd.DataFrame) -> list[str]:
 
 def main() -> int:
     args = parse_args()
+    # Read both manifests as text so values compare exactly as written
     expected = pd.read_csv(args.expected, dtype=str, keep_default_na=False)
     actual = pd.read_csv(args.actual, dtype=str, keep_default_na=False)
 
+    # Compare the rows and, if a crop root is given, check every crop file exists
     problems = compare(expected, actual)
     if args.crop_root is not None:
         absent = [p for p in actual[KEY_COLUMN] if not (args.crop_root / p).is_file()]
         if absent:
             problems.append(f"{len(absent)} crop files not on disk under {args.crop_root}, e.g. {absent[:5]}")
 
+    # Print the result; any difference exits with code 1
     print(f"Expected rows: {len(expected):,}  Actual rows: {len(actual):,}")
     if problems:
         print("ROI comparison FAILED:")

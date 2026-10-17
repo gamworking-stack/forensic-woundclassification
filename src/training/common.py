@@ -33,24 +33,29 @@ class Logger:
 
 
 def resolve_device(name: str) -> torch.device:
+    # 'auto' picks the GPU when one is present
     if name == "auto":
         name = "cuda" if torch.cuda.is_available() else "cpu"
+    # An explicit cuda request fails loudly instead of silently falling back to CPU
     if name == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("--device cuda requested but CUDA is not available")
     return torch.device(name)
 
 
 def git_state() -> Dict[str, Any]:
+    # Run one git command in the repo root; None when git fails (e.g. not a checkout)
     def git(*args: str) -> Optional[str]:
         result = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
         return result.stdout.strip() if result.returncode == 0 else None
 
+    # Record the exact commit and whether uncommitted changes were present, for provenance
     commit = git("rev-parse", "HEAD")
     status = git("status", "--porcelain")
     return {"git_commit": commit, "git_dirty": None if status is None else bool(status)}
 
 
 def environment_info(device: torch.device) -> Dict[str, Any]:
+    # Library versions, GPU name, host and SLURM job id, saved with every run for provenance
     return {
         "python": platform.python_version(),
         "torch": torch.__version__,
@@ -69,7 +74,9 @@ def prediction_frame(
 
     With ``photo`` (T17 per-box crops) each row also names its source photo.
     """
+    # Per-box crops also carry their source photo so predictions can later be pooled per photo
     photo_column = {PHOTO_COLUMN: manifest_photos(rows)} if photo else {}
+    # Identifiers plus the true and the argmax-predicted class names
     frame = pd.DataFrame({
         "relative_path": rows["image_relative_path"].to_numpy(),
         **photo_column,
@@ -78,6 +85,7 @@ def prediction_frame(
         "true_class": [classes[i] for i in labels],
         "predicted_class": [classes[i] for i in probs.argmax(axis=1)],
     })
+    # One probability column per class, with spaces in class names replaced by underscores
     for j, name in enumerate(classes):
         frame[f"prob_{name.replace(' ', '_')}"] = probs[:, j]
     return frame

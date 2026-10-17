@@ -111,8 +111,10 @@ def best_epoch(history: pd.DataFrame) -> tuple:
 def load_scored(path: Path, split: str):
     """Predictions as the run scored them: photo level for per-box crop files (T17), else as written."""
     frame = pd.read_csv(path, dtype=str)
+    # Files without a photo column are scored exactly as written
     if PHOTO_COLUMN not in frame.columns:
         return load_predictions(path, split)
+    # Per-box crop files: average the crops per photo, then score the photo rows from a temporary file
     photos = photo_prediction_frame(frame.astype({c: float for c in frame.columns if c.startswith("prob_")}))
     with tempfile.TemporaryDirectory() as tmp:
         photos.to_csv(Path(tmp) / path.name, index=False)
@@ -122,16 +124,19 @@ def load_scored(path: Path, split: str):
 def check_history(report: Report, item: str, folder: Path, config: Dict[str, Any],
                   expected_epoch: Optional[int] = None, expected_f1: Optional[float] = None) -> None:
     """Best epoch chosen on validation, early stopping consistent, validation file = best epoch."""
+    # Replay early stopping: training must end at max epochs or exactly patience epochs after the best
     history = pd.read_csv(folder / "training_history.csv")
     epoch, f1, _ = best_epoch(history)
     epochs = len(history)
     stopped_right = epochs == config["max_epochs"] or epochs - epoch == config["patience"]
     detail = f"best epoch {epoch} of {epochs}, validation macro-F1 {f1:.6f}"
+    # Best epoch and its F1 must also equal the values the caller recorded, when given
     ok = stopped_right and (expected_epoch is None or expected_epoch == epoch) \
         and (expected_f1 is None or close(expected_f1, f1))
     if not ok:
         detail += f" (recorded epoch {expected_epoch}, F1 {expected_f1}; stop rule held: {stopped_right})"
     report.add("selection", f"{item}: best epoch", ok, detail)
+    # The saved validation predictions must score the best epoch's macro-F1
     val = compute_metrics(load_scored(folder / "validation_predictions.csv", "validation"))["macro_f1"]
     report.add("selection", f"{item}: validation file is the best epoch", close(val, f1),
                f"recomputed {val:.6f} vs history {f1:.6f}")
@@ -140,6 +145,7 @@ def check_history(report: Report, item: str, folder: Path, config: Dict[str, Any
 # 1. Files -----------------------------------------------------------------------------------------
 
 def check_files(report: Report, root: Path) -> None:
+    # Each scenario folder must hold every expected file, and each figure must really be a PNG
     for scenario_id, input_path, family in scenarios():
         folder = root / input_path / family
         missing = [n for n in SCENARIO_FILES if not (folder / n).is_file()]
@@ -148,6 +154,7 @@ def check_files(report: Report, root: Path) -> None:
         report.add("files", f"{scenario_id} {input_path}/{family}", not missing and not bad_png,
                    f"missing {missing}, not PNG {bad_png}" if missing or bad_png
                    else f"{len(SCENARIO_FILES)} files incl. 4 figures")
+    # The run-wide index and summary files must exist too
     for name in ("evaluation_index.csv", "summary/summary_table.csv", "summary/full_vs_roi.csv",
                  "summary/full_vs_roi_macro_f1.png"):
         report.add("files", name, (root / name).is_file())
@@ -156,6 +163,7 @@ def check_files(report: Report, root: Path) -> None:
 # 2. Test set --------------------------------------------------------------------------------------
 
 def check_test_set(report: Report, root: Path, assignments: Dict[str, str]) -> None:
+    # Per split, every case must belong to that split; keep a signature of each test set
     signatures = {}
     for scenario_id, input_path, family in scenarios():
         folder = root / input_path / family
@@ -170,6 +178,7 @@ def check_test_set(report: Report, root: Path, assignments: Dict[str, str]) -> N
                 if split == "test":
                     signatures[f"{input_path}/{family}"] = p.signature()
         report.guard("test set", f"{scenario_id} {input_path}/{family}", run)
+    # All 16 scenarios must have been tested on the identical set of test images
     if signatures:
         reference = next(iter(signatures.values()))
         different = [k for k, v in signatures.items() if v != reference]
@@ -181,8 +190,10 @@ def check_test_set(report: Report, root: Path, assignments: Dict[str, str]) -> N
 
 def check_lr_selection(report: Report, folder: Path, item: str) -> Path:
     """T08b: tuning table reproduced from the grid runs, test only for the chosen run, after the choice."""
+    # The tuning table must list exactly the fixed learning-rate grid
     tuning = pd.read_csv(folder / "tuning_summary.csv", dtype={"lr": str})
     report.add("selection", f"{item}: lr grid", tuple(tuning["lr"]) == LR_GRID, f"{list(tuning['lr'])}")
+    # Each grid run: trained with its own lr and seed 42, and its history gives the recorded best epoch
     runs = []
     for row in tuning.to_dict("records"):
         grid = folder / f"lr_{row['lr']}"
@@ -193,11 +204,13 @@ def check_lr_selection(report: Report, folder: Path, item: str) -> Path:
                       int(row["best_epoch"]), float(row["validation_macro_f1"]))
         runs.append({"lr": row["lr"], "validation_macro_f1": row["validation_macro_f1"],
                      "validation_loss": row["validation_loss"], "dir": grid, "config": config})
+    # Apply the selection rule to the runs: it must pick the run the table marks as selected
     winner = choose(runs)
     flagged = tuning.index[tuning["selected"].astype(str) == "True"].tolist()
     report.add("selection", f"{item}: chosen lr reproduced", flagged == [winner],
                f"rule picks {runs[winner]['lr']}, table marks {[runs[i]['lr'] for i in flagged]}")
 
+    # Only the winner may have test predictions, written after the tuning table
     chosen = runs[winner]["dir"]
     for i, run in enumerate(runs):
         has_test = (run["dir"] / "test_predictions.csv").exists()
@@ -209,6 +222,7 @@ def check_lr_selection(report: Report, folder: Path, item: str) -> Path:
             report.add("selection", f"{item}: lr_{run['lr']} never predicted test",
                        not has_test and run["config"].get("skip_test") is True,
                        f"test file present: {has_test}, skip_test: {run['config'].get('skip_test')}")
+    # The scenario's own files must be byte copies of the chosen run's files
     same = [n for n in ("run_config.json", "training_history.csv", "validation_predictions.csv",
                         "test_predictions.csv") if (folder / n).read_bytes() == (chosen / n).read_bytes()]
     report.add("selection", f"{item}: scenario files are the chosen run's", len(same) == 4, f"identical: {same}")
@@ -216,10 +230,12 @@ def check_lr_selection(report: Report, folder: Path, item: str) -> Path:
 
 
 def check_svm_selection(report: Report, folder: Path, item: str) -> None:
+    # The SVM tuning table may hold validation scores only, never test scores
     tuning = pd.read_csv(folder / "svm_validation_tuning.csv", keep_default_na=False)
     config = read_json(folder / "run_config.json")
     extra = [c for c in tuning.columns if c not in ("kernel", "C", "gamma") and not c.startswith("validation_")]
     report.add("selection", f"{item}: tuning table has validation scores only", not extra, f"other columns {extra}")
+    # Rerun the rule (best validation macro-F1, first row on ties): same setting and score as the config?
     best = max(range(len(tuning)), key=lambda i: (tuning["validation_macro_f1"][i], -i))
     row, params = tuning.iloc[best], config["best_params"]
     same = row["kernel"] == params["kernel"] and float(row["C"]) == float(params["C"]) \
@@ -227,11 +243,13 @@ def check_svm_selection(report: Report, folder: Path, item: str) -> None:
     report.add("selection", f"{item}: chosen SVM reproduced",
                same and close(row["validation_macro_f1"], config["best_validation_macro_f1"]),
                f"{len(tuning)} settings; rule picks {row['kernel']} C={row['C']} gamma={row['gamma']}, config {params}")
+    # Test predictions must have been written after the tuning table
     report.add("selection", f"{item}: test predicted after the SVM choice",
                (folder / "test_predictions.csv").stat().st_mtime >= (folder / "svm_validation_tuning.csv").stat().st_mtime)
 
 
 def check_ensemble(report: Report, folder: Path, item: str) -> Path:
+    # Check each member's history against its recorded best epoch and validation macro-F1
     members = pd.read_csv(folder / "ensemble_members.csv")
     configs = []
     for row in members.to_dict("records"):
@@ -240,14 +258,17 @@ def check_ensemble(report: Report, folder: Path, item: str) -> Path:
         configs.append(config)
         check_history(report, f"{item} member_{int(row['member']):02d}", member, config,
                       int(row["best_epoch"]), float(row["best_validation_macro_f1"]))
+    # Members are fixed in advance: seeds 43-45 and one learning rate, nothing is selected
     seeds = tuple(c["seed"] for c in configs)
     report.add("selection", f"{item}: fixed members, no selection", seeds == ENSEMBLE_SEEDS
                and len({float(c["lr"]) for c in configs}) == 1,
                f"seeds {seeds}, lr {sorted({c['lr'] for c in configs})}")
+    # The Grad-CAM representative must be the member with the best validation macro-F1
     rep = max(range(len(members)), key=lambda i: (members["best_validation_macro_f1"][i], -members["seed"][i]))
     report.add("selection", f"{item}: Grad-CAM member chosen on validation",
                members["representative"].astype(str).tolist() == [str(i == rep) for i in range(len(members))],
                f"member {rep + 1}")
+    # The ensemble's predictions must be the mean of its members' probabilities, row for row
     for split in SPLITS:
         voted = pd.read_csv(folder / f"{split}_predictions.csv")
         frames = [pd.read_csv(folder / f"member_{int(m):02d}" / f"{split}_predictions.csv") for m in members["member"]]
@@ -261,6 +282,7 @@ def check_ensemble(report: Report, folder: Path, item: str) -> Path:
 
 def check_selection(report: Report, root: Path) -> Dict[str, Path]:
     """Returns the model folder behind each scenario (for the Grad-CAM check)."""
+    # Run the selection check that fits each family: lr grid, SVM tuning or fixed ensemble
     chosen: Dict[str, Path] = {}
     for scenario_id, input_path, family in scenarios():
         folder, item = root / input_path / family, f"{scenario_id} {input_path}/{family}"
@@ -279,15 +301,18 @@ def check_selection(report: Report, root: Path) -> Dict[str, Path]:
 # 4. Budget ----------------------------------------------------------------------------------------
 
 def check_budget(report: Report, root: Path) -> None:
+    # Gather the run_config of every trained network (grid runs and ensemble members)
     configs = {}
     for _, input_path, family in scenarios():
         base = root / input_path / family
         pattern = "lr_*/run_config.json" if family in SINGLE_FAMILIES else "member_*/run_config.json"
         for path in sorted(base.glob(pattern)):
             configs[str(path.parent.relative_to(root))] = read_json(path)
+    # Each budget setting must take one single value across all networks
     for key in BUDGET_KEYS:
         values = Counter(json.dumps(c.get(key)) for c in configs.values())
         report.add("budget", key, len(values) == 1, f"{dict(values)} over {len(configs)} trained networks")
+    # Record which code version trained them (a NOTE, not a pass/fail check)
     commits = Counter((c.get("git_commit", "?")[:7], c.get("git_dirty")) for c in configs.values())
     report.add("budget", "code version (commit, dirty)", None, str(dict(commits)))
 
@@ -295,6 +320,7 @@ def check_budget(report: Report, root: Path) -> None:
 # 5. Numbers ---------------------------------------------------------------------------------------
 
 def check_numbers(report: Report, root: Path, n_boot: int, seed: int) -> None:
+    # Recompute each scenario's metrics from its predictions and compare with the saved metrics files
     recomputed: Dict[tuple, Dict[str, Any]] = {}
     for scenario_id, input_path, family in scenarios():
         folder = root / input_path / family
@@ -305,6 +331,7 @@ def check_numbers(report: Report, root: Path, n_boot: int, seed: int) -> None:
                 fresh = compute_metrics(p)
                 saved = read_json(folder / f"{split}_metrics.json")
                 off = [k for k, v in fresh.items() if not close(v, saved[k])]
+                # On test, keep the metrics for the tables and redo the bootstrap intervals with the saved seed
                 if split == "test":
                     recomputed[(input_path, family)] = fresh
                     if n_boot:
@@ -317,13 +344,16 @@ def check_numbers(report: Report, root: Path, n_boot: int, seed: int) -> None:
                            f"macro-F1 {fresh['macro_f1']:.4f}" + (f"; differ: {off}" if off else ""))
         report.guard("numbers", f"{scenario_id} {input_path}/{family}", run)
 
+    # Then the run-wide tables, checked against the recomputed test metrics
     def tables() -> None:
+        # evaluation_index.csv: 16 evaluated scenarios, each with the recomputed test macro-F1
         index = pd.read_csv(root / "evaluation_index.csv")
         off = [r["scenario_id"] for r in index.to_dict("records")
                if not close(r["test_macro_f1"], recomputed[(r["input_path"], r["family"])]["macro_f1"])]
         report.add("numbers", "evaluation_index.csv", len(index) == 16 and not off and
                    (index["status"] == "evaluated").all(), f"differ: {off}" if off else "16 evaluated")
 
+        # summary_table.csv: rebuild it and compare every numeric column and the macro-F1 values
         saved = pd.read_csv(root / "summary" / "summary_table.csv")
         fresh = summary_table(root)
         numeric = [c for c in fresh.columns if c not in ("scenario_id", "family", "input_path")]
@@ -334,6 +364,7 @@ def check_numbers(report: Report, root: Path, n_boot: int, seed: int) -> None:
             fresh[["scenario_id", "family", "input_path"]]) and not off and not f1_off,
             f"differ: {off + f1_off}" if off or f1_off else "16 rows, all columns")
 
+        # full_vs_roi.csv: redo the paired full-image vs ROI comparison
         saved = pd.read_csv(root / "summary" / "full_vs_roi.csv")
         compare_paired(report, "full_vs_roi.csv", saved, load_pairs(root), n_boot, seed)
     report.guard("numbers", "tables", tables)
@@ -341,12 +372,14 @@ def check_numbers(report: Report, root: Path, n_boot: int, seed: int) -> None:
 
 def compare_paired(report: Report, item: str, saved: pd.DataFrame, pairs, n_boot: int, seed: int) -> None:
     """Point estimates always; intervals, p-values and Holm when n_boot > 0."""
+    # Rerun the paired comparison; with resamples also compare intervals and p-values
     columns = ["full", "roi", "difference"]
     if n_boot:
         fresh = paired_comparison(pairs, n_boot, seed)
         columns += ["ci_low", "ci_high", "p_value", "p_holm", "resamples"]
     else:
         fresh = paired_comparison(pairs, 1, seed)
+    # Same rows in the same order, and every compared column equal within tolerance
     same_keys = saved[["family", "metric"]].equals(fresh[["family", "metric"]])
     off = [c for c in columns if not np.allclose(saved[c], fresh[c], rtol=0, atol=TOLERANCE, equal_nan=True)]
     report.add("numbers", item, same_keys and not off,
@@ -357,6 +390,7 @@ def compare_paired(report: Report, item: str, saved: pd.DataFrame, pairs, n_boot
 # 6. Grad-CAM --------------------------------------------------------------------------------------
 
 def check_gradcam(report: Report, root: Path, assignments: Dict[str, str], chosen: Dict[str, Path]) -> None:
+    # The fixed examples: test images only, from distinct cases, the same number per class
     out = root / "gradcam"
     examples = pd.read_csv(out / "examples.csv", dtype=str, keep_default_na=False)
     per_class = examples.groupby("canonical_wound_label").size()
@@ -365,10 +399,12 @@ def check_gradcam(report: Report, root: Path, assignments: Dict[str, str], chose
     report.add("gradcam", "examples are test images from distinct cases", ok,
                f"{len(examples)} images, {per_class.min()} per class, {examples['pseudonimized_id'].nunique()} cases")
 
+    # Exactly one map per family, input path and example image
     results = pd.read_csv(out / "gradcam_results.csv", dtype={"case": str})
     expected = len(GRADCAM_FAMILIES) * len(INPUT_PATHS) * len(examples)
     report.add("gradcam", "one map per family, path and example", len(results) == expected and
                not results.duplicated(["family", "input_path", "image"]).any(), f"{len(results)} of {expected}")
+    # Each map's checkpoint must lie in the model folder reported for its scenario
     wrong_model = []
     for (family, input_path), rows in results.groupby(["family", "input_path"]):
         model = chosen.get(f"{input_path}/{family}")
@@ -376,10 +412,12 @@ def check_gradcam(report: Report, root: Path, assignments: Dict[str, str], chose
             wrong_model.append(f"{input_path}/{family}")
     report.add("gradcam", "maps use the reported models", not wrong_model, f"differ: {wrong_model}" if wrong_model
                else "selected lr run or representative member")
+    # Count Grad-CAM predictions that match the prediction files (reported as a NOTE)
     mismatched = results.loc[~results["matches_prediction_file"].astype(bool), ["family", "input_path", "class"]]
     report.add("gradcam", "predictions equal the prediction files", None,
                f"{len(results) - len(mismatched)} of {len(results)}"
                + "".join(f"; differs: {f} {i} {c}" for f, i, c in mismatched.itertuples(index=False)))
+    # Every Grad-CAM figure exists and is a PNG
     figures = [f"{family}_set{k}.png" for family in GRADCAM_FAMILIES for k in sorted(examples["set"].unique())]
     missing = [f for f in figures if not (out / f).is_file() or (out / f).read_bytes()[:4] != b"\x89PNG"]
     report.add("gradcam", "figures", not missing, f"missing {missing}" if missing else f"{len(figures)} figures")
@@ -389,22 +427,26 @@ def check_gradcam(report: Report, root: Path, assignments: Dict[str, str], chose
 
 def check_cv(report: Report, cv_root: Path, cv_folds: Path, folds: int, assignments: Dict[str, str],
              n_boot: int, seed: int) -> None:
+    # The fold file must hold no test case, and every case must be in the frozen split
     fold_of = dict(pd.read_csv(cv_folds, dtype=str).itertuples(index=False, name=None))
     leaked = sorted(c for c in fold_of if assignments.get(c) == "test")
     report.add("cv", "cv_folds.csv has no test case", not leaked and all(assignments.get(c) for c in fold_of),
                f"{len(fold_of)} cases in {len(set(fold_of.values()))} folds")
+    # No CV run may have test predictions, and every non-ensemble run must have run in CV mode
     test_files = sorted(str(p.relative_to(cv_root)) for p in cv_root.rglob("test_predictions.csv"))
     report.add("cv", "no CV run predicted test", not test_files, f"found {test_files[:5]}" if test_files else "")
     not_cv = sorted(str(p.parent.relative_to(cv_root)) for p in cv_root.rglob("run_config.json")
                     if read_json(p).get("family") != "ensemble" and not read_json(p).get("cv_folds"))
     report.add("cv", "every CV run ran in CV mode (test rows dropped)", not not_cv, f"not CV: {not_cv[:5]}")
 
+    # Recompute the CV table and the paired comparison from the fold predictions
     def run() -> None:
         saved = pd.read_csv(cv_root / "summary" / "cv_table.csv").set_index("scenario_id")
         pairs, off = {}, []
         with tempfile.TemporaryDirectory() as tmp:
             for scenario_id, input_path, family in scenarios():
                 frames, per_fold = [], []
+                # Per fold: cases must belong to that fold; keep the fold's metrics and rows
                 for k in range(1, folds + 1):
                     path = cv_root / input_path / family / f"fold_{k}" / "validation_predictions.csv"
                     p = load_predictions(path, "validation")
@@ -413,6 +455,7 @@ def check_cv(report: Report, cv_root: Path, cv_folds: Path, folds: int, assignme
                         off.append(f"{scenario_id} fold {k}: cases outside the fold {outside[:3]}")
                     per_fold.append(summary_metrics(p.y_true, p.y_pred, p.probs))
                     frames.append(pd.read_csv(path, dtype=str))
+                # Join the folds into out-of-fold predictions; compare fold mean, SD and pooled metrics with the table
                 joined = Path(tmp) / f"{scenario_id}.csv"
                 pd.concat(frames, ignore_index=True).to_csv(joined, index=False)
                 oof = load_predictions(joined, "validation")
@@ -426,22 +469,27 @@ def check_cv(report: Report, cv_root: Path, cv_folds: Path, folds: int, assignme
                 pairs.setdefault(family, {})[input_path] = oof
         report.add("cv", "cv_table.csv (fold mean, SD, out of fold)", not off, f"differ: {off[:5]}" if off
                    else f"16 scenarios x {folds} folds")
+        # All scenarios must cover the same development cases
         cases = {frozenset(p.cases) for d in pairs.values() for p in d.values()}
         report.add("cv", "every scenario covers the same development cases", len(cases) == 1,
                    f"{len(next(iter(cases)))} cases" if len(cases) == 1 else f"{len(cases)} different case sets")
+        # Redo the paired full vs ROI comparison on the out-of-fold predictions
         ordered = {f: tuple(pairs[f][p] for p in INPUT_PATHS) for f in FAMILY_ORDER}
         compare_paired(report, "cv_full_vs_roi.csv", pd.read_csv(cv_root / "summary" / "cv_full_vs_roi.csv"),
                        ordered, n_boot, seed)
     report.guard("cv", "recompute", run)
+    # The CV comparison figure must exist
     report.add("cv", "cv_full_vs_roi_macro_f1.png", (cv_root / "summary" / "cv_full_vs_roi_macro_f1.png").is_file())
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # Read the arguments and the frozen case-to-split assignment
     args = parse_args(argv)
     root = args.experiments_root
     assignments = dict(pd.read_csv(args.split_assignments, dtype=str).itertuples(index=False, name=None))
     report = Report()
 
+    # Run checks 1-7 in order; guarded checks turn errors into FAIL rows instead of crashing
     check_files(report, root)
     check_test_set(report, root, assignments)
     chosen = check_selection(report, root)
@@ -451,6 +499,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cv_root is not None:
         check_cv(report, args.cv_root, args.cv_folds, args.folds, assignments, args.bootstrap, args.seed)
 
+    # Write the report, print counts per check and every non-PASS row; exit 1 on any FAIL
     out = root / "verification"
     out.mkdir(exist_ok=True)
     table = pd.DataFrame(report.rows, columns=["check", "item", "status", "detail"])

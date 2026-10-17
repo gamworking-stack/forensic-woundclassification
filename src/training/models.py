@@ -29,19 +29,23 @@ def input_size(family: str) -> int:
 
 
 def _backbone(family: str, pretrained: bool) -> nn.Module:
+    # Look up the torchvision builder and its ImageNet weights
     if family not in FAMILIES:
         raise ValueError(f"Unknown family {family!r}; expected one of {FAMILIES}")
     builder, weights = _BUILDERS[family]
+    # GoogLeNet: random init must switch off the auxiliary heads explicitly
     if family == "googlenet":
         # Pretrained GoogLeNet drops its auxiliary heads by itself; passing aux_logits there raises.
         if pretrained:
             return builder(weights=weights)
         return builder(weights=None, aux_logits=False, init_weights=True)
+    # Every other family: ImageNet weights or random init
     return builder(weights=weights if pretrained else None)
 
 
 def _head_slot(model: nn.Module, family: str) -> Tuple[nn.Module, Union[str, int]]:
     """Return (parent module, key) of the final linear layer."""
+    # ResNet/GoogLeNet keep it in model.fc, ViT in heads.head, the rest as the last classifier entry
     if family in ("resnet152", "googlenet"):
         return model, "fc"
     if family == "vit_b16":
@@ -56,6 +60,7 @@ def _get_head(model: nn.Module, family: str) -> nn.Linear:
 
 def _set_head(model: nn.Module, family: str, new: nn.Module) -> None:
     parent, key = _head_slot(model, family)
+    # Sequential classifiers are indexed, named heads are attributes
     if isinstance(key, int):
         parent[key] = new
     else:
@@ -65,6 +70,7 @@ def _set_head(model: nn.Module, family: str, new: nn.Module) -> None:
 def build_model(family: str, num_classes: int = 7, pretrained: bool = True) -> nn.Module:
     """Pretrained backbone with its last linear layer replaced by a ``num_classes`` head."""
     model = _backbone(family, pretrained)
+    # Swap the ImageNet head for a fresh linear layer with the same input width
     _set_head(model, family, nn.Linear(_get_head(model, family).in_features, num_classes))
     return model
 
@@ -72,6 +78,7 @@ def build_model(family: str, num_classes: int = 7, pretrained: bool = True) -> n
 def feature_extractor(family: str, pretrained: bool = True) -> Tuple[nn.Module, int]:
     """Backbone with its last linear layer removed, and the size of the feature vector it returns."""
     model = _backbone(family, pretrained)
+    # Remember the head's input width, then replace the head with identity so the model returns features
     feature_dim = _get_head(model, family).in_features
     _set_head(model, family, nn.Identity())
     return model, feature_dim

@@ -42,12 +42,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def read_member(member_dir: Path, splits=PREDICTION_SPLITS) -> Dict[str, Any]:
     """Load a member's config, best-checkpoint summary and prediction files."""
+    # Each requested split's prediction file, with identifier columns kept as text
     predictions = {}
     for split in splits:
         path = member_dir / f"{split}_predictions.csv"
         if not path.is_file():
             raise FileNotFoundError(f"{member_dir} has no {path.name}; has its training run finished?")
         predictions[split] = pd.read_csv(path, dtype={c: str for c in ID_COLUMNS + [PHOTO_COLUMN, "predicted_class"]})
+    # The member's settings and the epoch and validation macro-F1 of its best checkpoint
     config = json.loads((member_dir / "run_config.json").read_text(encoding="utf-8"))
     best = load_checkpoint(member_dir / "best.pt", torch.device("cpu"))
     return {
@@ -61,6 +63,7 @@ def read_member(member_dir: Path, splits=PREDICTION_SPLITS) -> Dict[str, Any]:
 
 def check_members(members: List[Dict[str, Any]]) -> List[str]:
     """Members must share input path and classes and have distinct seeds; return the class list."""
+    # Every member must match the first on input path and class list
     first = members[0]["config"]
     for member in members[1:]:
         config = member["config"]
@@ -68,6 +71,7 @@ def check_members(members: List[Dict[str, Any]]) -> List[str]:
             if config[key] != first[key]:
                 raise ValueError(f"{member['dir']} has {key}={config[key]!r}, "
                                  f"but {members[0]['dir']} has {first[key]!r}")
+    # Seeds must differ, otherwise the members would be copies of one run
     seeds = [m["config"]["seed"] for m in members]
     if len(set(seeds)) != len(seeds):
         raise ValueError(f"Ensemble members must have distinct seeds, got {seeds}")
@@ -76,10 +80,12 @@ def check_members(members: List[Dict[str, Any]]) -> List[str]:
 
 def soft_vote(frames: List[pd.DataFrame], names: List[str], classes: List[str]) -> pd.DataFrame:
     """Mean of the members' probabilities per image and class; predicted class is the argmax."""
+    # Probability columns expected from the class list; the first member is the row reference
     prob_columns = [f"prob_{c.replace(' ', '_')}" for c in classes]
     reference = frames[0]
     # Per-box crops (T17) also carry their source photo.
     id_columns = [c for c in reference.columns if c in ID_COLUMNS or c == PHOTO_COLUMN]
+    # Each member must have the same probability columns and the same images in the same order
     for frame, name in zip(frames, names):
         if [c for c in frame.columns if c.startswith("prob_")] != prob_columns:
             raise ValueError(f"{name}: probability columns do not match classes {classes}")
@@ -87,6 +93,7 @@ def soft_vote(frames: List[pd.DataFrame], names: List[str], classes: List[str]) 
                 or not frame[id_columns].equals(reference[id_columns])):
             raise ValueError(f"{name}: rows differ from {names[0]} (different images or order)")
 
+    # Average the probabilities and take the argmax as the ensemble's prediction
     mean = np.mean([frame[prob_columns].to_numpy() for frame in frames], axis=0)
     voted = reference[id_columns].copy()
     voted["predicted_class"] = [classes[i] for i in mean.argmax(axis=1)]
@@ -103,18 +110,22 @@ def representative_index(members: List[Dict[str, Any]]) -> int:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Output folder and log
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     log = Logger(out / "ensemble.log")
 
+    # Load and cross-check the members
     members = [read_member(d, args.splits) for d in args.members]
     classes = check_members(members)
     names = [str(m["dir"]) for m in members]
 
+    # Soft-vote each split's predictions into one file
     for split in args.splits:
         voted = soft_vote([m["predictions"][split] for m in members], names, classes)
         voted.to_csv(out / f"{split}_predictions.csv", index=False)
 
+    # Member table, flagging the member used for Grad-CAM
     rep = representative_index(members)
     table = pd.DataFrame([{
         "member": i + 1,
@@ -126,6 +137,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     } for i, m in enumerate(members)])
     table.to_csv(out / "ensemble_members.csv", index=False)
 
+    # Record the ensemble's members, seeds, combination rule and provenance
     run_config = {
         "family": "ensemble",
         "member_family": sorted({m["config"]["family"] for m in members}),
@@ -142,6 +154,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     with (out / "run_config.json").open("w", encoding="utf-8") as f:
         json.dump(run_config, f, indent=2, ensure_ascii=False)
 
+    # Log the member table and a summary
     for row in table.to_dict("records"):
         log(json.dumps(row))
     log(f"Soft-voted {len(members)} members into {out}; representative member {rep + 1}")

@@ -41,6 +41,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def box_folder(root: Path, family: str) -> Path:
+    # The scenario must be trained and evaluated at crop level (both splits plus test metrics)
     folder = root / BOX_PATH / family
     for name in ("validation_predictions.csv", "test_predictions.csv", "test_metrics.json"):
         if not (folder / name).is_file():
@@ -50,9 +51,11 @@ def box_folder(root: Path, family: str) -> Path:
 
 def write_photo_level(folder: Path, title: str, n_resamples: int, seed: int) -> Dict:
     """Photo-level prediction files and metric files in ``folder/photo``; return the test metrics."""
+    # Photo-level files live in a 'photo' subfolder next to the crop-level ones
     photo_dir = folder / "photo"
     photo_dir.mkdir(exist_ok=True)
     for split in SPLITS:
+        # Average each photo's crop probabilities into one photo-level prediction row
         crops = pd.read_csv(folder / f"{split}_predictions.csv", dtype=str)
         frame = photo_prediction_frame(crops.astype({c: float for c in crops.columns if c.startswith("prob_")}))
         frame.to_csv(photo_dir / f"{split}_predictions.csv", index=False)
@@ -60,12 +63,14 @@ def write_photo_level(folder: Path, title: str, n_resamples: int, seed: int) -> 
 
 
 def summary_row(family: str, photo: Dict, crop: Dict) -> Dict:
+    # Photo-level size, headline metrics and interval bounds
     row = {"scenario_id": BOX_SCENARIO_IDS[(BOX_PATH, family)], "family": family,
            "test_photos": photo["n_images"], "test_cases": photo["n_cases"],
            **{name: photo[name] for name in TABLE_METRICS}}
     for name in CI_METRICS:
         row[f"{name}_ci_low"] = photo["confidence_intervals"][name]["low"]
         row[f"{name}_ci_high"] = photo["confidence_intervals"][name]["high"]
+    # Crop-level count and metrics alongside, for reference
     row["test_crops"] = crop["n_images"]
     row.update({f"crop_{name}": crop[name] for name in CROP_METRICS})
     return row
@@ -73,15 +78,18 @@ def summary_row(family: str, photo: Dict, crop: Dict) -> Dict:
 
 def compare(reference: Dict[str, Predictions], box: Dict[str, Predictions], n_resamples: int, seed: int) -> pd.DataFrame:
     """Box - reference per family with the T15 paired bootstrap; columns renamed to reference/box."""
+    # Reuse the full-vs-ROI code with the reference as 'full' and per-box as 'roi'
     table = paired_comparison({f: (reference[f], box[f]) for f in FAMILY_ORDER}, n_resamples, seed)
     return table.rename(columns={"full": "reference", "roi": "box"})
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Outputs go to <box-root>/summary
     out = args.box_root / "summary"
     out.mkdir(parents=True, exist_ok=True)
 
+    # Per family: photo-level files and metrics, a summary row and the photo-level test predictions
     rows, box = [], {}
     for family in FAMILY_ORDER:
         folder = box_folder(args.box_root, family)
@@ -93,12 +101,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     pd.DataFrame(rows).to_csv(out / "box_summary_table.csv", index=False)
 
     main_pairs = load_pairs(args.main_root)  # checks that all 16 main scenarios share their test cases
+    # Pairing needs the box photo-level test set to match the main run's images per case and class
     reference = main_pairs[FAMILY_ORDER[0]][1].signature()
     for family, p in box.items():
         if p.signature() != reference:
             raise ValueError(f"box/{family} photo-level test set differs from the main run's "
                              "(cases or images per class); paired comparison is undefined")
 
+    # Per-box against union ROI and against full image, plus the union forest plot
     versus_union = compare({f: main_pairs[f][1] for f in FAMILY_ORDER}, box, args.bootstrap, args.seed)
     versus_full = compare({f: main_pairs[f][0] for f in FAMILY_ORDER}, box, args.bootstrap, args.seed)
     versus_union.to_csv(out / "box_vs_union.csv", index=False)
@@ -107,6 +117,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                      "Test macro-F1 (photo level): per-box minus union ROI", out / "box_vs_union_macro_f1.png",
                      labels=("union ROI", "per-box ROI"))
 
+    # Print the macro-F1 differences of both comparisons
     for name, table in (("box-union", versus_union), ("box-full", versus_full)):
         for row in table[table["metric"] == "macro_f1"].to_dict("records"):
             holm = "" if pd.isna(row["p_holm"]) else f" holm={row['p_holm']:.3f}"

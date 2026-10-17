@@ -57,6 +57,7 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser = argparse.ArgumentParser(
         description="Fine-tune one model family on one input path (full image or ROI)."
     )
+    # Which scenario to run: model family, input path and data locations
     parser.add_argument("--family", required=True, choices=FAMILIES)
     parser.add_argument("--input-path", required=True, choices=INPUT_PATHS)
     parser.add_argument("--manifest", type=Path, required=True,
@@ -70,6 +71,7 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
                         help="Full path only: 'matched' keeps the images that also have an ROI crop.")
     parser.add_argument("--image-size", type=int, default=None,
                         help="Override the family's input size (tests only).")
+    # Optimisation hyperparameters (defaults are the frozen recipe)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--max-epochs", type=int, default=None, help="Default 200, or 2 with --smoke.")
     parser.add_argument("--patience", type=int, default=25)
@@ -77,12 +79,14 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--label-smoothing", type=float, default=0.05)
     parser.add_argument("--no-class-weights", dest="class_weights", action="store_false")
+    # Run mechanics: seed, workers, device, pretrained weights, image caching and resume
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num-workers", type=int, default=None, help="Default 8, or 0 with --smoke.")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--no-pretrained", dest="pretrained", action="store_false")
     parser.add_argument("--no-cache", dest="cache", action="store_false")
     parser.add_argument("--resume", action="store_true", help="Continue from last.pt if present.")
+    # Run modes: smoke test, tuning without test, CV fold, and which checkpoint predicts
     parser.add_argument("--smoke", action="store_true",
                         help="2 epochs on 2 images per class per split.")
     parser.add_argument("--skip-test", action="store_true",
@@ -92,12 +96,14 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--fold", type=int, default=None)
     parser.add_argument("--checkpoint", choices=("best", "last"), default="best",
                         help="Weights that predict: best validation epoch, or the last epoch (fixed-epoch CV).")
+    # Parse, then check that the two CV options come as a pair
     args = parser.parse_args(argv)
     if (args.cv_folds is None) != (args.fold is None):
         parser.error("--cv-folds and --fold go together")
     if args.cv_folds is not None:
         args.skip_test = True  # CV never loads the test split
 
+    # Fill in the defaults that depend on --smoke
     if args.max_epochs is None:
         args.max_epochs = 2 if args.smoke else 200
     if args.num_workers is None:
