@@ -31,18 +31,22 @@ PHOTO_COLUMNS = [GROUP_COLUMN, "wound_id", "filename", "wound_label", LABEL_COLU
 
 def photo_table(box_manifest: Path, splits: Sequence[str] = SPLITS) -> pd.DataFrame:
     """One row per photo of ``splits`` from the per-box manifest, with its source size."""
+    # The per-box manifest has one row per crop; keep the first row of each photo
     crops = pd.read_csv(box_manifest, dtype=str, keep_default_na=False)
     crops["split"] = crops["split"].str.strip().str.lower()
     photos = crops.drop_duplicates(PHOTO)[[*PHOTO_COLUMNS, "source_width", "source_height"]]
+    # Only the requested splits, in a fixed photo order
     photos = photos[photos["split"].isin(splits)].sort_values(PHOTO).reset_index(drop=True)
     return photos.astype({"source_width": int, "source_height": int})
 
 
 def load_photo(image_root: Path, row: Dict, check_size: bool = True) -> Image.Image:
     """The EXIF-oriented RGB photo of a manifest row; its size must match the manifest's."""
+    # Find the raw photo file the same way the ROI cropping code does
     path = find_source_image(image_root, row)
     if path is None:
         raise FileNotFoundError(f"No source image for {row[PHOTO]} under {image_root}")
+    # Rotate it upright (EXIF) as the manual boxes assume, and check its size
     with Image.open(path) as opened:
         image = ImageOps.exif_transpose(opened).convert("RGB")
     if check_size and image.size != (int(row["source_width"]), int(row["source_height"])):
@@ -54,9 +58,11 @@ def load_photo(image_root: Path, row: Dict, check_size: bool = True) -> Image.Im
 def detection_rows(photo: str, boxes: np.ndarray, scores: np.ndarray, width: int, height: int,
                    extra: Optional[Dict[str, Sequence]] = None) -> List[Dict]:
     """Rows of a detections file, boxes clipped to the image and empty boxes dropped."""
+    # Clip boxes to the photo and drop any that became empty
     boxes = as_boxes(np.clip(np.asarray(boxes, dtype=float).reshape(-1, 4), 0, [width, height, width, height]))
     keep = (boxes[:, 2] > boxes[:, 0]) & (boxes[:, 3] > boxes[:, 1])
     rows = []
+    # One row per box: photo, score, corners, plus any extra column (e.g. 4P's source class)
     for i in np.flatnonzero(keep):
         row = {PHOTO: photo, "score": float(scores[i]), **dict(zip(COORDINATES, boxes[i].tolist()))}
         for name, values in (extra or {}).items():
@@ -67,6 +73,7 @@ def detection_rows(photo: str, boxes: np.ndarray, scores: np.ndarray, width: int
 
 def write_detections(rows: Iterable[Dict], path: Path, extra_columns: Sequence[str] = ()) -> None:
     """Write a detections file; never over an existing one (selection.json records their hashes)."""
+    # Never overwrite: selection.json stores each detections file's hash
     if path.exists():
         raise FileExistsError(f"{path} exists; detections files are written once (write test runs to their own folder)")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -75,6 +82,7 @@ def write_detections(rows: Iterable[Dict], path: Path, extra_columns: Sequence[s
 
 def test_allowed(selection: Optional[Path], config: str) -> None:
     """Raise unless ``selection`` is the arm's frozen selection, passed its gate, and chose ``config``."""
+    # Test is allowed only after a frozen selection that passed its gate and chose this configuration
     if selection is None or not selection.is_file():
         raise SystemExit("Test photos are run only after the arm's selection.json exists (T19 §2.6); pass --selection")
     chosen = json.loads(selection.read_text(encoding="utf-8"))

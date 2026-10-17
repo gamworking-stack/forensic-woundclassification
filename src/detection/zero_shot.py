@@ -77,19 +77,23 @@ def config_order() -> List[str]:
 
 def tiles(width: int, height: int, fraction: float = TILE_FRACTION) -> List[Tuple[int, int, int, int]]:
     """The four corner tiles ``(x0, y0, x1, y1)``, each ``fraction`` of the width and height."""
+    # Tile size, then one tile anchored at each corner (they overlap in the middle)
     tw, th = int(np.ceil(fraction * width)), int(np.ceil(fraction * height))
     return [(x0, y0, x0 + tw, y0 + th) for y0 in (0, height - th) for x0 in (0, width - tw)]
 
 
 def top(boxes: np.ndarray, scores: np.ndarray, k: int = RAW_PER_PASS) -> Tuple[np.ndarray, np.ndarray]:
+    # The k highest-scoring boxes
     order = np.argsort(-scores, kind="stable")[:k]
     return boxes[order], scores[order]
 
 
 def detect_photo(detect: Detect, image, phrases: List[str], tiled: bool) -> Tuple[np.ndarray, np.ndarray]:
     """Raw boxes in photo pixels: the full-photo pass plus, when ``tiled``, the four tile passes."""
+    # Pass 1: the whole photo
     boxes, scores = top(*detect(image, phrases))
     parts_b, parts_s = [boxes], [scores]
+    # Passes 2-5: each corner tile; shift its boxes back into photo coordinates
     if tiled:
         for x0, y0, x1, y1 in tiles(*image.size):
             b, s = top(*detect(image.crop((x0, y0, x1, y1)), phrases))
@@ -105,32 +109,39 @@ def load_detector(model: str, device: str) -> Detect:
     from transformers import (AutoModelForZeroShotObjectDetection, AutoProcessor, Owlv2ForObjectDetection,
                               Owlv2Processor)
 
+    # Which Hugging Face model to load (from the offline cache)
     name = MODELS[model]
     if model == "gdino":
+        # Grounding DINO: processor and model from safetensors weights
         processor = AutoProcessor.from_pretrained(name)
         net = AutoModelForZeroShotObjectDetection.from_pretrained(name, use_safetensors=True).to(device).eval()
 
         @torch.no_grad()
         def detect(image, phrases):
+            # Run the model on one image with the prompt
             inputs = processor(images=image, text=grounding_text(phrases), return_tensors="pt").to(device)
             out = net(**inputs)
             scores = out.logits[0].sigmoid().max(dim=-1).values  # max over text tokens, as the post-processor
             cx, cy, w, h = out.pred_boxes[0].unbind(-1)  # normalised to the photo
+            # Turn normalised centre/size boxes into pixel corners
             width, height = image.size
             boxes = torch.stack([(cx - w / 2) * width, (cy - h / 2) * height,
                                  (cx + w / 2) * width, (cy + h / 2) * height], dim=-1)
             return boxes.float().cpu().numpy(), scores.float().cpu().numpy()
         return detect
 
+    # OWLv2: processor and model from safetensors weights
     processor = Owlv2Processor.from_pretrained(name)
     net = Owlv2ForObjectDetection.from_pretrained(name, use_safetensors=True).to(device).eval()
 
     @torch.no_grad()
     def detect(image, phrases):
+        # Run the model on one image with the phrases as text queries
         inputs = processor(text=[list(phrases)], images=image, return_tensors="pt").to(device)
         out = net(**inputs)
         scores = out.logits[0].sigmoid().max(dim=-1).values  # max over text queries
         cx, cy, w, h = out.pred_boxes[0].unbind(-1)  # normalised to the photo padded to a square
+        # OWLv2 pads the photo to a square, so boxes scale by the longer side
         side = float(max(image.size))
         boxes = torch.stack([(cx - w / 2) * side, (cy - h / 2) * side,
                              (cx + w / 2) * side, (cy + h / 2) * side], dim=-1)
@@ -143,15 +154,19 @@ def load_detector(model: str, device: str) -> Detect:
 def run(detect: Detect, model: str, configs: List[str], photos, image_root: Path, output_dir: Path,
         log: Callable[[str], None] = print) -> None:
     """Write ``<config>.csv`` for each of ``configs`` (all of one ``model``) over ``photos``."""
+    # Collect rows per configuration while each photo is opened only once
     rows: Dict[str, List[Dict]] = {c: [] for c in configs}
     for n, row in enumerate(photos.to_dict("records"), start=1):
         image = load_photo(image_root, row)
         for config in configs:
+            # Configuration name -> prompt and tiling, then detect and store the rows
             _, prompt, *tiled = config.split("_")
             boxes, scores = detect_photo(detect, image, PROMPTS[prompt], bool(tiled))
             rows[config] += detection_rows(row[PHOTO], boxes, scores, *image.size)
+        # Progress line every 50 photos
         if n % 50 == 0 or n == len(photos):
             log(f"{model}: {n}/{len(photos)} photos")
+    # One detections file per configuration
     for config in configs:
         write_detections(rows[config], output_dir / f"{config}.csv")
 
@@ -167,6 +182,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--image-root", type=Path, required=True, help="Raw photo tree (wound_ml_7classes).")
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args(argv)
+    # Test photos need the chosen configuration and a passing selection.json
     if "test" in args.splits:
         if args.config is None:
             parser.error("test needs --config (the chosen one) and --selection")
@@ -178,7 +194,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # One configuration (test) or all 8 of this model (development)
     configs = [args.config] if args.config else [c for c in config_order() if c.startswith(f"{args.model}_")]
+    # Photos of the requested splits, load the model, run
     photos = photo_table(args.box_manifest, args.splits)
     detect = load_detector(args.model, args.device)
     run(detect, args.model, configs, photos, args.image_root, args.output_dir)

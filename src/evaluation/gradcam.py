@@ -434,6 +434,7 @@ def main_all_test(args: argparse.Namespace, device: torch.device) -> int:
 
 def main_auto(args: argparse.Namespace, device: torch.device) -> int:
     """T19: the example photos' auto-box crops, explained by the existing union or per-box models."""
+    # Output folder; the same 14 example photos as T14
     out = args.experiments_root / f"gradcam_auto_{args.auto_arm}"
     out.mkdir(parents=True, exist_ok=True)
     examples = pd.read_csv(args.examples, dtype=str, keep_default_na=False)
@@ -441,12 +442,14 @@ def main_auto(args: argparse.Namespace, device: torch.device) -> int:
     table = []
     for family in args.families:
         if args.box_manifest is not None:
+            # Per-box design: explain the arm's auto crops of the example photos (test split)
             crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
             crops = crops[crops["split"].str.strip().str.lower() == "test"]
             results = explain_box(args.experiments_root, family, examples, crops, args.pretrained, device, args.auto_root)
             for k in sorted(examples["set"].unique()):
                 plot_box_family(results, family, int(k), out / f"{family}_set{k}.png")
         else:
+            # Union design: swap each example's manual crop for its auto crop, explain both
             auto = pd.read_csv(args.auto_manifest, dtype=str, keep_default_na=False).set_index(MANIFEST_PHOTO_COLUMN)
             auto_examples = examples.assign(roi_relative_path=auto.loc[examples[MANIFEST_PHOTO_COLUMN], "roi_relative_path"].to_numpy())
             manual = explain(args.experiments_root, family, "roi", examples, args.pretrained, device)
@@ -454,12 +457,14 @@ def main_auto(args: argparse.Namespace, device: torch.device) -> int:
             for r in automatic:
                 r["input_path"] = "auto roi"
             results = manual + automatic
+            # One figure per example set: manual crop next to auto crop, per wound type
             for k in sorted(examples["set"].unique()):
                 by_key = {(r["class"], r["input_path"]): r for r in results if int(r["set"]) == int(k)}
                 rows = [(label, {"manual roi": by_key.get((label, "roi")), "auto roi": by_key.get((label, "auto roi"))})
                         for label in sorted({r["class"] for r in results})]
                 plot_rows(rows, f"{family} Grad-CAM, manual vs auto ({args.auto_arm}) union crop, test set {k}",
                           out / f"{family}_set{k}.png")
+        # Keep the numbers (not the images) for the results table
         table += [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
         print(f"{family}: {sum(r['correct'] for r in results)}/{len(results)} correct", flush=True)
     pd.DataFrame(table).to_csv(out / "gradcam_results.csv", index=False)

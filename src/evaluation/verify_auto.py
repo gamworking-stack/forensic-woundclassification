@@ -62,12 +62,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 def check_reference(report: Report, manifest_root: Path, box_manifest: Path) -> None:
     reference = pd.read_csv(manifest_root / "reference_boxes.csv", dtype={PHOTO: str})
     crops = pd.read_csv(box_manifest, dtype=str).set_index([PHOTO, "crop_index"])
+    # Pad every reference box and count those that differ from their per-box crop
     bad = 0
     for row in reference.to_dict("records"):
         crop = crops.loc[(row[PHOTO], str(row["box_index"]))]
         padded = padded_crop_box([[row[c] for c in COORDINATES]], row["source_width"], row["source_height"])
         bad += padded != tuple(int(crop[c]) for c in COORDINATES)
     report.add("reference", "padded boxes = per-box crops", bad == 0, f"{bad} of {len(reference)} differ")
+    # The box counts per split must be the known 1,177 / 277 / 213
     limits = read_json(manifest_root / "reference_limits.json")
     report.add("reference", "boxes per split", limits["boxes_by_split"] == {"test": 213, "train": 1177, "validation": 277},
                json.dumps(limits["boxes_by_split"]))
@@ -75,11 +77,14 @@ def check_reference(report: Report, manifest_root: Path, box_manifest: Path) -> 
 
 def check_selection(report: Report, arm: str, detection: Path, reference: pd.DataFrame, limits: Dict) -> Dict:
     selection = read_json(detection / "selection.json")
+    # Each selection file must still have the hash recorded at selection time
     dev = Path(selection["detections_dir"])
     for config, digest in selection["detections_sha256"].items():
         report.add("selection", f"{arm} {config} hash", file_sha256(dev / f"{config}.csv") == digest)
+    # No test photo may have been in the selection data
     dropped = sum(selection["test_detections_dropped"].values())
     report.add("selection", f"{arm} no test photo in selection data", dropped == 0, f"{dropped} test rows dropped")
+    # Rerun the selection from the same files: same choice, threshold and gate?
     again = select(arm, [c["config"] for c in selection["configs"]], dev, reference, limits)
     same = (again["chosen_config"] == selection["chosen_config"] and again["gate_passed"] == selection["gate_passed"]
             and np.isclose(again["threshold"], selection["threshold"], equal_nan=True))
@@ -89,20 +94,24 @@ def check_selection(report: Report, arm: str, detection: Path, reference: pd.Dat
 
 
 def check_order(report: Report, arm: str, root: Path, selection: Dict, manifest_root: Path) -> None:
+    # Find the arm's test detections and when selection.json was written
     test_dir = root / "detection" / "test"
     test_files = sorted(test_dir.glob("*.csv")) if test_dir.is_dir() else []
     selection_time = (root / "detection" / "selection.json").stat().st_mtime
+    # Passed: only the chosen configuration was run on test, and only after the selection
     if selection["gate_passed"]:
         report.add("order", f"{arm} test detections of the chosen config", [p.stem for p in test_files] == [selection["chosen_config"]],
                    str([p.name for p in test_files]))
         late = all(p.stat().st_mtime >= selection_time for p in test_files)
         report.add("order", f"{arm} test detections written after selection.json", late)
     else:
+        # Failed: no test detections, crops or primary predictions may exist
         leftovers = [str(p) for p in (*test_files, manifest_root / arm, root / "primary") if Path(p).exists()]
         report.add("order", f"{arm} failed gate: nothing downstream", not leftovers, str(leftovers))
 
 
 def check_crossfit(report: Report, root: Path, selection: Dict, box_manifest: Path, cv_folds: Path) -> List[Path]:
+    # Fold of each case, the training photos, and the chosen run's best epoch
     folds = pd.read_csv(cv_folds, dtype=str).set_index(GROUP_COLUMN)["fold"].astype(int)
     train = photo_table(box_manifest, ("train",)).set_index(PHOTO)
     chosen = root / "detector" / selection["chosen_config"]
@@ -110,16 +119,19 @@ def check_crossfit(report: Report, root: Path, selection: Dict, box_manifest: Pa
     best_epoch = int(history.loc[history["validation_ap50"].idxmax(), "epoch"])
     files, seen = [], Counter()
     for k in sorted(set(folds)):
+        # Each fold run must use the chosen learning rate and the best epoch count
         run = root / "detector" / "crossfit" / f"fold{k}"
         config = read_json(run / "run_config.json")
         report.add("crossfit", f"fold {k} recipe", config["lr"] == read_json(chosen / "run_config.json")["lr"]
                    and int(config["epochs"]) == best_epoch, f"lr {config['lr']}, epochs {config['epochs']} (best {best_epoch})")
+        # Each fold run may box only the photos of its own (held-out) fold
         detections = pd.read_csv(run / f"train_fold{k}.csv", dtype={PHOTO: str})
         photos = set(detections[PHOTO])
         wrong = [p for p in photos if folds[train.loc[p, GROUP_COLUMN]] != k]
         report.add("crossfit", f"fold {k} boxes only its own photos", not wrong, f"{len(wrong)} photos of other folds")
         seen.update(set(train.index[train[GROUP_COLUMN].map(folds) == k]))
         files.append(run / f"train_fold{k}.csv")
+    # Together the folds cover every training photo exactly once
     report.add("crossfit", "every training photo in exactly one fold", set(seen) == set(train.index) and max(seen.values()) == 1,
                f"{len(seen)} of {len(train)} photos")
     return files
@@ -127,10 +139,12 @@ def check_crossfit(report: Report, root: Path, selection: Dict, box_manifest: Pa
 
 def check_crops(report: Report, arm: str, root: Path, selection: Dict, limits: Dict, manifest_root: Path,
                 box_manifest: Path, detection_files: List[Path]) -> None:
+    # Rebuild the crops from the frozen detections with the same code that made them
     detections = pd.concat([pd.read_csv(p, dtype={PHOTO: str}) for p in detection_files], ignore_index=True)
     photos = photo_table(box_manifest)
     rows = build_rows(photos, final_boxes_by_photo(photos, detections, float(selection["threshold"]), limits), arm)
     for design in DESIGNS:
+        # Compare with the written manifest: same crops, same coordinates, same test photos
         manifest = pd.read_csv(manifest_root / arm / design / "roi_manifest.csv", dtype={PHOTO: str})
         rebuilt = pd.DataFrame(rows[design])
         same = (len(manifest) == len(rebuilt) and (manifest["roi_relative_path"].to_numpy() == rebuilt["roi_relative_path"].to_numpy()).all()
@@ -143,6 +157,7 @@ def check_crops(report: Report, arm: str, root: Path, selection: Dict, limits: D
 
 def check_primary(report: Report, arm: str, root: Path, manifest_root: Path) -> None:
     for design, path in DESIGNS.items():
+        # Each family's primary predictions must cover exactly the manifest's test crops
         manifest = pd.read_csv(manifest_root / arm / design / "roi_manifest.csv", dtype=str)
         expected = set(manifest.loc[manifest["split"] == "test", "roi_relative_path"])
         for family in FAMILY_ORDER:
@@ -152,6 +167,7 @@ def check_primary(report: Report, arm: str, root: Path, manifest_root: Path) -> 
 
 
 def check_numbers(report: Report, exp: Path, arms: List[str]) -> None:
+    # Recompute each reported pooled difference from the prediction files
     table = pd.read_csv(exp / "auto_summary" / "primary_noninferiority.csv")
     cache = exp / "auto_summary" / "verification" / "photo_level"
     for row in table.to_dict("records"):
@@ -172,6 +188,7 @@ def check_numbers(report: Report, exp: Path, arms: List[str]) -> None:
 
 
 def check_budget(report: Report, exp: Path, arm: str) -> None:
+    # Every retrained network's settings must equal the main run's budget
     retrained = [read_json(p) for p in sorted(exp.glob(f"auto_{arm}_*/*/*/lr_*/run_config.json"))
                  + sorted(exp.glob(f"auto_{arm}_*/*/*/member_*/run_config.json"))]
     if not retrained:
@@ -187,6 +204,7 @@ def check_budget(report: Report, exp: Path, arm: str) -> None:
 
 
 def check_weights(report: Report, root: Path) -> None:
+    # The original 4P checkpoints must be the files the research identified
     record = read_json(root / "weights" / "weights.json")
     for size, prefix in HANTERDSITH_SHA256_PREFIX.items():
         digest = record["checkpoints"][size]["original_sha256"]
@@ -197,11 +215,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     exp = args.experiments_dir
     report = Report()
+    # Reference boxes first; then the inputs every arm check needs
     report.guard("reference", "files", lambda: check_reference(report, args.manifest_root, args.box_manifest))
     reference = pd.read_csv(args.manifest_root / "reference_boxes.csv", dtype={PHOTO: str, GROUP_COLUMN: str})
     limits = read_json(args.manifest_root / "reference_limits.json")
 
     for arm in args.arms:
+        # Per arm: selection, order, weights (4P); then, if it passed, cross-fitting (4F), crops, primary files, budget
         root = exp / f"auto_{arm}"
         selection = {}
 
@@ -227,8 +247,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         report.guard("crops", arm, crops_step)
         report.guard("primary", arm, lambda: check_primary(report, arm, root, args.manifest_root))
         report.guard("budget", arm, lambda: check_budget(report, exp, arm))
+    # Finally the reported numbers
     report.guard("numbers", "primary", lambda: check_numbers(report, exp, args.arms))
 
+    # Write the report, print counts per check and every non-PASS row; exit 1 on any FAIL
     out = exp / "auto_summary" / "verification"
     out.mkdir(parents=True, exist_ok=True)
     table = pd.DataFrame(report.rows, columns=["check", "item", "status", "detail"])

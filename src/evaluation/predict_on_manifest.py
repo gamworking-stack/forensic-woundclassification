@@ -51,6 +51,7 @@ def manifest_rows(config: Dict[str, Any], input_path: str) -> pd.DataFrame:
 
 def test_rows(manifest: Path, input_path: str, image_root: Path, classes: List[str],
               df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    # Resolve image paths and labels; the manifest's classes must match the model's, then keep test
     df = load_manifest(manifest, input_path) if df is None else df
     df, found = prepare_rows(df, input_path, image_root)
     if found != classes:
@@ -59,6 +60,7 @@ def test_rows(manifest: Path, input_path: str, image_root: Path, classes: List[s
 
 
 def loader_for(rows: pd.DataFrame, image_size: int, cache: bool, batch_size: int, workers: int) -> DataLoader:
+    # Same evaluation transforms and image cache as when the model was trained
     dataset = ManifestImageDataset(rows["image_path"].tolist(), rows["label_index"].tolist(),
                                    build_transforms(image_size, False),
                                    cache_side=2 * image_size if cache else None, threads=max(workers, 4))
@@ -66,6 +68,7 @@ def loader_for(rows: pd.DataFrame, image_size: int, cache: bool, batch_size: int
 
 
 def network_probs(folder: Path, family: str, rows: pd.DataFrame, device: torch.device, workers: int) -> np.ndarray:
+    # Rebuild the network, load its best checkpoint and predict (bf16 on GPU, as in the reported run)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     model = build_model(family, len(config["classes"]), pretrained=False)
     model.load_state_dict(load_checkpoint(folder / "best.pt", device)["model"])
@@ -76,11 +79,13 @@ def network_probs(folder: Path, family: str, rows: pd.DataFrame, device: torch.d
 
 def svm_model(folder: Path, image_root_of_run: Path, workers: int):
     """The reported CNN-SVM refit from its cached train + validation features; returns (model, config)."""
+    # The rows the CNN-SVM was trained on, read exactly as cnn_svm.py read them
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     input_path = config["input_path"]
     df, classes = prepare_rows(manifest_rows(config, input_path), input_path, image_root_of_run)
     per_box = input_path in PHOTO_INPUT_PATHS
     xs, ys, ws = [], [], []
+    # Load the cached features of train and validation; they must be for exactly these rows
     for split in ("train", "validation"):
         rows = df[df["split"] == split]
         parts = []
@@ -92,12 +97,14 @@ def svm_model(folder: Path, image_root_of_run: Path, workers: int):
         xs.append(np.concatenate(parts, axis=1))
         ys.append(rows["label_index"].to_numpy())
         ws.append(photo_weights(manifest_photos(rows)) if per_box else None)
+    # Refit the chosen SVM on train + validation, exactly as the reported model was fitted
     model = fit_svm(config["best_params"], int(config["seed"]), np.vstack(xs), np.concatenate(ys),
                     np.concatenate(ws) if per_box else None, probability=True)
     return model, config, classes
 
 
 def svm_probs(model, config: Dict[str, Any], rows: pd.DataFrame, device: torch.device, workers: int) -> np.ndarray:
+    # Extract the new crops' features with the same CNNs, then SVM probabilities
     loader = loader_for(rows, int(config["image_size"]), config.get("cache", True), int(config["batch_size"]), workers)
     parts = []
     for fam in config["extractors"]:
@@ -111,13 +118,16 @@ def family_predictions(root: Path, design: str, family: str, rows: pd.DataFrame,
                        workers: int) -> np.ndarray:
     input_path = DESIGN_PATHS[design]
     scenario = root / input_path / family
+    # Ensemble: predict with each of the three members and average (soft vote)
     if family == "alexnet_ensemble":
         members = pd.read_csv(scenario / "ensemble_members.csv")
         return np.mean([network_probs(Path(d), "alexnet", rows, device, workers) for d in members["output_dir"]], axis=0)
+    # CNN-SVM: refit, then predict
     if family == "cnn_svm":
         image_root = Path(json.loads((scenario / "run_config.json").read_text(encoding="utf-8"))["image_root"])
         model, config, _ = svm_model(scenario, image_root, workers)
         return svm_probs(model, config, rows, device, workers)
+    # Single network: the learning-rate run that produced the reported predictions
     return network_probs(checkpoint_folder(root, input_path, family), family, rows, device, workers)
 
 
@@ -138,11 +148,13 @@ def run_config(root: Path, design: str, family: str) -> Dict[str, Any]:
 
 def check_manual(root: Path, design: str, family: str, device: torch.device, workers: int) -> Dict[str, Any]:
     """Re-predict the model's own manual test crops and compare with its reported prediction file."""
+    # The model's own manual test crops, read with its own manifest options
     config = run_config(root, design, family)
     classes = list(config["classes"])
     input_path = DESIGN_PATHS[design]
     rows = test_rows(Path(config["manifest"]), input_path, Path(config["image_root"]), classes,
                      manifest_rows(config, input_path))
+    # Predict them again and compare with the reported file, crop by crop
     probs = family_predictions(root, design, family, rows, device, workers)
     reported = pd.read_csv(root / DESIGN_PATHS[design] / family / "test_predictions.csv", dtype=str)
     reported = reported.set_index("relative_path").loc[rows["image_relative_path"]]
@@ -172,10 +184,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(args.device)
     input_path = DESIGN_PATHS[args.design]
     checks = []
+    # For each family: its classes, the auto manifest's test crops, the predictions
     for family in args.families:
         classes = list(run_config(args.experiments_root, args.design, family)["classes"])
         rows = test_rows(args.manifest, input_path, args.image_root, classes)
         probs = family_predictions(args.experiments_root, args.design, family, rows, device, args.num_workers)
+        # Write the predictions and where they came from
         out = args.output_root / input_path / family
         out.mkdir(parents=True, exist_ok=True)
         frame = prediction_frame(rows, rows["label_index"].to_numpy(), probs, classes, photo=args.design == "box")
@@ -184,6 +198,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                                                      "manifest": str(args.manifest), "image_root": str(args.image_root),
                                                      "design": args.design, "family": family}, indent=2) + "\n")
         print(f"{family} ({args.design}): {len(frame)} test crops -> {out}", flush=True)
+        # Optional: prove the reloaded model reproduces its reported predictions
         if args.check_manual:
             checks.append(check_manual(args.experiments_root, args.design, family, device, args.num_workers))
             print(f"  manual re-prediction: {checks[-1]}", flush=True)

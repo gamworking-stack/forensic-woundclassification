@@ -77,9 +77,11 @@ def build_model(pretrained: bool = True):
     from torchvision.models.detection import FasterRCNN_ResNet50_FPN_V2_Weights, fasterrcnn_resnet50_fpn_v2
     from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
+    # Faster R-CNN from COCO weights, our input size, and raw boxes kept down to a very low score
     weights = FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1 if pretrained else None
     model = fasterrcnn_resnet50_fpn_v2(weights=weights, weights_backbone=None, min_size=MIN_SIZE, max_size=MAX_SIZE,
                                        box_score_thresh=SCORE_FLOOR, box_detections_per_img=DETECTIONS_PER_IMAGE)
+    # Replace COCO's 91-class head with 2 classes: background and wound
     model.roi_heads.box_predictor = FastRCNNPredictor(model.roi_heads.box_predictor.cls_score.in_features, 2)
     return model
 
@@ -90,6 +92,7 @@ class PhotoCache:
     def __init__(self, photos: pd.DataFrame, image_root: Path, max_side: Optional[int] = None) -> None:
         max_side = max_side or MAX_SIZE
         self.images, self.scales = {}, {}
+        # Open each photo once, shrink it so the longest side is max_side, remember the scale
         for row in photos.to_dict("records"):
             image = load_photo(image_root, row)
             scale = min(1.0, max_side / max(image.size))
@@ -103,6 +106,7 @@ def augment(image, boxes: np.ndarray, rng: random.Random):
     from PIL import ImageEnhance
 
     width, height = image.size
+    # Flip left-right and/or top-bottom (half the time each), moving the boxes with the image
     boxes = boxes.copy()
     if rng.random() < 0.5:
         image = image.transpose(0)  # FLIP_LEFT_RIGHT
@@ -110,6 +114,7 @@ def augment(image, boxes: np.ndarray, rng: random.Random):
     if rng.random() < 0.5:
         image = image.transpose(1)  # FLIP_TOP_BOTTOM
         boxes[:, [1, 3]] = height - boxes[:, [3, 1]]
+    # Mild brightness and contrast change (plus or minus 20%)
     image = ImageEnhance.Brightness(image).enhance(rng.uniform(0.8, 1.2))
     image = ImageEnhance.Contrast(image).enhance(rng.uniform(0.8, 1.2))
     return image, boxes
@@ -128,6 +133,7 @@ def detect_photos(model, cache: PhotoCache, photos: Sequence[str], device) -> Li
     rows = []
     with torch.no_grad():
         for photo in photos:
+            # Detect on the shrunk photo, then scale the boxes back to source pixels
             image, scale = cache.images[photo], cache.scales[photo]
             out = model([to_tensor(image).to(device)])[0]
             boxes = out["boxes"].float().cpu().numpy() / scale
@@ -138,6 +144,7 @@ def detect_photos(model, cache: PhotoCache, photos: Sequence[str], device) -> Li
 
 
 def validation_ap50(rows: List[Dict], val_photos: pd.DataFrame, max_share: float) -> float:
+    # Validation AP@0.5 with the same step-1 rules as the selection
     detections = pd.DataFrame(rows, columns=[PHOTO, "score", *COORDINATES])
     return coco_ap(coco_images(val_photos, candidates(detections, val_photos, max_share)))["ap50"]
 
@@ -145,12 +152,14 @@ def validation_ap50(rows: List[Dict], val_photos: pd.DataFrame, max_share: float
 def train(args: argparse.Namespace) -> int:
     import torch
 
+    # Seed everything and prepare the output folder, reference boxes and limits
     seed_all(SEED)
     device = torch.device(args.device)
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     reference = pd.read_csv(args.reference, dtype={PHOTO: str, GROUP_COLUMN: str})
     limits = json.loads(args.limits.read_text(encoding="utf-8"))
+    # Training photos; for cross-fitting, hold one fold's cases out
     photos = photo_table(args.box_manifest, ("train", "validation"))
     train_photos = photos[photos["split"] == "train"]
     if args.holdout_fold is not None:  # cross-fitting: learn without fold k's training cases
@@ -162,10 +171,12 @@ def train(args: argparse.Namespace) -> int:
         train_photos = train_photos[fold_of != args.holdout_fold]
         if holdout.empty:
             raise ValueError(f"Fold {args.holdout_fold} has no training photos")
+    # Manual boxes of the training photos, validation photos for early stopping, and the photo cache
     truth = reference_photos(reference, ("train",))["truth"]
     val_photos = reference_photos(reference, ("validation",))
     cache = PhotoCache(photos if args.holdout_fold is None else pd.concat([train_photos, holdout]), args.image_root)
 
+    # Model, SGD optimiser and a linear learning-rate warmup
     model = build_model(not args.no_pretrained).to(device)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
@@ -174,6 +185,7 @@ def train(args: argparse.Namespace) -> int:
     names = list(train_photos[PHOTO])
     epochs = args.epochs if args.epochs is not None else args.max_epochs
     history, best_ap, best_epoch, since_best, started = [], -1.0, 0, 0, time.time()
+    # Write the run's settings before training starts
     config = {**{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
               "min_size": MIN_SIZE, "max_size": MAX_SIZE, "batch_size": BATCH_SIZE, "warmup_iterations": WARMUP_ITERATIONS,
               "patience": None if args.epochs is not None else PATIENCE, "seed": SEED,
@@ -181,23 +193,27 @@ def train(args: argparse.Namespace) -> int:
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
     for epoch in range(1, epochs + 1):
+        # One epoch: shuffle the photos and train in batches of 4
         model.train()
         rng.shuffle(names)
         losses = []
         for start in range(0, len(names), BATCH_SIZE):
             images, targets = [], []
             for name in names[start:start + BATCH_SIZE]:
+                # Scale the manual boxes to the shrunk photo, augment, and build the model's targets
                 scale = cache.scales[name]
                 image, boxes = augment(cache.images[name], truth[name] * scale, rng)
                 images.append(to_tensor(image).to(device))
                 targets.append({"boxes": torch.as_tensor(boxes, dtype=torch.float32, device=device),
                                 "labels": torch.ones(len(boxes), dtype=torch.int64, device=device)})
+            # Faster R-CNN returns its losses; sum them and take one SGD step
             loss = sum(model(images, targets).values())
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
             warmup.step()
             losses.append(float(loss))
+        # Main runs: score validation each epoch, keep the best checkpoint, count epochs without improvement
         row = {"epoch": epoch, "train_loss": float(np.mean(losses)), "elapsed_minutes": (time.time() - started) / 60}
         if args.epochs is None:  # main runs: early stopping on validation AP@0.5
             row["validation_ap50"] = validation_ap50(detect_photos(model, cache, list(val_photos.index), device),
@@ -207,6 +223,7 @@ def train(args: argparse.Namespace) -> int:
                 torch.save({"model": model.state_dict(), "epoch": epoch, "validation_ap50": best_ap}, out / "best.pt")
             else:
                 since_best += 1
+        # Log the epoch; stop after PATIENCE epochs without improvement
         history.append(row)
         pd.DataFrame(history).to_csv(out / "history.csv", index=False)
         print(json.dumps(row), flush=True)
@@ -220,6 +237,7 @@ def train(args: argparse.Namespace) -> int:
         write_detections(rows, out / f"train_fold{args.holdout_fold}.csv")
         print(f"Fold {args.holdout_fold}: {len(holdout)} held-out training photos boxed -> {out}")
         return 0
+    # Main run: reload the best epoch and write its validation detections (the selection uses them)
     model.load_state_dict(torch.load(out / "best.pt", map_location=device, weights_only=True)["model"])
     write_detections(detect_photos(model, cache, list(val_photos.index), device), out / "validation.csv")
     print(f"Best epoch {best_epoch}, validation AP@0.5 {best_ap:.4f}; wrote {out / 'validation.csv'}")
@@ -229,8 +247,10 @@ def train(args: argparse.Namespace) -> int:
 def detect(args: argparse.Namespace) -> int:
     import torch
 
+    # Test needs a passing selection.json that chose this run
     if "test" in args.splits:
         test_allowed(args.selection, args.run_dir.name)
+    # Load the run's best checkpoint and detect on the requested photos
     device = torch.device(args.device)
     model = build_model(pretrained=False).to(device)
     model.load_state_dict(torch.load(args.run_dir / "best.pt", map_location=device, weights_only=True)["model"])
@@ -265,6 +285,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         p.add_argument("--limits", type=Path, default=Path("data/roi_auto/reference_limits.json"))
         p.add_argument("--device", default="cuda")
     args = parser.parse_args(argv)
+    # Cross-fitting needs both the held-out fold and the fixed epoch count
     if args.command == "train" and (args.holdout_fold is None) != (args.epochs is None):
         parser.error("--holdout-fold and --epochs go together (cross-fitting)")
     return args

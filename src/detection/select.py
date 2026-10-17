@@ -52,24 +52,30 @@ def file_sha256(path: Path) -> str:
 def select(arm: str, configs: List[str], detections_dir: Path, reference: pd.DataFrame,
            limits: Dict[str, Any]) -> Dict[str, Any]:
     """Score every configuration on the arm's selection photos; choose, threshold and gate."""
+    # The photos this arm selects on (validation for 4F, train + validation for 4Z/4P) and the test photos to exclude
     splits = SELECTION_SPLITS[arm]
     photos = reference_photos(reference, splits)
     test_photos = set(reference.loc[reference["split"] == "test", PHOTO])
     scores, dropped_test, hashes = [], {}, {}
     cands_of = {}
     for config in configs:
+        # Read this configuration's detections and record the file's hash
         path = detections_dir / f"{config}.csv"
         detections = load_detections(path)
         hashes[config] = file_sha256(path)
+        # Remove any test photo before scoring, and count how many were removed
         is_test = detections[PHOTO].isin(test_photos)
         dropped_test[config] = int(is_test.sum())
         detections = detections[~is_test]
+        # Apply the step-1 rules and score the configuration by COCO AP@0.5
         cands_of[config] = candidates(detections, photos, limits["max_box_share"])
         ap = coco_ap(coco_images(photos, cands_of[config]))
         scores.append({"config": config, **ap})
+    # The highest AP@0.5 wins; then the F1 threshold and its recall for the gate
     best = max(range(len(configs)), key=lambda i: (scores[i]["ap50"], -i))  # ties: earlier in --configs
     chosen = configs[best]
     threshold = choose_threshold(photos, cands_of[chosen], int(limits["max_boxes_per_photo"]))
+    # Everything later steps need: the choice, the threshold, the gate verdict, hashes and limits
     return {
         "arm": arm,
         "selection_splits": list(splits),
@@ -102,15 +108,18 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # A selection is written once; rerunning must not change it
     if args.output.exists():
         raise SystemExit(f"{args.output} exists: a selection is frozen once written (T19 §2.6)")
     reference = pd.read_csv(args.reference, dtype={PHOTO: str, GROUP_COLUMN: str})
     limits = json.loads(args.limits.read_text(encoding="utf-8"))
+    # Select, add provenance (folder, git commit, time) and write selection.json
     result = select(args.arm, args.configs, args.detections_dir, reference, limits)
     result.update({"detections_dir": str(args.detections_dir), **git_state(),
                    "written_at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    # One summary line for the log
     d = result["threshold_detail"]
     verdict = "PASSED" if result["gate_passed"] else "FAILED"
     print(f"{args.arm}: chose {result['chosen_config']} (AP50 "

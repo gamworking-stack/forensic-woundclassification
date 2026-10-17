@@ -45,6 +45,7 @@ DESIGNS = ("union", "box")
 
 def final_boxes_by_photo(photos: pd.DataFrame, detections: pd.DataFrame, threshold: float,
                          limits: Dict) -> Dict[str, tuple]:
+    # For each photo: its raw boxes (none if it had no detection), the step-1 rules, then threshold, cap and fallback
     by_photo = {p: g for p, g in detections.groupby(PHOTO, sort=False)}
     result = {}
     for row in photos.to_dict("records"):
@@ -60,20 +61,25 @@ def final_boxes_by_photo(photos: pd.DataFrame, detections: pd.DataFrame, thresho
 def build_rows(photos: pd.DataFrame, finals: Dict[str, tuple], arm: str) -> Dict[str, List[Dict]]:
     rows: Dict[str, List[Dict]] = {d: [] for d in DESIGNS}
     for photo in photos.to_dict("records"):
+        # This photo's final boxes and the folder and file names its crops get (same pattern as T03)
         boxes, scores, fallback = finals[photo[PHOTO]]
         w, h = photo["source_width"], photo["source_height"]
         stem = Path(str(photo["filename"]).strip()).stem
         folder = f"{photo['split']}/{safe_folder(photo[LABEL_COLUMN])}"
+        # Columns shared by every crop of the photo: case, split, label, arm, fallback
         base = {**photo, "detector_arm": arm, "fallback": fallback, "padding_ratio": PADDING,
                 "source_width": w, "source_height": h}
+        # Union design: one crop around all boxes. Per-box design: one crop per box
         groups = {"union": [(1, boxes, f"{stem}_roi")],
                   "box": [(k, boxes[[k - 1]], f"{stem}_bbox{k:02d}") for k in range(1, len(boxes) + 1)]}
         for design, crops in groups.items():
             for crop_index, crop_boxes, name in crops:
+                # No box at all: the crop is the whole photo; otherwise pad the box(es) by 8%
                 if fallback == "full_image":
                     x1, y1, x2, y2 = 0, 0, w, h
                 else:
                     x1, y1, x2, y2 = padded_crop_box(crop_boxes, w, h)
+                # The crop's detector score (union: the best of its boxes; full image: none)
                 score = scores[crop_index - 1] if design == "box" else (float(np.max(scores)) if np.isfinite(scores).all() else np.nan)
                 rows[design].append({
                     **base, "roi_relative_path": f"{folder}/{name}.jpg",
@@ -105,6 +111,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
+    # Only an arm that passed its gate makes crops, with the same limits it was selected under
     selection = json.loads(args.selection.read_text(encoding="utf-8"))
     if not selection.get("gate_passed", False):
         raise SystemExit(f"{args.selection}: the arm failed its recall gate; it makes no crops (T19 §2.4)")
@@ -112,6 +119,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if {k: limits[k] for k in selection["limits"]} != selection["limits"]:
         raise SystemExit(f"{args.limits} differs from the limits frozen in {args.selection}")
 
+    # Read every detections file once; each photo must come from exactly one file
     resolved = [p.resolve() for p in args.detections]
     if len(set(resolved)) != len(resolved):
         raise SystemExit("A detections file is listed more than once")
@@ -125,18 +133,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     if (files_per_photo > 1).any():
         raise SystemExit(f"Photos in more than one detections file, e.g. {list(files_per_photo[files_per_photo > 1].index[:3])}")
 
+    # All 1,100 photos; every detected photo must be one of them
     photos = photo_table(args.box_manifest)
     unknown = set(detections[PHOTO]) - set(photos[PHOTO])
     if unknown:
         raise SystemExit(f"{len(unknown)} detected photos are not in {args.box_manifest}, e.g. {sorted(unknown)[:3]}")
+    # Final boxes per photo, then the manifest rows of both designs
     finals = final_boxes_by_photo(photos, detections, float(selection["threshold"]), limits)
     rows = build_rows(photos, finals, selection["arm"])
 
+    # Summary: how many photos needed a fallback, overall and per split
     summary = {"arm": selection["arm"], "chosen_config": selection["chosen_config"], "threshold": selection["threshold"],
                "detections": [str(p) for p in args.detections], "dry_run": args.image_root is None,
                "photos": int(len(photos)), "fallback": dict(Counter(f for _, _, f in finals.values())),
                "fallback_by_split": {s: dict(Counter(finals[p][2] for p in photos.loc[photos["split"] == s, PHOTO]))
                                      for s in ("train", "validation", "test")}}
+    # Write one manifest per design (training and prediction read these)
     for design in DESIGNS:
         frame = pd.DataFrame(rows[design])
         out = args.output_dir / design
@@ -145,6 +157,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         summary[f"{design}_crops"] = int(len(frame))
         summary[f"{design}_crops_by_split"] = frame["split"].value_counts().sort_index().to_dict()
 
+    # Live run: open each photo once and save all its crops as JPEG (as T03 did)
     if args.image_root is not None:
         for row in photos.to_dict("records"):
             image = load_photo(args.image_root, row)
@@ -153,6 +166,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     path = Path(f"{args.crop_root}_{design}") / crop["roi_relative_path"]
                     path.parent.mkdir(parents=True, exist_ok=True)
                     image.crop((crop["x1"], crop["y1"], crop["x2"], crop["y2"])).save(path, format="JPEG", quality=95)
+    # Write the summary and one log line
     (args.output_dir / "crop_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"{selection['arm']}: {summary['union_crops']} union and {summary['box_crops']} per-box crops; "
           f"fallbacks {summary['fallback']}. Wrote {args.output_dir}")
