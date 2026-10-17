@@ -70,7 +70,8 @@ def loader_for(rows: pd.DataFrame, image_size: int, cache: bool, batch_size: int
 def network_probs(folder: Path, family: str, rows: pd.DataFrame, device: torch.device, workers: int) -> np.ndarray:
     # Rebuild the network, load its best checkpoint and predict (bf16 on GPU, as in the reported run)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
-    model = build_model(family, len(config["classes"]), pretrained=False)
+    # Build it as the run did: torchvision's GoogLeNet turns on transform_input only with pretrained weights
+    model = build_model(family, len(config["classes"]), pretrained=bool(config.get("pretrained", True)))
     model.load_state_dict(load_checkpoint(folder / "best.pt", device)["model"])
     loader = loader_for(rows, int(config["image_size"]), config.get("cache", True), int(config["batch_size"]), workers)
     _, _, probs = predict(model.to(device), loader, nn.CrossEntropyLoss(), device)

@@ -459,3 +459,20 @@ def test_verification_of_the_real_reference_boxes():
     report = Report()
     check_reference(report, Path("data/roi_auto"), Path("data/roi_box/roi_manifest.csv"))
     assert [r["status"] for r in report.rows] == ["PASS", "PASS"], report.rows
+
+
+def test_networks_are_rebuilt_with_their_runs_pretrained_setting(tmp_path, monkeypatch):
+    """GoogLeNet's transform_input depends on pretrained; rebuilding without it changed 41% of predictions."""
+    import torch
+    from src.evaluation import predict_on_manifest as pm
+
+    seen = []
+    monkeypatch.setattr(pm, "build_model", lambda family, n, pretrained: seen.append(pretrained) or torch.nn.Linear(1, n))
+    monkeypatch.setattr(pm, "load_checkpoint", lambda path, device: {"model": torch.nn.Linear(1, 7).state_dict()})
+    monkeypatch.setattr(pm, "loader_for", lambda *a, **k: None)
+    monkeypatch.setattr(pm, "predict", lambda *a, **k: (0.0, None, np.zeros((0, 7))))
+    for pretrained in (True, False):
+        (tmp_path / "run_config.json").write_text(json.dumps({"classes": list("abcdefg"), "image_size": 64,
+                                                               "batch_size": 2, "pretrained": pretrained}))
+        pm.network_probs(tmp_path, "googlenet", None, torch.device("cpu"), 0)
+    assert seen == [True, False]
