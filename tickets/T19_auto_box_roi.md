@@ -236,4 +236,26 @@ Validation and test photos are boxed by the main 4F detector. Its validation box
 
 ## 6. Results
 
-Not run yet.
+Run log on Raptor (`/project/a260012_FORWCL/experiments/auto_<arm>/`), filled in as steps finish.
+
+### 6.1 Detector arms
+
+| Arm | Chosen on selection data | Gate recall (≥ 0.50) | Test AP@0.5 | Test recall / precision | Test photos with a wound found | Test photos with no box (fallback) |
+|---|---|---|---|---|---|---|
+| 4F | `lr0.02` (validation), threshold 0.781 | 0.747, passed | 0.868 | 0.850 / 0.770 | 94.9% | 4.5% (top box; no full image) |
+| 4Z | `gdino_P1` (Grounding DINO, prompt `wound .`, no tiling; train + validation) | 0.530, passed | 0.690 | 0.667 / 0.634 | 72.6% | 12.7% |
+| 4P | pending (6 YOLOv8 configurations) | pending | — | — | — | — |
+
+- **4F**:
+  - Learning-rate runs stopped early at epochs 18 / 20 / 22.
+  - Cross-fitted training boxes came from 5 fold detectors at lr 0.02 and the chosen run's best epoch.
+  - Crops: 1,100 union and 1,869 per-box. 81 photos over all splits fell back to the top box; none to the full image.
+- **4P weights**: the three Hanterdsith checkpoints scanned clean with picklescan, were loaded once and re-saved as safetensors (`auto_4P/weights/weights.json`).
+- **WILLIE MINI**: left out (2026-10-18, under §2.2's one-try rule). The load test failed with `ModuleNotFoundError: No module named 'albumentations'`, a dependency missing from the container rather than the missing model code. The researcher chose not to retry, because a retry would delay 4P to add a chronic-wound model.
+
+### 6.2 Checks
+
+- **Primary predictions**: `predict_on_manifest.py --check-manual` re-predicted every family's manual test crops.
+  - All 16 models of each arm reproduced their reported predictions (same predicted class 1.0).
+  - The first 4F run found GoogLeNet at 0.59, fixed in `a789968`: networks are rebuilt with the run's `pretrained` flag, because torchvision's GoogLeNet switches on `transform_input` only with weights. It was then rerun at 1.0.
+- **Retraining**: 4F (S81–S104) and 4Z (S33–S56) finished, 24 of 24 scenarios each.
