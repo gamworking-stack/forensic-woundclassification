@@ -281,6 +281,7 @@ python src/detection/boxes.py --exports ~/Downloads/task_*_annotations_2026_09_3
 
 **1. Environment (Raptor, once).** `venv_exp4` and `venv_exp4_yolo` exist from the T19 check (`.scratch/auto-box-roi/check_raptor.sh`). Add what is still missing:
 ```bash
+module load apptainer/1.3.5   # every new login; without it bash offers to install apptainer (answer N)
 P=/project/a260012_FORWCL; SIF=/common/sif/pytorch-24.11-py3.sif; CA=/etc/ssl/certs/ca-certificates.crt
 E="HF_HOME=$P/hf_cache,SSL_CERT_FILE=$CA,REQUESTS_CA_BUNDLE=$CA,PIP_CERT=$CA"
 apptainer exec --bind $P --env "$E" $SIF $P/venv_exp4/bin/pip install -q "transformers==4.52.4" picklescan
