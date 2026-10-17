@@ -244,12 +244,13 @@ Run log on Raptor (`/project/a260012_FORWCL/experiments/auto_<arm>/`), filled in
 |---|---|---|---|---|---|---|
 | 4F | `lr0.02` (validation), threshold 0.781 | 0.747, passed | 0.868 | 0.850 / 0.770 | 94.9% | 4.5% (top box; no full image) |
 | 4Z | `gdino_P1` (Grounding DINO, prompt `wound .`, no tiling; train + validation) | 0.530, passed | 0.690 | 0.667 / 0.634 | 72.6% | 12.7% |
-| 4P | pending (6 YOLOv8 configurations) | pending | — | — | — | — |
+| 4P | `v8n_colour` (Hanterdsith YOLOv8n, colour input; train + validation) | 0.193, **failed** | not run (gate) | — | — | — |
 
 - **4F**:
   - Learning-rate runs stopped early at epochs 18 / 20 / 22.
   - Cross-fitted training boxes came from 5 fold detectors at lr 0.02 and the chosen run's best epoch.
   - Crops: 1,100 union and 1,869 per-box. 81 photos over all splits fell back to the top box; none to the full image.
+- **4P is not carried forward** (§2.4). Its best configuration found 19% of the manual boxes on the development photos. It is never run on test, and nothing is cropped or retrained for it. Thesis wording (§2.4): "No publicly available wound detector reached the pre-specified recall (≥ 0.50 at IoU ≥ 0.5) on the development photographs; arm 4P was therefore not carried forward." The detector was trained on 595 simulated, grayscale-filtered wounds of 8 classes, only 3 of which overlap ours.
 - **4P weights**: the three Hanterdsith checkpoints scanned clean with picklescan, were loaded once and re-saved as safetensors (`auto_4P/weights/weights.json`).
 - **WILLIE MINI**: left out (2026-10-18, under §2.2's one-try rule). The load test failed with `ModuleNotFoundError: No module named 'albumentations'`, a dependency missing from the container rather than the missing model code. The researcher chose not to retry, because a retry would delay 4P to add a chronic-wound model.
 
