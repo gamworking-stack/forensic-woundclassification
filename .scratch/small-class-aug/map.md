@@ -32,6 +32,8 @@ A frozen plan for **Experiment 5 (small-class augmentation)**, written as `ticke
 
 <!-- one line per resolved ticket: [title](issues/NN-slug.md): gist -->
 
+- [Which diffusion model and LoRA tooling can make wound crops on Raptor](issues/01-diffusion-models-on-raptor.md): SD 1.5 first (open, 512 px, memorizes less), then SDXL, FLUX.1 [dev]/SD 3.5; pinned diffusers 0.35.2 stack installed `--no-deps`; literature gains largest with tens of real images per class; DINO/CLIP nearest-neighbour memorization filter
+
 ## Not yet specified
 
 - **Thesis reporting**: how Experiment 5 is framed next to Experiments 2–4, and which figures to use (e.g. example synthetic crops, if ethics allows showing them).

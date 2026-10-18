@@ -11,3 +11,5 @@ Blocked by: 04
 - **Blinded review**: the researcher and the advisor review a shuffled sample of about 30 real and 30 synthetic crops per small class, rating the wound type and real vs synthetic.
   - Decide the exact sample, the rating form, and how the result is reported.
   - Decide whether the review can veto 5B (e.g. if most synthetic crops are rated unrealistic or the wrong type).
+
+Inputs from the research: the DINO/SSCD + CLIP nearest-neighbour filter, threshold at the 95th percentile of train-to-held-out-real similarity (Dar et al. 2025); report the rejection rate per class and fold.
