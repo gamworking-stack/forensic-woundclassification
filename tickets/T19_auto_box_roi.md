@@ -260,3 +260,97 @@ Run log on Raptor (`/project/a260012_FORWCL/experiments/auto_<arm>/`), filled in
   - All 16 models of each arm reproduced their reported predictions (same predicted class 1.0).
   - The first 4F run found GoogLeNet at 0.59, fixed in `a789968`: networks are rebuilt with the run's `pretrained` flag, because torchvision's GoogLeNet switches on `transform_input` only with weights. It was then rerun at 1.0.
 - **Retraining**: 4F (S81–S104) and 4Z (S33–S56) finished, 24 of 24 scenarios each.
+
+### 6.3 Detection on test (157 photos, 62 cases; 95% case-bootstrap CI)
+
+| | 4F | 4Z |
+|---|---|---|
+| AP@0.5 | **0.868** [0.822, 0.913] | 0.690 [0.607, 0.773] |
+| AP@0.5:0.95 | 0.481 | 0.355 |
+| AP by box size, small / medium / large (image-share tertiles) | 0.491 / 0.499 / 0.474 | 0.256 / 0.398 / 0.388 |
+| Recall / precision / F1 at the operating threshold | 0.850 [0.802, 0.905] / 0.770 / 0.808 | 0.667 [0.581, 0.754] / 0.634 / 0.650 |
+| Mean IoU of matched boxes | 0.783 | 0.764 |
+| Photos with at least one / every wound found | 94.9% / 83.4% | 72.6% / 65.0% |
+| Photos falling back to their top box | 7 (4.5%) | 20 (12.7%) |
+| Auto boxes touching no manual box | 11.1% | 20.1% |
+
+**AP@0.5 and recall by wound type**
+
+| Type (test photos) | 4F AP@0.5 | 4F recall | 4Z AP@0.5 | 4Z recall |
+|---|---|---|---|---|
+| contusion (26) | 0.698 | 0.676 | **0.151** | 0.176 |
+| cut wound (14) | 0.865 | 0.900 | 0.858 | 0.850 |
+| graze wound (43) | 0.805 | 0.765 | 0.657 | 0.647 |
+| gunshot wound (42) | 0.953 | 0.904 | 0.832 | 0.795 |
+| laceration (20) | 0.996 | 1.000 | 0.924 | 0.864 |
+| penetration wound (7) | 1.000 | 1.000 | 1.000 | 1.000 |
+| scratch (5) | 0.695 | 1.000 | 0.297 | 0.333 |
+
+Contusions are the hardest type for both detectors. The zero-shot detector almost never finds them (prompt `wound .`), nor scratches.
+
+### 6.4 Classification (photo-level test macro-F1, pooled over 8 families; paired case bootstrap, 2,000 resamples)
+
+**Primary: existing models on auto crops vs the same models on manual crops (non-inferiority, margin 0.03)**
+
+| Arm | Design | Manual | Auto | Auto − manual [95% CI] | Verdict | Without fallback photos |
+|---|---|---|---|---|---|---|
+| 4F | union | 0.732 | 0.703 | −0.030 [−0.061, −0.001] | **inconclusive** | −0.037 (7 photos out) |
+| 4F | per-box | 0.769 | 0.740 | −0.030 [−0.071, +0.010] | **inconclusive** | −0.036 |
+| 4Z | union | 0.732 | 0.606 | −0.127 [−0.191, −0.060] | **inferior** | −0.078 (20 photos out) |
+| 4Z | per-box | 0.769 | 0.633 | −0.137 [−0.194, −0.083] | **inferior** | −0.085 |
+
+- Holm-adjusted one-sided p against −0.03 is 1.0 for all four tests: no arm is shown non-inferior.
+- **4F**: macro-F1 drops by 0.03, exactly the margin. Neither not-inferior nor inferior can be shown with 62 cases. For union, the drop itself excludes 0 (upper bound −0.001).
+  - Per family, no 4F difference survives Holm. Point estimates range from −0.069 (EfficientNet-B0, per-box) to +0.021 (GoogLeNet, per-box).
+- **4Z** is clearly worse, by 0.13–0.14. About half the loss comes from the 20 photos where it found nothing at its threshold.
+
+**Secondary: retrained on auto crops vs manual (two-sided)**
+
+| Arm | Design | Auto − manual [95% CI] | p |
+|---|---|---|---|
+| 4F | union | −0.038 [−0.079, +0.001] | 0.054 |
+| 4F | per-box | −0.076 [−0.119, −0.041] | < 0.001 |
+| 4Z | union | −0.103 [−0.168, −0.039] | 0.004 |
+| 4Z | per-box | −0.153 [−0.203, −0.097] | < 0.001 |
+
+Retraining on auto crops does **not** recover the loss: it is no better than, and for per-box worse than, using the manual-trained models on auto crops.
+
+**Secondary: auto ROI (existing models) vs the full image (two-sided)**
+
+| Arm | Design | Auto − full [95% CI] | p | For reference: manual ROI − full (T15/T17) |
+|---|---|---|---|---|
+| 4F | union | +0.006 [−0.060, +0.061] | 0.95 | +0.036 [−0.031, +0.091] |
+| 4F | per-box | +0.043 [−0.018, +0.094] | 0.16 | +0.073 [+0.009, +0.129] |
+| 4Z | union | −0.091 [−0.183, −0.008] | 0.03 | |
+| 4Z | per-box | −0.064 [−0.153, +0.015] | 0.12 | |
+
+With 4F boxes the per-box design keeps about 60% of the manual per-box gain over the full image (+0.043 vs +0.073), but it is no longer significant. 4Z crops are worse than the full image.
+
+### 6.5 Verification
+
+`verify_auto.py`: **110 PASS, 0 FAIL**. Every check passed:
+- reference 2;
+- selection 31;
+- order 5;
+- crops 8;
+- primary 32;
+- budget 14;
+- weights 3;
+- cross-fit 11;
+- numbers 4.
+
+Report: `experiments/auto_summary/verification/verification_report.csv`; aggregate tables copied to `../results_figures/auto_summary/`.
+
+### 6.6 Reading
+
+A detector fine-tuned on the training split's manual boxes (4F) finds 85% of the test wounds (AP@0.5 0.87).
+- With its boxes, the existing ROI models lose about 0.03 macro-F1 (pooled). That is at the pre-specified margin, so non-inferiority is neither shown nor rejected (inconclusive with 62 test cases).
+- Detectors without forensic training do not replace manual boxes:
+  - zero-shot Grounding DINO (4Z) is inferior by 0.13;
+  - the public forensic YOLOv8 (4P) found 19% of the wounds and was not carried forward.
+- Retraining the classifiers on auto crops did not help.
+- Limits:
+  - the test set was used once more;
+  - Experiment 4 was decided post hoc;
+  - there is one detector seed;
+  - 4F still needs manual boxes on a training set, so it reduces annotation but does not remove it.
