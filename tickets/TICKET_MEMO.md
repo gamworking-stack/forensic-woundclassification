@@ -392,3 +392,18 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `scripts/slurm/train_single.sbatch`, `scripts/hpc/submit_all.sh`, `scripts/hpc/submit_alexnet_ensemble.sh`
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments/roi_crop/` (incl. `verification/`)
+
+## T21: Single-box test photos, one full image vs one crop (extra)
+
+- **Commits**: see `git log --grep 'T21'`
+- **Used**
+  - `data/roi_box/roi_manifest.csv`, `data/roi/roi_manifest.csv`
+  - `src/evaluation/summarize.py` (`scenario_folder`, `paired_comparison`), `src/evaluation/metrics.py`, `src/evaluation/plots.py`
+  - the evaluated main run (`<exp>/main/<full|roi>/<family>/`) and per-crop run (`<exp>/roi_crop/crop/<family>/`)
+- **Created**
+  - `tickets/T21_single_box.md`
+  - `src/evaluation/single_box.py`
+  - `tests/test_single_box.py`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments/roi_crop/single_box/`, `<project>/experiments/roi_crop/summary/single_box_*`
