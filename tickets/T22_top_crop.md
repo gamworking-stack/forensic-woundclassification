@@ -4,7 +4,7 @@
 - **Phase**: Extra analysis of the per-crop run (T18), outside the 16-scenario study (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T18](T18_crop_roi.md) (the per-crop models S25–S32); [T08](T08_evaluation_module.md) (metrics, case bootstrap)
 - **Scenarios**: none new; S25–S32 scored per photo, shown next to S01–S15 (full image)
-- **Status**: Code done; Raptor run pending
+- **Status**: Done (run on Raptor 2026-10-22; results in §7)
 
 ---
 
@@ -66,3 +66,28 @@ Decided with the researcher for the Experiment 3 presentation, after the test re
 - Choosing the crop by the model's own confidence favours crops the model finds easy; it is a deployable rule, not an oracle, because no label is used.
 - The two inputs are scored on the same photos but are not tested against each other; differences between them are descriptive.
 - Same 62-case test set as every other analysis; post hoc.
+
+---
+
+## 7. Results (Raptor, 2026-10-22)
+
+`pytest tests/test_top_crop.py` passed in the Raptor container (3 tests). Every family was scored on 157 test photos from 62 cases for both inputs.
+
+Test macro-F1 [95% case-bootstrap CI] and accuracy, on the same 157 photos:
+
+| Family | Full image | Accuracy | Top crop | Accuracy |
+|---|---|---|---|---|
+| EfficientNet-B0 | 0.733 [0.613, 0.814] | 83.4% | **0.827** [0.739, 0.889] | **88.5%** |
+| ResNet152 | **0.783** [0.681, 0.861] | 85.4% | 0.815 [0.720, 0.881] | 87.9% |
+| MobileNetV3-Small | 0.653 [0.557, 0.737] | 74.5% | 0.742 [0.612, 0.805] | 82.2% |
+| GoogLeNet | 0.705 [0.579, 0.783] | 79.6% | 0.761 [0.675, 0.825] | 86.6% |
+| VGG16 | 0.699 [0.600, 0.779] | 82.2% | 0.740 [0.633, 0.805] | 85.4% |
+| ViT-B/16 | 0.754 [0.647, 0.827] | **86.0%** | 0.735 [0.623, 0.802] | 84.1% |
+| CNN-SVM | 0.585 [0.479, 0.667] | 70.1% | 0.741 [0.626, 0.826] | 82.8% |
+| AlexNet ensemble | 0.662 [0.553, 0.748] | 75.8% | 0.747 [0.639, 0.828] | 84.1% |
+
+- Best: EfficientNet-B0 on the top crop (0.827, 88.5%); best full-image model ResNet152 (0.783, 85.4%). Weakest: CNN-SVM on the full image (0.585).
+- The top crop scores higher than the full image for 7 of 8 families (macro-F1 +0.03 to +0.16); ViT-B/16 is the exception (−0.019).
+- Descriptive only (§2, §6): the intervals of the two inputs overlap for every family, and no paired test was run.
+
+Summary files: `results_figures/roi_crop/summary/top_crop_table.csv`, `top_crop_per_class.csv`. The Exp 3b decks (plain and AFSN) were rebuilt from them.
