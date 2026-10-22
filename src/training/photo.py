@@ -91,3 +91,38 @@ def photo_prediction_frame(crops: pd.DataFrame) -> pd.DataFrame:
     for column in prob_columns:
         frame[column] = mean[column].to_numpy()
     return frame
+
+
+TOP_CROP_COLUMN = "top_crop"  # the crop chosen for its photo, in top-crop prediction files
+
+
+def photo_top_crop_frame(crops: pd.DataFrame) -> pd.DataFrame:
+    """Photo-level prediction file that keeps, per photo, its most confident crop (T22).
+
+    The chosen crop is the one with the highest top-class probability (ties: first in file order);
+    no label is used. ``relative_path`` becomes the photo, the probabilities are the chosen crop's,
+    and ``top_crop`` names that crop, so the result can be scored by the usual evaluation code.
+    """
+    if PHOTO_COLUMN not in crops.columns:
+        raise ValueError(f"Crop predictions have no {PHOTO_COLUMN!r} column")
+    for column in ("pseudonimized_id", "split", "true_class"):
+        varying = crops.groupby(PHOTO_COLUMN, sort=False)[column].nunique()
+        if (varying > 1).any():
+            raise ValueError(f"Photo {varying[varying > 1].index[0]!r} has crops with different {column}")
+    # Row of each photo's most confident crop; idxmax keeps the first row on ties
+    prob_columns = [c for c in crops.columns if c.startswith("prob_")]
+    confidence = crops[prob_columns].astype(float).max(axis=1)
+    chosen = crops.loc[confidence.groupby(crops[PHOTO_COLUMN], sort=False).idxmax()]
+    # The usual prediction-file columns with the photo as relative_path, plus crop count and chosen crop
+    frame = pd.DataFrame({
+        "relative_path": chosen[PHOTO_COLUMN].to_numpy(),
+        "pseudonimized_id": chosen["pseudonimized_id"].to_numpy(),
+        "split": chosen["split"].to_numpy(),
+        "true_class": chosen["true_class"].to_numpy(),
+        "predicted_class": chosen["predicted_class"].to_numpy(),
+        "n_crops": crops.groupby(PHOTO_COLUMN, sort=False).size().loc[chosen[PHOTO_COLUMN]].to_numpy(),
+        TOP_CROP_COLUMN: chosen["relative_path"].to_numpy(),
+    })
+    for column in prob_columns:
+        frame[column] = chosen[column].astype(float).to_numpy()
+    return frame

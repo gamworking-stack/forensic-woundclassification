@@ -133,6 +133,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T18** Per-crop ROI: the T17 crops, each its own sample in training, selection and evaluation (S25-S32, run `roi_crop`); crop-level test macro-F1 with case-bootstrap intervals; no photo level and no comparison. Plan: `tickets/T18_crop_roi.md`.
 - **T19** Auto-box ROI (Experiment 4): auto boxes from three wound-detector arms (4Z zero-shot, 4P public model, 4F fine-tuned Faster R-CNN) replace manual boxes; primary = non-inferiority of auto vs manual ROI for the existing union and per-box models (margin 0.03 pooled macro-F1); each arm gated on recall ≥ 0.50; retraining S33-S104 for passing arms. Planned and frozen 2026-10-16, not run. Plan: `tickets/T19_auto_box_roi.md`; decision record: `.scratch/auto-box-roi/map.md`.
 - **T21** Single-box test photos: on the 127 test photos (57 cases) with exactly one box, one full image vs one crop: per-crop (S25-S32) and union ROI each minus full image, T15 paired bootstrap on existing test predictions; post hoc, no training. Plan: `tickets/T21_single_box.md`.
+- **T22** One crop per photo: the per-crop models (S25-S32) scored on all 157 test photos, each photo keeping its most confident crop, listed next to the full image (S01-S15); descriptive, no paired test, no training. Plan: `tickets/T22_top_crop.md`.
 
 ## 6. Risks to track
 

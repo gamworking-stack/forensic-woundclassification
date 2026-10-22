@@ -281,6 +281,18 @@ srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_
 ```
 Outputs: `experiments/roi_crop/single_box/` (per-image subsets, stay on Raptor) and `experiments/roi_crop/summary/single_box_*` (`counts`, `metrics`, `crop_vs_full`, `roi_vs_full` and two forest plots). `fetch_results.sh roi_crop` copies the summary.
 
+## One crop per photo (T22, extra)
+
+The per-crop models (S25-S32) scored per photo: each of the 157 test photos keeps its most confident crop, listed next to the full image (S01-S15) with no paired test. Reads existing test predictions only; needs the evaluated main and `roi_crop` runs. Plan: `tickets/T22_top_crop.md`.
+```bash
+cd ~/forensic-woundclassification
+module load apptainer/1.3.5
+srun -p compute -c 2 --mem=8G -t 2:00:00 apptainer exec --bind /project/a260012_FORWCL \
+  /common/sif/pytorch-24.11-py3.sif python src/evaluation/top_crop.py \
+  --main-root /project/a260012_FORWCL/experiments/main --crop-root /project/a260012_FORWCL/experiments/roi_crop
+```
+Outputs: `experiments/roi_crop/crop/<family>/top_crop/` (photo-level prediction and metric files) and `experiments/roi_crop/summary/top_crop_table.csv`, `top_crop_per_class.csv`. `fetch_results.sh roi_crop` copies the summary and the metric files.
+
 ## Auto-box ROI experiment (T19, extra)
 
 Plan and every decision: `tickets/T19_auto_box_roi.md` (decision record `.scratch/auto-box-roi/map.md`). Steps marked **(laptop)** need the CVAT exports; everything else runs on Raptor from `~/forensic-woundclassification` after `module load apptainer/1.3.5`. Every Raptor step is one `scripts/slurm/exp4.sbatch` job: `PY_ARGS` is the script and its arguments, `VENV` the venv (default `venv_exp4`); CPU steps add `-p compute --gres=none`.

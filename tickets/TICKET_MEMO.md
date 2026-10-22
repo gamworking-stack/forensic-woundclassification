@@ -407,3 +407,19 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments/roi_crop/single_box/`, `<project>/experiments/roi_crop/summary/single_box_*`
+
+## T22: One crop per photo, the most confident (extra)
+
+- **Commits**: see `git log --grep 'T22'`
+- **Used**
+  - `data/roi_box/roi_manifest.csv`
+  - `src/evaluation/evaluate.py` (`evaluate_scenario`), `src/evaluation/summarize.py`, `src/evaluation/metrics.py`
+  - the evaluated main run (`<exp>/main/full/<family>/`) and per-crop run (`<exp>/roi_crop/crop/<family>/`)
+- **Created**
+  - `tickets/T22_top_crop.md`
+  - `src/evaluation/top_crop.py`
+  - `tests/test_top_crop.py`
+- **Changed**
+  - `src/training/photo.py` (`photo_top_crop_frame`)
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments/roi_crop/crop/<family>/top_crop/`, `<project>/experiments/roi_crop/summary/top_crop_*`
