@@ -38,6 +38,7 @@ from src.detection.boxes import COORDINATES, PADDING, candidate_boxes, final_box
 from src.detection.common import PHOTO, load_photo, photo_table  # noqa: E402
 from src.detection.evaluate_detection import load_detections  # noqa: E402
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 DESIGNS = ("union", "box")
@@ -101,8 +102,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--image-root", type=Path, default=None, help="Raw photo tree; omit for a dry run.")
     parser.add_argument("--crop-root", type=Path, default=None,
                         help="Where crops go: <crop-root>_union/ and <crop-root>_box/ (live run only).")
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
-    parser.add_argument("--limits", type=Path, default=Path("data/roi_auto/reference_limits.json"))
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
+    parser.add_argument("--limits", type=Path, default=DATA_DIR / "roi_auto/reference_limits.json")
     args = parser.parse_args(argv)
     if (args.image_root is None) != (args.crop_root is None):
         parser.error("--image-root and --crop-root go together")

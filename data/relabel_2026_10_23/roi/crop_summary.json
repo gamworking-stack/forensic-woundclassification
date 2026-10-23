@@ -1,0 +1,486 @@
+{
+  "source_manifest": "/Users/preenapunsaokhieo/Desktop/[Thesis] Wound classification/forensic-woundclassification/data/relabel_2026_10_23/splits/case_level_split_manifest.csv",
+  "image_root": null,
+  "output_dir": "/Users/preenapunsaokhieo/Desktop/[Thesis] Wound classification/forensic-woundclassification/data/relabel_2026_10_23/roi",
+  "annotation_exports": [
+    "contusion_22_Oct.zip",
+    "cut_22_Oct.zip",
+    "graze_22_Oct.zip",
+    "gsw_22_Oct.zip",
+    "laceration_22_Oct.zip",
+    "penetrate_22_Oct.zip",
+    "scratch_22_Oct.zip"
+  ],
+  "duplicate_exports_skipped": [],
+  "crop_mode": "union",
+  "padding_ratio": 0.08,
+  "min_size": 8,
+  "dry_run": true,
+  "counts": {
+    "annotation_not_in_manifest": 68,
+    "crops_created": 1032,
+    "dropped_no_annotation": 9,
+    "invalid_annotation_lines": 0,
+    "manifest_rows": 1041,
+    "manifest_rows_without_usable_annotation": 9
+  },
+  "unique_cases": 334,
+  "cases_by_split": {
+    "train": 233,
+    "validation": 50,
+    "test": 51
+  },
+  "crops_by_split": {
+    "train": 728,
+    "validation": 155,
+    "test": 149
+  },
+  "crops_by_class": {
+    "contusion": 178,
+    "cut wound": 86,
+    "graze wound": 238,
+    "gunshot wound": 307,
+    "penetration wound": 45,
+    "laceration": 120,
+    "scratch": 58
+  },
+  "crops_by_split_and_class": {
+    "train": {
+      "contusion": 128,
+      "cut wound": 59,
+      "graze wound": 165,
+      "gunshot wound": 222,
+      "laceration": 81,
+      "penetration wound": 33,
+      "scratch": 40
+    },
+    "validation": {
+      "contusion": 27,
+      "cut wound": 14,
+      "graze wound": 33,
+      "gunshot wound": 44,
+      "laceration": 23,
+      "penetration wound": 8,
+      "scratch": 6
+    },
+    "test": {
+      "contusion": 23,
+      "cut wound": 13,
+      "graze wound": 40,
+      "gunshot wound": 41,
+      "laceration": 16,
+      "penetration wound": 4,
+      "scratch": 12
+    }
+  },
+  "unannotated_records_count": 9,
+  "unannotated_records": [
+    {
+      "pseudonimized_id": "94",
+      "filename": "ZZ140321.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "110",
+      "filename": "ZZ160063.JPG",
+      "canonical_wound_label": "graze wound",
+      "split": "validation",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "135",
+      "filename": "ZZ240050.JPG",
+      "canonical_wound_label": "graze wound",
+      "split": "validation",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "167",
+      "filename": "ZZ310855.JPG",
+      "canonical_wound_label": "contusion",
+      "split": "validation",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "187",
+      "filename": "ZZ230784.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "220",
+      "filename": "PC235480.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "268",
+      "filename": "P6293420.JPG",
+      "canonical_wound_label": "laceration",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "378",
+      "filename": "IMG_3520.JPG",
+      "canonical_wound_label": "scratch",
+      "split": "train",
+      "reason": "no_annotation"
+    },
+    {
+      "pseudonimized_id": "413",
+      "filename": "P1071425",
+      "canonical_wound_label": "cut wound",
+      "split": "test",
+      "reason": "no_annotation"
+    }
+  ],
+  "skipped_records": [],
+  "annotations_not_in_manifest": [
+    {
+      "stem": "PA237236",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020056",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ110704",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ160355",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250328",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250403",
+      "label": "contusion",
+      "annotation_export": "contusion_22_Oct.zip"
+    },
+    {
+      "stem": "P5140027",
+      "label": "cut wound",
+      "annotation_export": "cut_22_Oct.zip"
+    },
+    {
+      "stem": "P5140035",
+      "label": "cut wound",
+      "annotation_export": "cut_22_Oct.zip"
+    },
+    {
+      "stem": "P5140037",
+      "label": "cut wound",
+      "annotation_export": "cut_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020080",
+      "label": "cut wound",
+      "annotation_export": "cut_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_2836",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_5439",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_5448",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_5453",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070300",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070319",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070336",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070353",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070361",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070365",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070371",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070375",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P1070398",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P2032539",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P2032545",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P3048681",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "P6293420",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020050",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020064",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020071",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020100 (2)",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ020106",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ071873",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ072249",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ072258",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ073076",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ105045",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250182",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250321",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250340",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250347",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250397",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ290026",
+      "label": "graze wound",
+      "annotation_export": "graze_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ288139",
+      "label": "gunshot wound",
+      "annotation_export": "gsw_22_Oct.zip"
+    },
+    {
+      "stem": "P2032557",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "P8264352",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "P8264414",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "P8264446",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "PC290074",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "PC290101",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "PC290112",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "PC305648",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ290072",
+      "label": "laceration",
+      "annotation_export": "laceration_22_Oct.zip"
+    },
+    {
+      "stem": "P2159579",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P2159668",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P3040034",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P4290132",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P4290165",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P5140050",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "P5220272",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ100834blunt",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ100838blunt",
+      "label": "penetration wound",
+      "annotation_export": "penetrate_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_1159",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_1163",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    },
+    {
+      "stem": "IMG_1172",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    },
+    {
+      "stem": "P1070323",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    },
+    {
+      "stem": "P6294838",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    },
+    {
+      "stem": "ZZ250391",
+      "label": "scratch",
+      "annotation_export": "scratch_22_Oct.zip"
+    }
+  ],
+  "invalid_annotation_lines": []
+}

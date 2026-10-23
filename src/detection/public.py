@@ -42,6 +42,7 @@ from src.detection.common import (  # noqa: E402
     test_allowed,
     write_detections,
 )
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 REPO = "trapezius60/forensic_wound_detection"
@@ -193,7 +194,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     d.add_argument("--output-dir", type=Path, required=True)
     d.add_argument("--config", default=None, help="One configuration only (required for test).")
     d.add_argument("--selection", type=Path, default=None)
-    d.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
+    d.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     d.add_argument("--image-root", type=Path, required=True)
     d.add_argument("--device", default="0")
     w = sub.add_parser("willie-smoke", help="The one WILLIE MINI load test.")

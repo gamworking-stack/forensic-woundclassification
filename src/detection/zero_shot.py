@@ -37,6 +37,7 @@ from src.detection.common import (  # noqa: E402
     test_allowed,
     write_detections,
 )
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 MODELS = {"gdino": "IDEA-Research/grounding-dino-base", "owlv2": "google/owlv2-large-patch14-ensemble"}
@@ -178,7 +179,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--config", default=None, help="One configuration only (required for test).")
     parser.add_argument("--selection", type=Path, default=None, help="The arm's selection.json (test only).")
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--image-root", type=Path, required=True, help="Raw photo tree (wound_ml_7classes).")
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args(argv)

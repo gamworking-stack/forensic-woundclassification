@@ -42,6 +42,7 @@ from src.evaluation.evaluate import FAMILY_ORDER  # noqa: E402
 from src.evaluation.metrics import Predictions, load_predictions, summary_metrics  # noqa: E402
 from src.evaluation.summarize import holm, paired_comparison, paired_draws  # noqa: E402
 from src.training.photo import MANIFEST_PHOTO_COLUMN, photo_prediction_frame  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 ARMS = ("4Z", "4P", "4F")
@@ -135,9 +136,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Auto-box vs manual-box ROI analyses (T19 §2.7).")
     parser.add_argument("--experiments-dir", type=Path, required=True)
     parser.add_argument("--arms", nargs="+", choices=ARMS, default=list(ARMS))
-    parser.add_argument("--manifest-root", type=Path, default=Path("data/roi_auto"),
+    parser.add_argument("--manifest-root", type=Path, default=DATA_DIR / "roi_auto",
                         help="data/roi_auto: <arm>/{union,box}/roi_manifest.csv and reference_boxes.csv")
-    parser.add_argument("--union-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"))
+    parser.add_argument("--union-manifest", type=Path, default=DATA_DIR / "roi/roi_manifest.csv")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--margin", type=float, default=MARGIN)
     parser.add_argument("--bootstrap", type=int, default=2000)

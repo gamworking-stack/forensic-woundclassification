@@ -39,6 +39,7 @@ from src.detection.evaluate_detection import (  # noqa: E402
 )
 from src.training.common import git_state  # noqa: E402
 from src.training.data import GROUP_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 ARMS = ("4Z", "4P", "4F")
@@ -101,8 +102,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--configs", nargs="+", required=True,
                         help="Configuration names, simplest first (ties go to the earlier one).")
     parser.add_argument("--output", type=Path, required=True, help="selection.json to write (never overwritten).")
-    parser.add_argument("--reference", type=Path, default=Path("data/roi_auto/reference_boxes.csv"))
-    parser.add_argument("--limits", type=Path, default=Path("data/roi_auto/reference_limits.json"))
+    parser.add_argument("--reference", type=Path, default=DATA_DIR / "roi_auto/reference_boxes.csv")
+    parser.add_argument("--limits", type=Path, default=DATA_DIR / "roi_auto/reference_limits.json")
     return parser.parse_args(argv)
 
 

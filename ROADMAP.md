@@ -134,6 +134,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T19** Auto-box ROI (Experiment 4): auto boxes from three wound-detector arms (4Z zero-shot, 4P public model, 4F fine-tuned Faster R-CNN) replace manual boxes; primary = non-inferiority of auto vs manual ROI for the existing union and per-box models (margin 0.03 pooled macro-F1); each arm gated on recall ≥ 0.50; retraining S33-S104 for passing arms. Planned and frozen 2026-10-16, not run. Plan: `tickets/T19_auto_box_roi.md`; decision record: `.scratch/auto-box-roi/map.md`.
 - **T21** Single-box test photos: on the 127 test photos (57 cases) with exactly one box, one full image vs one crop: per-crop (S25-S32) and union ROI each minus full image, T15 paired bootstrap on existing test predictions; post hoc, no training. Plan: `tickets/T21_single_box.md`.
 - **T22** One crop per photo: the per-crop models (S25-S32) scored on all 157 test photos, each photo keeping its most confident crop, listed next to the full image (S01-S15); descriptive, no paired test, no training. Plan: `tickets/T22_top_crop.md`.
+- **T23** Relabelled rerun: every experiment (S01-S32, CV, Grad-CAM, T19 arms, T21, T22) again on the 23 Oct 2026 sheet and CVAT annotations: `Inclusion` FALSE and `imprint` excluded, 2 photos relabelled, boxes redrawn, a new split grouped by case or patient. It has its own manifests (`data/relabel_2026_10_23/`, selected with `WOUND_DATA_DIR`), its own runs and its own crops; the original split stays frozen for the original study. Plan: `tickets/T23_relabel_rerun.md`.
 
 ## 6. Risks to track
 
@@ -178,3 +179,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T17 per-box ROI experiment (extra)
 - [x] T18 per-crop ROI experiment (extra)
 - [ ] T19 auto-box ROI experiment (extra; plan frozen 2026-10-16, not run)
+- [ ] T23 relabelled rerun of every experiment (manifests committed 2026-10-23; HPC runs pending)

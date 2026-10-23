@@ -47,6 +47,7 @@ from src.training.engine import classification_metrics, seed_everything  # noqa:
 from src.training.models import feature_extractor, input_size  # noqa: E402
 from src.training.photo import PHOTO_INPUT_PATHS, manifest_photos, photo_mean, photo_weights  # noqa: E402
 from src.training.transforms import build_transforms  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 DEFAULT_EXTRACTORS = ("vgg16", "resnet152", "efficientnet_b0")
@@ -104,7 +105,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"))
+    parser.add_argument("--roi-manifest", type=Path, default=DATA_DIR / "roi/roi_manifest.csv")
     parser.add_argument("--full-scope", choices=("matched", "all"), default="matched")
     # Backbones whose features are concatenated, and the feature-extraction settings
     parser.add_argument("--extractors", nargs="+", choices=EXTRACTOR_CHOICES, default=list(DEFAULT_EXTRACTORS))

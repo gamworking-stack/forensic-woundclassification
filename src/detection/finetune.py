@@ -48,6 +48,7 @@ from src.detection.common import (  # noqa: E402
 )
 from src.detection.evaluate_detection import candidates, coco_ap, coco_images, reference_photos  # noqa: E402
 from src.training.data import GROUP_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 LR_GRID = (0.005, 0.01, 0.02)
@@ -270,7 +271,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     t.add_argument("--image-root", type=Path, required=True)
     t.add_argument("--holdout-fold", type=int, default=None, help="Cross-fitting: leave this fold's training cases out.")
     t.add_argument("--epochs", type=int, default=None, help="Cross-fitting: fixed epoch count (main run's best).")
-    t.add_argument("--cv-folds", type=Path, default=Path("data/splits/cv_folds.csv"))
+    t.add_argument("--cv-folds", type=Path, default=DATA_DIR / "splits/cv_folds.csv")
     t.add_argument("--max-epochs", type=int, default=MAX_EPOCHS)
     t.add_argument("--no-pretrained", action="store_true", help="Tests only.")
     d = sub.add_parser("detect")
@@ -280,9 +281,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     d.add_argument("--selection", type=Path, default=None)
     d.add_argument("--image-root", type=Path, required=True)
     for p in (t, d):
-        p.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
-        p.add_argument("--reference", type=Path, default=Path("data/roi_auto/reference_boxes.csv"))
-        p.add_argument("--limits", type=Path, default=Path("data/roi_auto/reference_limits.json"))
+        p.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
+        p.add_argument("--reference", type=Path, default=DATA_DIR / "roi_auto/reference_boxes.csv")
+        p.add_argument("--limits", type=Path, default=DATA_DIR / "roi_auto/reference_limits.json")
         p.add_argument("--device", default="cuda")
     args = parser.parse_args(argv)
     # Cross-fitting needs both the held-out fold and the fixed epoch count

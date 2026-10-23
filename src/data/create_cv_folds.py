@@ -20,6 +20,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_case_split import build_group_matrices  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 GROUP_COLUMN = "pseudonimized_id"
@@ -28,9 +29,9 @@ LABEL_COLUMN = "canonical_wound_label"
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Case-grouped CV folds over the development data.")
-    parser.add_argument("--split-manifest", type=Path, default=Path("data/splits/case_level_split_manifest.csv"))
-    parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"))
-    parser.add_argument("--output-dir", type=Path, default=Path("data/splits"))
+    parser.add_argument("--split-manifest", type=Path, default=DATA_DIR / "splits/case_level_split_manifest.csv")
+    parser.add_argument("--roi-manifest", type=Path, default=DATA_DIR / "roi/roi_manifest.csv")
+    parser.add_argument("--output-dir", type=Path, default=DATA_DIR / "splits")
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--trials", type=int, default=50_000)

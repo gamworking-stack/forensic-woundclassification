@@ -1,0 +1,44 @@
+{
+  "input_csv": "thesis_data_23_oct.csv",
+  "blank_rows_skipped": 1047462,
+  "reference_metadata": "data/validated_metadata.csv",
+  "sheet_photos": 1113,
+  "inclusion": {
+    "true": 1048,
+    "false": 65
+  },
+  "excluded_by_reason": {
+    "inclusion_false": 65,
+    "label_outside_7_classes": 7
+  },
+  "excluded_by_label": {
+    "graze": 29,
+    "penetrating wound (sharp&blunt)": 9,
+    "laceration": 9,
+    "scratch": 7,
+    "imprint": 7,
+    "contusion": 6,
+    "cut": 4,
+    "gsw": 1
+  },
+  "included_photos": 1041,
+  "included_photos_without_patient_id": 8,
+  "included_source_cases": 392,
+  "included_groups": 336,
+  "groups_joining_several_source_cases": 19,
+  "photos_in_joined_groups": 200,
+  "relabelled_photos": [
+    {
+      "source_pseudonimized_id": "59",
+      "filename": "PB098804.JPG",
+      "from": "gsw",
+      "to": "penetrating wound (sharp&blunt)"
+    },
+    {
+      "source_pseudonimized_id": "59",
+      "filename": "PB098817.JPG",
+      "from": "gsw",
+      "to": "penetrating wound (sharp&blunt)"
+    }
+  ]
+}

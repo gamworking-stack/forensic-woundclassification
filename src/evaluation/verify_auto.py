@@ -42,6 +42,7 @@ from src.evaluation.evaluate import FAMILY_ORDER  # noqa: E402
 from src.evaluation.metrics import summary_metrics  # noqa: E402
 from src.evaluation.verify import BUDGET_KEYS, Report, read_json  # noqa: E402
 from src.training.data import GROUP_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 ARMS = ("4Z", "4P", "4F")
@@ -53,9 +54,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verification of the auto-box ROI experiment (T19).")
     parser.add_argument("--experiments-dir", type=Path, required=True)
     parser.add_argument("--arms", nargs="+", choices=ARMS, default=list(ARMS))
-    parser.add_argument("--manifest-root", type=Path, default=Path("data/roi_auto"))
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
-    parser.add_argument("--cv-folds", type=Path, default=Path("data/splits/cv_folds.csv"))
+    parser.add_argument("--manifest-root", type=Path, default=DATA_DIR / "roi_auto")
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
+    parser.add_argument("--cv-folds", type=Path, default=DATA_DIR / "splits/cv_folds.csv")
     return parser.parse_args(argv)
 
 
@@ -69,9 +70,10 @@ def check_reference(report: Report, manifest_root: Path, box_manifest: Path) -> 
         padded = padded_crop_box([[row[c] for c in COORDINATES]], row["source_width"], row["source_height"])
         bad += padded != tuple(int(crop[c]) for c in COORDINATES)
     report.add("reference", "padded boxes = per-box crops", bad == 0, f"{bad} of {len(reference)} differ")
-    # The box counts per split must be the known 1,177 / 277 / 213
+    # The box counts per split must be the per-box manifest's crop counts (1,177 / 277 / 213 for the original data)
     limits = read_json(manifest_root / "reference_limits.json")
-    report.add("reference", "boxes per split", limits["boxes_by_split"] == {"test": 213, "train": 1177, "validation": 277},
+    expected = crops["split"].str.strip().str.lower().value_counts().to_dict()
+    report.add("reference", "boxes per split", limits["boxes_by_split"] == expected,
                json.dumps(limits["boxes_by_split"]))
 
 

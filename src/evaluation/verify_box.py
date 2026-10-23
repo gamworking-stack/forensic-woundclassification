@@ -43,6 +43,7 @@ from src.evaluation.verify import (  # noqa: E402
     check_ensemble, check_lr_selection, check_svm_selection, close, read_json,
 )
 from src.training.photo import MANIFEST_PHOTO_COLUMN, PHOTO_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 PHOTO_FILES = tuple(n for n in SCENARIO_FILES if n != "run_config.json")
@@ -56,11 +57,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verification of the per-box ROI run (T17).")
     parser.add_argument("--box-root", type=Path, required=True)
     parser.add_argument("--main-root", type=Path, required=True)
-    parser.add_argument("--split-assignments", type=Path, default=Path("data/splits/case_split_assignments.csv"))
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
+    parser.add_argument("--split-assignments", type=Path, default=DATA_DIR / "splits/case_split_assignments.csv")
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--cv-root", type=Path, default=None, help="Per-box CV run; omitted: CV not checked.")
     parser.add_argument("--cv-main-root", type=Path, default=None, help="T12b CV run (needed with --cv-root).")
-    parser.add_argument("--cv-folds", type=Path, default=Path("data/splits/cv_folds.csv"))
+    parser.add_argument("--cv-folds", type=Path, default=DATA_DIR / "splits/cv_folds.csv")
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--bootstrap", type=int, default=2000, help="0 skips the interval checks.")
     parser.add_argument("--seed", type=int, default=42)

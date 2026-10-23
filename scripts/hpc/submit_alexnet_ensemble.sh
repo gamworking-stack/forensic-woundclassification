@@ -8,7 +8,7 @@ set -euo pipefail
 INPUT_PATH="${1:?usage: submit_alexnet_ensemble.sh <full|roi|box|crop> [run_name]}"
 RUN_NAME="${2:-main}"
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
-ENSEMBLE_DIR="$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/alexnet_ensemble"
+ENSEMBLE_DIR="${EXPERIMENTS_DIR:-$PROJECT_ROOT/experiments}/$RUN_NAME/$INPUT_PATH/alexnet_ensemble"
 
 ids=()
 for k in 1 2 3; do

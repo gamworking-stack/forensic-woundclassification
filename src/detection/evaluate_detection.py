@@ -46,6 +46,7 @@ from src.detection.boxes import (  # noqa: E402
 )
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN  # noqa: E402
 from src.training.photo import MANIFEST_PHOTO_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 PHOTO = MANIFEST_PHOTO_COLUMN
@@ -323,8 +324,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                         help="Frozen selection.json of the arm: needs 'threshold' and 'gate_passed'.")
     parser.add_argument("--split", choices=("train", "validation", "test"), nargs="+", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--reference", type=Path, default=Path("data/roi_auto/reference_boxes.csv"))
-    parser.add_argument("--limits", type=Path, default=Path("data/roi_auto/reference_limits.json"))
+    parser.add_argument("--reference", type=Path, default=DATA_DIR / "roi_auto/reference_boxes.csv")
+    parser.add_argument("--limits", type=Path, default=DATA_DIR / "roi_auto/reference_limits.json")
     parser.add_argument("--n-resamples", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args(argv)

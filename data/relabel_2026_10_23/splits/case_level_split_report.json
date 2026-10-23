@@ -1,0 +1,31 @@
+{
+  "input_csv": "/Users/preenapunsaokhieo/Desktop/[Thesis] Wound classification/forensic-woundclassification/data/relabel_2026_10_23/validated_metadata.csv",
+  "group_column": "pseudonimized_id",
+  "label_column": "canonical_wound_label",
+  "seed": 42,
+  "trials": 50000,
+  "optimization_score": 9.477509637624891,
+  "canonical_classes": [
+    "contusion",
+    "cut wound",
+    "graze wound",
+    "gunshot wound",
+    "laceration",
+    "penetration wound",
+    "scratch"
+  ],
+  "total_records": 1041,
+  "total_unique_cases": 336,
+  "case_counts_by_split": {
+    "train": 235,
+    "validation": 50,
+    "test": 51
+  },
+  "image_counts_by_split": {
+    "train": 733,
+    "validation": 158,
+    "test": 150
+  },
+  "leakage_check": "passed",
+  "frozen": true
+}

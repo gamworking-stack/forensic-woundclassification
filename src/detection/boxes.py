@@ -35,11 +35,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_roi_dataset import (  # noqa: E402
     compute_union_box,
     manifest_key,
-    parse_yolo_export,
+    parse_export,
     resolve_export_files,
 )
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN  # noqa: E402
 from src.training.photo import MANIFEST_PHOTO_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 PADDING = 0.08
@@ -77,7 +78,7 @@ def read_manual_boxes(exports: Sequence[Path], box_manifest: Path) -> pd.DataFra
     rows: List[Dict[str, Any]] = []
     seen: Dict[Tuple[str, str], str] = {}
     for export in resolve_export_files(list(exports)):
-        _, annotations, invalid = parse_yolo_export(export)
+        _, annotations, invalid = parse_export(export)
         if invalid:
             raise ValueError(f"{export.name}: {len(invalid)} invalid annotation lines, e.g. {invalid[0]}")
         for stem, labeled_boxes in sorted(annotations.items()):
@@ -284,9 +285,9 @@ def greedy_match(pred_boxes: Any, pred_scores: Any, true_boxes: Any,
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Write the unpadded manual reference boxes (T19 §2.1).")
     parser.add_argument("--exports", type=Path, nargs="+", required=True,
-                        help="The 30 Sep 2026 CVAT YOLO 1.1 .zip exports, or a folder holding them.")
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
-    parser.add_argument("--output-dir", type=Path, default=Path("data/roi_auto"))
+                        help="The CVAT .zip exports (30 Sep 2026; 23 Oct 2026 for T23), or a folder holding them.")
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
+    parser.add_argument("--output-dir", type=Path, default=DATA_DIR / "roi_auto")
     return parser.parse_args(argv)
 
 

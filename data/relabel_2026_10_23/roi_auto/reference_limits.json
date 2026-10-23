@@ -1,0 +1,31 @@
+{
+  "max_box_share": 0.6105792048500001,
+  "size_bins": [
+    0.007827574299999992,
+    0.031303807772222206
+  ],
+  "max_boxes_per_photo": 53,
+  "train_photos": 728,
+  "train_boxes": 1310,
+  "boxes_by_split": {
+    "test": 276,
+    "train": 1310,
+    "validation": 222
+  },
+  "photos_by_split": {
+    "test": 149,
+    "train": 728,
+    "validation": 155
+  },
+  "box_manifest": "data/relabel_2026_10_23/roi_box/roi_manifest.csv",
+  "annotation_exports": [
+    "contusion_22_Oct.zip",
+    "cut_22_Oct.zip",
+    "graze_22_Oct.zip",
+    "gsw_22_Oct.zip",
+    "laceration_22_Oct.zip",
+    "penetrate_22_Oct.zip",
+    "scratch_22_Oct.zip"
+  ],
+  "checked": "every box padded by the manifest padding_ratio equals its per-box manifest crop"
+}

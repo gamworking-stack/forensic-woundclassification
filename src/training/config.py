@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.data.paths import DATA_DIR
+
 
 FAMILIES = (
     "mobilenet_v3_small",
@@ -27,7 +29,7 @@ class RunConfig:
     manifest: Path
     image_root: Path
     output_dir: Path
-    roi_manifest: Path = Path("data/roi/roi_manifest.csv")
+    roi_manifest: Path = DATA_DIR / "roi/roi_manifest.csv"
     full_scope: str = "matched"
     image_size: Optional[int] = None
     batch_size: int = 32
@@ -65,7 +67,7 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--image-root", type=Path, required=True,
                         help="Raw image tree (full) or ROI crop directory (roi, box, crop).")
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"),
+    parser.add_argument("--roi-manifest", type=Path, default=DATA_DIR / "roi/roi_manifest.csv",
                         help="ROI manifest used to match full-image rows when --full-scope matched.")
     parser.add_argument("--full-scope", choices=("matched", "all"), default="matched",
                         help="Full path only: 'matched' keeps the images that also have an ROI crop.")

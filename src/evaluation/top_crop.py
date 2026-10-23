@@ -24,6 +24,7 @@ from src.evaluation.evaluate import CROP_PATH, CROP_SCENARIO_IDS, FAMILY_ORDER, 
 from src.evaluation.metrics import load_predictions  # noqa: E402
 from src.evaluation.summarize import CI_METRICS, TABLE_METRICS, scenario_folder  # noqa: E402
 from src.training.photo import PHOTO_COLUMN, photo_top_crop_frame  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 TOP = "top_crop"
@@ -35,7 +36,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                         help="Per-crop run laid out as crop/<family>/, already evaluated.")
     parser.add_argument("--main-root", type=Path, required=True,
                         help="Main run (full/<family>/), already evaluated, for the full-image rows.")
-    parser.add_argument("--box-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
+    parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--bootstrap", type=int, default=2000, help="Case-level resamples for test CIs.")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args(argv)

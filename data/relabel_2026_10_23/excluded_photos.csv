@@ -1,0 +1,73 @@
+source_pseudonimized_id,wound_id,filename,wound_label,reason
+10,1,P5140027,cut,inclusion_false
+10,2,P5140035,cut,inclusion_false
+10,3,P5140037,cut,inclusion_false
+10,1,P5140050.JPG,penetrating wound (sharp&blunt),inclusion_false
+11,1,P5220272.JPG,penetrating wound (sharp&blunt),inclusion_false
+45,1,P4290132.JPG,penetrating wound (sharp&blunt),inclusion_false
+45,2,P4290165.JPG,penetrating wound (sharp&blunt),inclusion_false
+82,1,P2032539.JPG,graze,inclusion_false
+82,2,P2032545.JPG,graze,inclusion_false
+82,1,P2032557.JPG,laceration,inclusion_false
+107,1,ZZ110704.JPG,contusion,inclusion_false
+132,1,ZZ100834blunt.JPG,penetrating wound (sharp&blunt),inclusion_false
+132,2,ZZ100838blunt.JPG,penetrating wound (sharp&blunt),inclusion_false
+136,1,ZZ250182.JPG,graze,inclusion_false
+136,2,ZZ250321.JPG,graze,inclusion_false
+136,1,ZZ250328.JPG,contusion,inclusion_false
+136,3,ZZ250340.JPG,graze,inclusion_false
+136,4,ZZ250347.JPG,graze,inclusion_false
+136,1,ZZ250391.JPG,scratch,inclusion_false
+136,5,ZZ250397.JPG,graze,inclusion_false
+136,2,ZZ250403.JPG,contusion,inclusion_false
+148,3,ZZ160355.JPG,contusion,inclusion_false
+153,1,ZZ290026.JPG,graze,inclusion_false
+153,1,ZZ290072.JPG,laceration,inclusion_false
+156,1,ZZ020050.JPG,graze,inclusion_false
+156,1,ZZ020056.JPG,contusion,inclusion_false
+156,2,ZZ020064.JPG,graze,inclusion_false
+156,3,ZZ020071.JPG,graze,inclusion_false
+156,1,ZZ020080.JPG,cut,inclusion_false
+156,4,ZZ020106.JPG,graze,inclusion_false
+240,1,ZZ072249.JPG,graze,inclusion_false
+240,2,ZZ072258.JPG,graze,inclusion_false
+241,1,ZZ073076.JPG,graze,inclusion_false
+248,2,ZZ288139.JPG,gsw,inclusion_false
+250,1,P3048681.JPG,graze,inclusion_false
+268,1,P6293420.JPG,graze,inclusion_false
+277,1,P8264352.JPG,laceration,inclusion_false
+277,2,P8264414.JPG,laceration,inclusion_false
+277,3,P8264446.JPG,laceration,inclusion_false
+304,1,P2159579.JPG,penetrating wound (sharp&blunt),inclusion_false
+304,2,P2159668.JPG,penetrating wound (sharp&blunt),inclusion_false
+307,1,P3040034.JPG,penetrating wound (sharp&blunt),inclusion_false
+316,1,P6294838.JPG,scratch,inclusion_false
+335,1,PA237236.JPG,contusion,inclusion_false
+341,1,PC290074.JPG,laceration,inclusion_false
+341,2,PC290101.JPG,laceration,inclusion_false
+341,3,PC290112.JPG,laceration,inclusion_false
+344,1,PC305648.JPG,laceration,inclusion_false
+345,1,P1070300.JPG,graze,inclusion_false
+346,2,P1070319.JPG,graze,inclusion_false
+347,1,P1070336.JPG,graze,inclusion_false
+348,2,P1070353.JPG,graze,inclusion_false
+349,3,P1070361.JPG,graze,inclusion_false
+349,4,P1070365.JPG,graze,inclusion_false
+349,5,P1070371.JPG,graze,inclusion_false
+350,6,P1070375.JPG,graze,inclusion_false
+350,7,P1070398.JPG,graze,inclusion_false
+351,1,P1070323.JPG,scratch,inclusion_false
+351,1,P1070307.JPG,scratch,inclusion_false
+366,1,IMG_1159.JPG,scratch,inclusion_false
+366,2,IMG_1163.JPG,scratch,inclusion_false
+367,3,IMG_1172.JPG,scratch,inclusion_false
+407,1,IMG_5439.JPG,graze,inclusion_false
+408,2,IMG_5448.JPG,graze,inclusion_false
+409,3,IMG_5453.JPG,graze,inclusion_false
+416,1,P5200017.JPG,imprint,label_outside_7_classes
+417,2,P7012940.JPG,imprint,label_outside_7_classes
+418,3,P7230114.JPG,imprint,label_outside_7_classes
+419,4,P7282782.JPG,imprint,label_outside_7_classes
+420,5,P8250054.JPG,imprint,label_outside_7_classes
+421,6,P8250061.JPG,imprint,label_outside_7_classes
+422,7,P8250104.JPG,imprint,label_outside_7_classes

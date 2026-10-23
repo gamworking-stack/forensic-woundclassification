@@ -49,6 +49,7 @@ from src.training.engine import load_checkpoint  # noqa: E402
 from src.training.models import build_model  # noqa: E402
 from src.training.photo import MANIFEST_PHOTO_COLUMN, photo_prediction_frame  # noqa: E402
 from src.training.transforms import IMAGENET_MEAN, IMAGENET_STD, PadToSquare  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 FAMILIES = ("efficientnet_b0", "resnet152", "mobilenet_v3_small", "googlenet", "vgg16", "vit_b16",
@@ -68,7 +69,7 @@ INPUT_PATHS = ("full", "roi")
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Grad-CAM on a fixed set of test images (T14).")
     parser.add_argument("--experiments-root", type=Path, required=True)
-    parser.add_argument("--roi-manifest", type=Path, default=Path("data/roi/roi_manifest.csv"))
+    parser.add_argument("--roi-manifest", type=Path, default=DATA_DIR / "roi/roi_manifest.csv")
     parser.add_argument("--families", nargs="+", choices=FAMILIES, default=list(FAMILIES))
     parser.add_argument("--per-class", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)

@@ -15,6 +15,9 @@ from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.data.paths import DATA_DIR  # noqa: E402
+
 
 KEY_COLUMN = "roi_relative_path"
 COMPARED_COLUMNS = (
@@ -33,7 +36,7 @@ COMPARED_COLUMNS = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Check a live ROI run against the dry-run manifest.")
-    parser.add_argument("--expected", type=Path, default=Path("data/roi/roi_manifest.csv"),
+    parser.add_argument("--expected", type=Path, default=DATA_DIR / "roi/roi_manifest.csv",
                         help="Committed dry-run ROI manifest.")
     parser.add_argument("--actual", type=Path, required=True,
                         help="ROI manifest written by the live run.")

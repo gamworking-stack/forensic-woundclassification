@@ -27,6 +27,7 @@ PHOTO = MANIFEST_PHOTO_COLUMN
 SPLITS = ("train", "validation", "test")
 DETECTION_COLUMNS = [PHOTO, "score", *COORDINATES]
 PHOTO_COLUMNS = [GROUP_COLUMN, "wound_id", "filename", "wound_label", LABEL_COLUMN, PHOTO, "split"]
+OPTIONAL_PHOTO_COLUMNS = ["source_label"]  # T23: raw folder of a photo relabelled after annotation
 
 
 def photo_table(box_manifest: Path, splits: Sequence[str] = SPLITS) -> pd.DataFrame:
@@ -34,7 +35,8 @@ def photo_table(box_manifest: Path, splits: Sequence[str] = SPLITS) -> pd.DataFr
     # The per-box manifest has one row per crop; keep the first row of each photo
     crops = pd.read_csv(box_manifest, dtype=str, keep_default_na=False)
     crops["split"] = crops["split"].str.strip().str.lower()
-    photos = crops.drop_duplicates(PHOTO)[[*PHOTO_COLUMNS, "source_width", "source_height"]]
+    optional = [c for c in OPTIONAL_PHOTO_COLUMNS if c in crops]
+    photos = crops.drop_duplicates(PHOTO)[[*PHOTO_COLUMNS, *optional, "source_width", "source_height"]]
     # Only the requested splits, in a fixed photo order
     photos = photos[photos["split"].isin(splits)].sort_values(PHOTO).reset_index(drop=True)
     return photos.astype({"source_width": int, "source_height": int})

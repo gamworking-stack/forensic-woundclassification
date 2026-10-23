@@ -1,0 +1,232 @@
+{
+  "folds": 5,
+  "seed": 42,
+  "trials": 50000,
+  "development_cases": 285,
+  "scored_on": "data/relabel_2026_10_23/roi/roi_manifest.csv",
+  "roi_rows": {
+    "1": {
+      "cases": 57,
+      "images": 165,
+      "images_per_class": {
+        "contusion": 28,
+        "cut wound": 15,
+        "graze wound": 33,
+        "gunshot wound": 49,
+        "laceration": 24,
+        "penetration wound": 7,
+        "scratch": 9
+      },
+      "cases_per_class": {
+        "contusion": 8,
+        "cut wound": 8,
+        "graze wound": 18,
+        "gunshot wound": 21,
+        "laceration": 16,
+        "penetration wound": 5,
+        "scratch": 8
+      }
+    },
+    "2": {
+      "cases": 56,
+      "images": 174,
+      "images_per_class": {
+        "contusion": 36,
+        "cut wound": 13,
+        "graze wound": 42,
+        "gunshot wound": 43,
+        "laceration": 19,
+        "penetration wound": 13,
+        "scratch": 8
+      },
+      "cases_per_class": {
+        "contusion": 13,
+        "cut wound": 5,
+        "graze wound": 14,
+        "gunshot wound": 22,
+        "laceration": 13,
+        "penetration wound": 5,
+        "scratch": 3
+      }
+    },
+    "3": {
+      "cases": 57,
+      "images": 177,
+      "images_per_class": {
+        "contusion": 29,
+        "cut wound": 15,
+        "graze wound": 44,
+        "gunshot wound": 51,
+        "laceration": 19,
+        "penetration wound": 11,
+        "scratch": 8
+      },
+      "cases_per_class": {
+        "contusion": 9,
+        "cut wound": 9,
+        "graze wound": 21,
+        "gunshot wound": 19,
+        "laceration": 11,
+        "penetration wound": 6,
+        "scratch": 7
+      }
+    },
+    "4": {
+      "cases": 57,
+      "images": 199,
+      "images_per_class": {
+        "contusion": 29,
+        "cut wound": 21,
+        "graze wound": 44,
+        "gunshot wound": 65,
+        "laceration": 23,
+        "penetration wound": 7,
+        "scratch": 10
+      },
+      "cases_per_class": {
+        "contusion": 9,
+        "cut wound": 9,
+        "graze wound": 16,
+        "gunshot wound": 24,
+        "laceration": 14,
+        "penetration wound": 5,
+        "scratch": 5
+      }
+    },
+    "5": {
+      "cases": 56,
+      "images": 168,
+      "images_per_class": {
+        "contusion": 33,
+        "cut wound": 9,
+        "graze wound": 35,
+        "gunshot wound": 58,
+        "laceration": 19,
+        "penetration wound": 3,
+        "scratch": 11
+      },
+      "cases_per_class": {
+        "contusion": 15,
+        "cut wound": 4,
+        "graze wound": 18,
+        "gunshot wound": 19,
+        "laceration": 12,
+        "penetration wound": 3,
+        "scratch": 8
+      }
+    }
+  },
+  "full_rows": {
+    "1": {
+      "cases": 57,
+      "images": 166,
+      "images_per_class": {
+        "contusion": 29,
+        "cut wound": 15,
+        "graze wound": 33,
+        "gunshot wound": 49,
+        "laceration": 24,
+        "penetration wound": 7,
+        "scratch": 9
+      },
+      "cases_per_class": {
+        "contusion": 9,
+        "cut wound": 8,
+        "graze wound": 18,
+        "gunshot wound": 21,
+        "laceration": 16,
+        "penetration wound": 5,
+        "scratch": 8
+      }
+    },
+    "2": {
+      "cases": 57,
+      "images": 177,
+      "images_per_class": {
+        "contusion": 36,
+        "cut wound": 13,
+        "graze wound": 42,
+        "gunshot wound": 43,
+        "laceration": 20,
+        "penetration wound": 13,
+        "scratch": 10
+      },
+      "cases_per_class": {
+        "contusion": 13,
+        "cut wound": 5,
+        "graze wound": 14,
+        "gunshot wound": 22,
+        "laceration": 14,
+        "penetration wound": 5,
+        "scratch": 4
+      }
+    },
+    "3": {
+      "cases": 57,
+      "images": 180,
+      "images_per_class": {
+        "contusion": 29,
+        "cut wound": 15,
+        "graze wound": 46,
+        "gunshot wound": 51,
+        "laceration": 19,
+        "penetration wound": 11,
+        "scratch": 9
+      },
+      "cases_per_class": {
+        "contusion": 9,
+        "cut wound": 9,
+        "graze wound": 22,
+        "gunshot wound": 19,
+        "laceration": 11,
+        "penetration wound": 6,
+        "scratch": 8
+      }
+    },
+    "4": {
+      "cases": 57,
+      "images": 199,
+      "images_per_class": {
+        "contusion": 29,
+        "cut wound": 21,
+        "graze wound": 44,
+        "gunshot wound": 65,
+        "laceration": 23,
+        "penetration wound": 7,
+        "scratch": 10
+      },
+      "cases_per_class": {
+        "contusion": 9,
+        "cut wound": 9,
+        "graze wound": 16,
+        "gunshot wound": 24,
+        "laceration": 14,
+        "penetration wound": 5,
+        "scratch": 5
+      }
+    },
+    "5": {
+      "cases": 57,
+      "images": 169,
+      "images_per_class": {
+        "contusion": 33,
+        "cut wound": 9,
+        "graze wound": 35,
+        "gunshot wound": 58,
+        "laceration": 19,
+        "penetration wound": 3,
+        "scratch": 12
+      },
+      "cases_per_class": {
+        "contusion": 15,
+        "cut wound": 4,
+        "graze wound": 18,
+        "gunshot wound": 19,
+        "laceration": 12,
+        "penetration wound": 3,
+        "scratch": 9
+      }
+    }
+  },
+  "frozen": true
+}

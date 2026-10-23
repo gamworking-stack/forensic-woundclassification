@@ -38,6 +38,7 @@ from src.evaluation.summarize import load_pairs, paired_comparison, summary_tabl
 from src.training.engine import EarlyStopping  # noqa: E402
 from src.training.photo import PHOTO_COLUMN, photo_prediction_frame  # noqa: E402
 from src.training.select_lr import LR_GRID, choose  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 SINGLE_FAMILIES = tuple(f for f in FAMILY_ORDER if f not in ("cnn_svm", "alexnet_ensemble"))
@@ -54,9 +55,9 @@ TOLERANCE = 1e-9
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Final verification of a finished run (T16).")
     parser.add_argument("--experiments-root", type=Path, required=True)
-    parser.add_argument("--split-assignments", type=Path, default=Path("data/splits/case_split_assignments.csv"))
+    parser.add_argument("--split-assignments", type=Path, default=DATA_DIR / "splits/case_split_assignments.csv")
     parser.add_argument("--cv-root", type=Path, default=None, help="T12b run; omitted: CV not checked.")
-    parser.add_argument("--cv-folds", type=Path, default=Path("data/splits/cv_folds.csv"))
+    parser.add_argument("--cv-folds", type=Path, default=DATA_DIR / "splits/cv_folds.csv")
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--bootstrap", type=int, default=2000,
                         help="Paired resamples used by summarize.py/cv_summary.py; 0 skips the interval check.")

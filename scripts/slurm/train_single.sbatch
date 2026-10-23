@@ -7,6 +7,7 @@
 # INPUT_PATH=box (T17) trains on one crop per annotated box; use RUN_NAME=roi_box.
 # INPUT_PATH=crop (T18) trains on the same crops, each its own sample; use RUN_NAME=roi_crop.
 # AUTO_ARM=4Z|4P|4F (T19) swaps in that arm's auto-box crops; use RUN_NAME=auto_<arm>_<union|box|crop>.
+# WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
 #SBATCH --job-name=train_single
 #SBATCH --account=a260012
 #SBATCH --partition=gpu
@@ -25,18 +26,21 @@ RUN_NAME="${RUN_NAME:-main}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
 SIF="${SIF:-/common/sif/pytorch-24.11-py3.sif}"
+DATA_DIR="${WOUND_DATA_DIR:-data}"
+EXPERIMENTS_DIR="${EXPERIMENTS_DIR:-$PROJECT_ROOT/experiments}"
+DERIVED_DIR="${DERIVED_DIR:-$PROJECT_ROOT/derived_data}"
 REPO_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
 
 case "$INPUT_PATH" in
   full)
-    MANIFEST=data/splits/case_level_split_manifest.csv
+    MANIFEST=$DATA_DIR/splits/case_level_split_manifest.csv
     IMAGE_ROOT="$PROJECT_ROOT/raw_data/wound_ml_7classes" ;;
   roi)
-    MANIFEST=data/roi/roi_manifest.csv
-    IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_union_p008" ;;
+    MANIFEST=$DATA_DIR/roi/roi_manifest.csv
+    IMAGE_ROOT="$DERIVED_DIR/roi_union_p008" ;;
   box|crop)
-    MANIFEST=data/roi_box/roi_manifest.csv
-    IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_box_p008" ;;
+    MANIFEST=$DATA_DIR/roi_box/roi_manifest.csv
+    IMAGE_ROOT="$DERIVED_DIR/roi_box_p008" ;;
   *)
     echo "INPUT_PATH must be full, roi, box or crop, got: $INPUT_PATH" >&2; exit 1 ;;
 esac
@@ -47,17 +51,17 @@ if [[ -n "${AUTO_ARM:-}" ]]; then
     box|crop) DESIGN=box ;;
     *) echo "AUTO_ARM needs INPUT_PATH roi, box or crop, got: $INPUT_PATH" >&2; exit 1 ;;
   esac
-  MANIFEST=data/roi_auto/$AUTO_ARM/$DESIGN/roi_manifest.csv
-  IMAGE_ROOT="$PROJECT_ROOT/derived_data/roi_auto_${AUTO_ARM}_$DESIGN"
+  MANIFEST=$DATA_DIR/roi_auto/$AUTO_ARM/$DESIGN/roi_manifest.csv
+  IMAGE_ROOT="$DERIVED_DIR/roi_auto_${AUTO_ARM}_$DESIGN"
 fi
-OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/experiments/$RUN_NAME/$INPUT_PATH/$FAMILY}"
+OUTPUT_DIR="${OUTPUT_DIR:-$EXPERIMENTS_DIR/$RUN_NAME/$INPUT_PATH/$FAMILY}"
 export TORCH_HOME="$PROJECT_ROOT/torch_cache"
 export PYTHONUNBUFFERED=1  # log lines reach the .out/.err files immediately
 
 cd "$REPO_DIR"
 echo "Job $SLURM_JOB_ID on $(hostname) at $(date -Is)"
 echo "Family: $FAMILY | Input: $INPUT_PATH | Run: $RUN_NAME | Extra: ${EXTRA_ARGS:-none}"
-echo "Output: $OUTPUT_DIR"
+echo "Data: $DATA_DIR | Output: $OUTPUT_DIR"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 
 module purge

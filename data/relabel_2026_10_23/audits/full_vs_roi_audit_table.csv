@@ -1,0 +1,33 @@
+split,canonical_wound_label,full_images,roi_images,images_lost,image_retention_pct,full_cases,roi_cases,cases_lost,case_retention_pct
+train,contusion,128,128,0,100.0,44,44,0,100.0
+train,cut wound,59,59,0,100.0,29,29,0,100.0
+train,graze wound,165,165,0,100.0,73,73,0,100.0
+train,gunshot wound,222,222,0,100.0,88,88,0,100.0
+train,laceration,82,81,1,98.78,53,52,1,98.11
+train,penetration wound,33,33,0,100.0,19,19,0,100.0
+train,scratch,44,40,4,90.91,29,26,3,89.66
+train,all,733,728,5,99.32,235,233,2,99.15
+validation,contusion,28,27,1,96.43,11,10,1,90.91
+validation,cut wound,14,14,0,100.0,6,6,0,100.0
+validation,graze wound,35,33,2,94.29,15,14,1,93.33
+validation,gunshot wound,44,44,0,100.0,17,17,0,100.0
+validation,laceration,23,23,0,100.0,14,14,0,100.0
+validation,penetration wound,8,8,0,100.0,5,5,0,100.0
+validation,scratch,6,6,0,100.0,5,5,0,100.0
+validation,all,158,155,3,98.1,50,50,0,100.0
+test,contusion,23,23,0,100.0,12,12,0,100.0
+test,cut wound,14,13,1,92.86,6,5,1,83.33
+test,graze wound,40,40,0,100.0,19,19,0,100.0
+test,gunshot wound,41,41,0,100.0,16,16,0,100.0
+test,laceration,16,16,0,100.0,12,12,0,100.0
+test,penetration wound,4,4,0,100.0,3,3,0,100.0
+test,scratch,12,12,0,100.0,6,6,0,100.0
+test,all,150,149,1,99.33,51,51,0,100.0
+all,contusion,179,178,1,99.44,67,66,1,98.51
+all,cut wound,87,86,1,98.85,41,40,1,97.56
+all,graze wound,240,238,2,99.17,107,106,1,99.07
+all,gunshot wound,307,307,0,100.0,121,121,0,100.0
+all,laceration,121,120,1,99.17,79,78,1,98.73
+all,penetration wound,45,45,0,100.0,27,27,0,100.0
+all,scratch,62,58,4,93.55,40,37,3,92.5
+all,all,1041,1032,9,99.14,336,334,2,99.4

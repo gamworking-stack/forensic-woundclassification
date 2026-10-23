@@ -1,0 +1,22 @@
+split,canonical_wound_label,image_count,case_count,image_pct_in_class,case_pct_in_class
+test,contusion,23,12,12.85,17.91
+train,contusion,128,44,71.51,65.67
+validation,contusion,28,11,15.64,16.42
+test,cut wound,14,6,16.09,14.63
+train,cut wound,59,29,67.82,70.73
+validation,cut wound,14,6,16.09,14.63
+test,graze wound,40,19,16.67,17.76
+train,graze wound,165,73,68.75,68.22
+validation,graze wound,35,15,14.58,14.02
+test,gunshot wound,41,16,13.36,13.22
+train,gunshot wound,222,88,72.31,72.73
+validation,gunshot wound,44,17,14.33,14.05
+test,laceration,16,12,13.22,15.19
+train,laceration,82,53,67.77,67.09
+validation,laceration,23,14,19.01,17.72
+test,penetration wound,4,3,8.89,11.11
+train,penetration wound,33,19,73.33,70.37
+validation,penetration wound,8,5,17.78,18.52
+test,scratch,12,6,19.35,15.0
+train,scratch,44,29,70.97,72.5
+validation,scratch,6,5,9.68,12.5

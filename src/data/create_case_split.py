@@ -18,6 +18,9 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.data.paths import DATA_DIR  # noqa: E402
+
 
 SPLIT_NAMES = ("train", "validation", "test")
 DEFAULT_SPLIT_RATIOS = np.array([0.70, 0.15, 0.15], dtype=float)
@@ -30,13 +33,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input-csv",
         type=Path,
-        default=Path("data/validated_metadata.csv"),
+        default=DATA_DIR / "validated_metadata.csv",
         help="Path to validated metadata CSV.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/splits"),
+        default=DATA_DIR / "splits",
         help="Directory to save generated split manifests and reports.",
     )
     parser.add_argument(

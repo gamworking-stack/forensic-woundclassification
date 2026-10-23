@@ -17,6 +17,9 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.data.paths import DATA_DIR  # noqa: E402
+
 
 # Canonical 7 wound classes defined in the thesis proposal
 CANONICAL_CLASSES = [
@@ -76,13 +79,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-csv",
         type=Path,
-        default=Path("data/validated_metadata.csv"),
+        default=DATA_DIR / "validated_metadata.csv",
         help="Destination path for validated metadata CSV.",
     )
     parser.add_argument(
         "--output-report",
         type=Path,
-        default=Path("data/metadata_validation_report.json"),
+        default=DATA_DIR / "metadata_validation_report.json",
         help="Destination path for validation summary JSON.",
     )
     parser.add_argument(

@@ -3,6 +3,7 @@
 # CPU only. Submit from the repo root:  sbatch scripts/slurm/t03_roi_crops.sbatch
 # T17 per-box crops (one crop per box):
 #   sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=/project/a260012_FORWCL/derived_data/roi_box_p008,EXPECTED_MANIFEST=data/roi_box/roi_manifest.csv scripts/slurm/t03_roi_crops.sbatch
+# WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
 #SBATCH --job-name=t03_roi_crops
 #SBATCH --account=a260012
 #SBATCH --partition=compute
@@ -15,11 +16,13 @@
 set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
+DATA_DIR="${WOUND_DATA_DIR:-data}"
+DERIVED_DIR="${DERIVED_DIR:-$PROJECT_ROOT/derived_data}"
 IMAGE_ROOT="${IMAGE_ROOT:-$PROJECT_ROOT/raw_data/wound_ml_7classes}"
 EXPORTS_DIR="${EXPORTS_DIR:-$PROJECT_ROOT/annotations/cvat_yolo_2026_09_30}"
-OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/derived_data/roi_union_p008}"
+OUTPUT_DIR="${OUTPUT_DIR:-$DERIVED_DIR/roi_union_p008}"
 CROP_MODE="${CROP_MODE:-union}"
-EXPECTED_MANIFEST="${EXPECTED_MANIFEST:-data/roi/roi_manifest.csv}"
+EXPECTED_MANIFEST="${EXPECTED_MANIFEST:-$DATA_DIR/roi/roi_manifest.csv}"
 SIF="${SIF:-/common/sif/pytorch-24.11-py3.sif}"
 REPO_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
 
@@ -51,7 +54,7 @@ run python -c "import pandas, PIL, pytest" || {
 run python -m pytest -q tests/test_roi_preprocessing.py
 
 run python src/data/create_roi_dataset.py \
-  --manifest data/splits/case_level_split_manifest.csv \
+  --manifest "$DATA_DIR/splits/case_level_split_manifest.csv" \
   --exports "$EXPORTS_DIR" \
   --image-root "$IMAGE_ROOT" \
   --output-dir "$OUTPUT_DIR" \

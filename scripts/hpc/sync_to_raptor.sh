@@ -1,5 +1,6 @@
 #!/bin/bash
-# Upload the repo and the 7 CVAT exports (annotation text only, no images) to Raptor.
+# Upload the repo and the 7 CVAT exports (annotation text only, no images) to Raptor,
+# plus the 7 exports of 23 Oct 2026 for T23 when their folder is present.
 # Usage:  bash scripts/hpc/sync_to_raptor.sh
 set -euo pipefail
 
@@ -33,3 +34,11 @@ rsync -av --exclude '__pycache__/' --exclude '.venv/' --exclude '.DS_Store' \
 
 ssh "$DEST" "mkdir -p '$REMOTE_EXPORTS'"
 rsync -av "${exports[@]}" "$DEST:$REMOTE_EXPORTS/"
+
+# T23: the 23 Oct 2026 exports (one per class; laceration as CVAT XML) behind data/relabel_2026_10_23
+T23_LOCAL_EXPORTS="${T23_LOCAL_EXPORTS:-$REPO_ROOT/../23 oct updated annotation CVAT}"
+T23_REMOTE_EXPORTS="${T23_REMOTE_EXPORTS:-/project/a260012_FORWCL/annotations/cvat_2026_10_23}"
+if [[ -d "$T23_LOCAL_EXPORTS" ]]; then
+  ssh "$DEST" "mkdir -p '$T23_REMOTE_EXPORTS'"
+  rsync -av "$T23_LOCAL_EXPORTS"/*.zip "$DEST:$T23_REMOTE_EXPORTS/"
+fi

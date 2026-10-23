@@ -4,12 +4,14 @@
 #   bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_cv.sh)
 # Finished = validation_predictions.csv (the held-out fold) exists. The test split is never loaded.
 # T17 per-box CV (S17-S24):  MAIN_RUN=roi_box CV_RUN=cv_box PATHS=box bash scripts/hpc/submit_cv.sh
+# WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
 set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
-MAIN="$PROJECT_ROOT/experiments/${MAIN_RUN:-main}"
-CV="$PROJECT_ROOT/experiments/${CV_RUN:-cv}"
-FOLDS_CSV=data/splits/cv_folds.csv
+EXPERIMENTS_DIR="${EXPERIMENTS_DIR:-$PROJECT_ROOT/experiments}"
+MAIN="$EXPERIMENTS_DIR/${MAIN_RUN:-main}"
+CV="$EXPERIMENTS_DIR/${CV_RUN:-cv}"
+FOLDS_CSV="${WOUND_DATA_DIR:-data}/splits/cv_folds.csv"
 HOURS="${HOURS:-4}"
 
 mkdir -p "$CV"

@@ -8,11 +8,12 @@
 # T18 per-crop run (S25-S32): PATHS=crop bash scripts/hpc/submit_all.sh roi_crop
 # T19 retraining on auto boxes (AUTO_ARM is passed to every job): AUTO_ARM=4F PATHS=roi bash scripts/hpc/submit_all.sh auto_4F_union
 #   (and PATHS=box ... auto_4F_box, PATHS=crop ... auto_4F_crop); job names keep the S17/S25-style ids of their path
+# WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
 set -euo pipefail
 
 RUN_NAME="${1:-main}"
 PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
-EXP="$PROJECT_ROOT/experiments/$RUN_NAME"
+EXP="${EXPERIMENTS_DIR:-$PROJECT_ROOT/experiments}/$RUN_NAME"
 read -r -a INPUT_PATHS <<<"${PATHS:-full roi}"
 # Spec §5.1 order; S13-S16 (cnn_svm, alexnet_ensemble) are handled below.
 FAMILIES=(efficientnet_b0 resnet152 mobilenet_v3_small googlenet vgg16 vit_b16)

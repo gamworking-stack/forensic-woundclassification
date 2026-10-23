@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Create a leakage-safe ROI classification dataset from CVAT YOLO exports.
+"""Create a leakage-safe ROI classification dataset from CVAT exports.
 
-Parses CVAT YOLO 1.1 annotation archives, matches annotations with the authoritative
+Parses CVAT YOLO 1.1 (or CVAT for images 1.1 XML) annotation archives, matches annotations with the authoritative
 case-level split manifest, computes padded union bounding boxes, and crops the visible
 wound regions. Each ROI sample strictly inherits the case identifier and split partition
 (train, validation, test) from its source image.
@@ -14,10 +14,12 @@ import csv
 import glob
 import hashlib
 import json
+import math
 import re
 import shutil
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,6 +30,7 @@ from PIL import Image, ImageFile, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.validate_metadata import LABEL_NORMALIZATION_MAP  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -57,7 +60,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--manifest",
         type=Path,
-        default=Path("data/splits/case_level_split_manifest.csv"),
+        default=DATA_DIR / "splits/case_level_split_manifest.csv",
         help="Path to authoritative case-level split manifest.",
     )
     parser.add_argument(
@@ -65,7 +68,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         nargs="+",
         required=True,
-        help="CVAT YOLO 1.1 annotation .zip files or directory containing them.",
+        help="CVAT YOLO 1.1 or CVAT for images 1.1 annotation .zip files, or a directory containing them.",
     )
     parser.add_argument(
         "--image-root",
@@ -82,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/roi"),
+        default=DATA_DIR / "roi",
         help="Directory to save roi_manifest.csv, crop_summary.json, and cropped images.",
     )
     parser.add_argument(
@@ -158,9 +161,18 @@ def verify_no_case_leakage(rows: List[Dict[str, Any]], group_col: str) -> None:
                 raise AssertionError(f"Case leakage between {first} and {second}: {sorted(shared)}")
 
 
+def class_label(row: Dict[str, Any]) -> str:
+    """The row's canonical training label."""
+    return normalize_label(row.get("canonical_wound_label") or row.get("wound_label", ""))
+
+
 def manifest_key(row: Dict[str, Any]) -> Tuple[str, str]:
-    """Join key between manifest rows and annotations: (canonical label, filename stem)."""
-    label = normalize_label(row.get("canonical_wound_label") or row.get("wound_label", ""))
+    """Join key between manifest rows and annotations: (canonical label, filename stem).
+
+    A photo relabelled after annotation (T23) keeps its old raw label in ``source_label``: its CVAT
+    boxes and its raw image folder are still under that label, so the key uses it.
+    """
+    label = normalize_label(row["source_label"]) if row.get("source_label") else class_label(row)
     return label, Path(str(row["filename"]).strip()).stem
 
 
@@ -221,6 +233,66 @@ def parse_yolo_export(
     return labels, annotations, invalid_lines
 
 
+def parse_cvat_xml_export(
+    export_path: Path,
+) -> Tuple[List[str], Dict[str, List[Tuple[str, List[float]]]], List[Dict[str, Any]]]:
+    """Parse boxes from a CVAT for images 1.1 export (``annotations.xml``), as ``parse_yolo_export`` does.
+
+    Pixel boxes are converted to the YOLO frame (centre and size, 0-1) with the image size the XML
+    records. A rotated box becomes the axis-aligned rectangle that encloses it, so the crop holds the
+    whole marked wound (YOLO 1.1 cannot store a rotation). Shapes other than boxes are rejected.
+    """
+    annotations: Dict[str, List[Tuple[str, List[float]]]] = defaultdict(list)
+    invalid_lines: List[Dict[str, Any]] = []
+    with zipfile.ZipFile(export_path) as archive:
+        root = ET.fromstring(archive.read("annotations.xml"))
+    # Class names from the label list, normalised to canonical labels
+    labels = [normalize_label(node.text or "") for node in root.iterfind("./meta/*/labels/label/name")]
+
+    for image in root.iter("image"):
+        stem = Path(image.get("name", "")).stem
+        width, height = float(image.get("width", 0)), float(image.get("height", 0))
+        for shape in image:
+            # Record a rejected shape with its export, image stem, shape number and reason
+            def reject(reason: str) -> None:
+                invalid_lines.append({
+                    "annotation_export": export_path.name,
+                    "stem": stem,
+                    "line_number": int(image.get("id", -1)),
+                    "line": ET.tostring(shape, encoding="unicode").strip()[:200],
+                    "reason": reason,
+                })
+
+            if shape.tag != "box":
+                reject("not_a_box")
+                continue
+            label = normalize_label(shape.get("label", ""))
+            if label not in labels:
+                reject("class_id_out_of_range")
+                continue
+            x1, y1, x2, y2 = (float(shape.get(k)) for k in ("xtl", "ytl", "xbr", "ybr"))
+            # Enclosing axis-aligned size of a box rotated about its centre
+            angle = math.radians(float(shape.get("rotation", 0)))
+            bw = (x2 - x1) * abs(math.cos(angle)) + (y2 - y1) * abs(math.sin(angle))
+            bh = (x2 - x1) * abs(math.sin(angle)) + (y2 - y1) * abs(math.cos(angle))
+            box = [(x1 + x2) / 2 / width, (y1 + y2) / 2 / height, bw / width, bh / height] if width and height else []
+            if not box or any(v < 0 or v > 1 for v in box) or box[2] <= 0 or box[3] <= 0:
+                reject("box_out_of_bounds")
+                continue
+            annotations[stem].append((label, box))
+
+    return labels, annotations, invalid_lines
+
+
+def parse_export(
+    export_path: Path,
+) -> Tuple[List[str], Dict[str, List[Tuple[str, List[float]]]], List[Dict[str, Any]]]:
+    """Parse a CVAT export zip: CVAT for images 1.1 if it holds ``annotations.xml``, else YOLO 1.1."""
+    with zipfile.ZipFile(export_path) as archive:
+        is_xml = "annotations.xml" in archive.namelist()
+    return parse_cvat_xml_export(export_path) if is_xml else parse_yolo_export(export_path)
+
+
 def compute_union_box(boxes: List[List[float]], width: int, height: int, padding: float) -> Tuple[int, int, int, int]:
     """Compute padded union bounding box in pixel coordinates."""
     # Convert the normalised centre boxes to pixels and take their enclosing rectangle
@@ -247,10 +319,11 @@ def find_source_image(image_root: Path, row: Dict[str, Any]) -> Optional[Path]:
     The raw tree is organised by raw ``wound_label`` folder (e.g. ``gsw/``), and some manifest
     filenames omit the extension (``IMG_0235`` for ``IMG_0235.JPG``).
     """
-    # Try the raw label folder, then the canonical label folder, then the root
+    # Try the folder the photo was filed under before relabelling (T23 source_label), the raw label
+    # folder, then the canonical label folder, then the root
     fname = str(row["filename"]).strip()
-    folders = [str(row.get("wound_label", "")).strip(), str(row.get("canonical_wound_label", "")).strip(), ""]
-    for folder in dict.fromkeys(folders):
+    folders = [str(row.get(c, "")).strip() for c in ("source_label", "wound_label", "canonical_wound_label")]
+    for folder in dict.fromkeys([f for f in folders if f] + [""]):
         directory = image_root / folder if folder else image_root
         # A filename with an image extension must exist exactly as written
         if Path(fname).suffix.lower() in IMAGE_EXTENSIONS:
@@ -363,7 +436,7 @@ def build_roi_records(
         result.dropped.append({
             group_col: row[group_col],
             "filename": row["filename"],
-            "canonical_wound_label": manifest_key(row)[0],
+            "canonical_wound_label": class_label(row),
             "split": row["split"],
             "reason": reason,
         })
@@ -371,7 +444,7 @@ def build_roi_records(
 
     for export in exports:
         # Parse each export and keep its rejected lines for the summary
-        _, annotations, invalid_lines = parse_yolo_export(export)
+        _, annotations, invalid_lines = parse_export(export)
         result.invalid_annotation_lines.extend(invalid_lines)
         result.status["invalid_annotation_lines"] += len(invalid_lines)
         for stem, labeled_boxes in sorted(annotations.items()):
@@ -417,8 +490,11 @@ def build_roi_records(
                     drop(source_row, "missing_dimensions")
                     continue
 
-                # Split name for the crop path; union mode makes one crop from all boxes, individual mode one per box
+                # Split name and training label for the crop path (the label differs from the
+                # annotation's only for a photo relabelled after annotation); union mode makes one crop
+                # from all boxes, individual mode one per box
                 split = source_row["split"].strip().lower()
+                crop_label = class_label(source_row)
                 crop_groups = [boxes] if crop_mode == "union" else [[b] for b in boxes]
                 for crop_index, crop_boxes in enumerate(crop_groups, start=1):
                     # Padded crop box in pixels; drop crops narrower or shorter than the minimum size
@@ -429,7 +505,7 @@ def build_roi_records(
 
                     # Crop path is <split>/<label>/<stem>_<suffix>.jpg; save the JPEG only in live mode
                     suffix = "roi" if crop_mode == "union" else f"bbox{crop_index:02d}"
-                    roi_relative_path = f"{split}/{safe_folder(label)}/{stem}_{suffix}.jpg"
+                    roi_relative_path = f"{split}/{safe_folder(crop_label)}/{stem}_{suffix}.jpg"
                     if image is not None and output_dir is not None:
                         out_path = output_dir / roi_relative_path
                         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -438,7 +514,7 @@ def build_roi_records(
                     # Copy the source manifest row (case and split inherited) and add the crop details
                     out_row = dict(source_row)
                     out_row.update({
-                        "canonical_wound_label": label,
+                        "canonical_wound_label": crop_label,
                         "source_relative_path": source_relative_path,
                         "roi_relative_path": roi_relative_path,
                         "annotation_export": export.name,
@@ -495,7 +571,7 @@ def main() -> int:
         p.name for p in candidate_exports if p.is_file() and p not in export_files
     )
 
-    print(f"Using {len(export_files)} CVAT YOLO export archives:")
+    print(f"Using {len(export_files)} CVAT export archives:")
     for exp in export_files:
         print(f"  - {exp.name}")
     for name in duplicate_exports:

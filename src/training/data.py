@@ -11,6 +11,7 @@ from PIL import Image, ImageFile, ImageOps
 from torch.utils.data import Dataset
 
 from src.data.create_roi_dataset import find_source_image, verify_no_case_leakage
+from src.data.paths import DATA_DIR
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -31,7 +32,7 @@ def load_manifest(
     manifest: Path,
     input_path: str,
     full_scope: str = "matched",
-    roi_manifest: Path = Path("data/roi/roi_manifest.csv"),
+    roi_manifest: Path = DATA_DIR / "roi/roi_manifest.csv",
     smoke: bool = False,
     cv_folds: Optional[Path] = None,
     fold: Optional[int] = None,

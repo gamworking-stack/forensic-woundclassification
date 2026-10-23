@@ -423,3 +423,24 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `src/training/photo.py` (`photo_top_crop_frame`)
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments/roi_crop/crop/<family>/top_crop/`, `<project>/experiments/roi_crop/summary/top_crop_*`
+
+## T23: Relabelled rerun of every experiment (23 Oct 2026 labels)
+
+- **Commits**: see `git log --grep 'T23'`
+- **Used**
+  - `../thesis_data_23_oct.csv` (outside the repo; holds `patient_id`, never committed)
+  - `data/validated_metadata.csv`, `data/roi/roi_manifest.csv`, `data/roi_box/roi_manifest.csv` (where each photo is filed, box sizes)
+  - the 7 CVAT exports of 23 Oct 2026 (`../23 oct updated annotation CVAT/`; laceration as CVAT XML)
+- **Created**
+  - `tickets/T23_relabel_rerun.md`
+  - `src/data/prepare_relabel.py`, `src/data/paths.py`
+  - `scripts/hpc/relabel_env.sh`
+  - `tests/test_relabel.py`
+  - `data/relabel_2026_10_23/` (metadata, exclusions, split, CV folds, ROI and per-box manifests, audit, T19 reference boxes)
+- **Changed**
+  - `src/data/create_roi_dataset.py` (`source_label`, crop class from the manifest row, CVAT XML exports), `src/detection/boxes.py`, `src/detection/common.py`, `src/evaluation/verify_auto.py`
+  - `scripts/hpc/sync_to_raptor.sh` (uploads the 23 Oct exports)
+  - every script's `data/...` default (`DATA_DIR`), `scripts/slurm/*.sbatch`, `scripts/hpc/submit_*.sh`, `fetch_results.sh`
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments_relabel_2026_10_23/`, `<project>/derived_data/relabel_2026_10_23/`, `../results_figures/relabel_2026_10_23/`
+

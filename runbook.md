@@ -407,6 +407,95 @@ srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012
 ```
 It prints PASS/FAIL/NOTE counts per check (files, test set, selection, budget, numbers, gradcam, cv), lists every non-PASS row, and exits 1 on any FAIL. The report is `experiments/main/verification/verification_report.csv` (no image paths); `fetch_results.sh` copies it. What each check does: `src/evaluation/verify.py` docstring and `tickets/T16_final_verification.md`.
 
+## Relabelled rerun (T23, 23 Oct 2026 labels and annotations)
+
+Every experiment again on the 23 Oct 2026 sheet (`Inclusion` FALSE and `imprint` excluded, 2 photos relabelled, cases regrouped with `patient_id`) and the 23 Oct 2026 CVAT exports (`../23 oct updated annotation CVAT/`, one zip per class; laceration is CVAT XML), in its own folders. The original `data/`, `experiments/` and `derived_data/` are not touched. Plan, decisions and counts: `tickets/T23_relabel_rerun.md`.
+
+`scripts/hpc/relabel_env.sh` sets the folders every script reads; **source it in every new shell** before a T23 command:
+
+| Variable | T23 value | Default (original study) |
+|---|---|---|
+| `WOUND_DATA_DIR` | `data/relabel_2026_10_23` | `data` |
+| `EXPERIMENTS_DIR` | `/project/a260012_FORWCL/experiments_relabel_2026_10_23` | `/project/a260012_FORWCL/experiments` |
+| `DERIVED_DIR` | `/project/a260012_FORWCL/derived_data/relabel_2026_10_23` | `/project/a260012_FORWCL/derived_data` |
+| `EXPORTS_DIR` (T03 job) | `/project/a260012_FORWCL/annotations/cvat_2026_10_23` | `/project/a260012_FORWCL/annotations/cvat_yolo_2026_09_30` |
+| `RESULTS_DIR` (laptop) | `../results_figures/relabel_2026_10_23` | `../results_figures` |
+
+`sbatch --export=ALL` passes them to every job, and Apptainer passes them to Python.
+
+**0. Manifests (laptop, done 2026-10-23; committed).** Nothing here needs the images:
+```bash
+python src/data/prepare_relabel.py      # ../thesis_data_23_oct.csv -> data/relabel_2026_10_23/validated_metadata.csv
+source scripts/hpc/relabel_env.sh
+python src/data/create_case_split.py
+EXPORTS="../23 oct updated annotation CVAT"   # box sizes for the dry run come from the original per-box manifest
+python src/data/create_roi_dataset.py --exports "$EXPORTS" --reference-manifest data/roi_box/roi_manifest.csv --dry-run
+python src/data/create_roi_dataset.py --exports "$EXPORTS" --reference-manifest data/roi_box/roi_manifest.csv --dry-run \
+  --crop-mode individual --output-dir $WOUND_DATA_DIR/roi_box
+python src/data/create_cv_folds.py
+python src/data/audit_full_vs_roi.py
+python -m src.detection.boxes --exports "$EXPORTS"   # -m: src/detection/select.py would shadow the stdlib module
+```
+Then `bash scripts/hpc/sync_to_raptor.sh` (CMU network or VPN); it also uploads the 23 Oct exports to `EXPORTS_DIR`.
+
+**1. Crops (Raptor, CPU).** From the 23 Oct exports, checked against the committed T23 manifests (1,032 union crops, 1,808 per-box crops):
+```bash
+cd ~/forensic-woundclassification && source scripts/hpc/relabel_env.sh && module load apptainer/1.3.5
+sbatch scripts/slurm/t03_roi_crops.sbatch
+sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=$DERIVED_DIR/roi_box_p008,EXPECTED_MANIFEST=$WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  scripts/slurm/t03_roi_crops.sbatch
+```
+
+**2. Training, Experiments 1-3 (GPU).** The three runs are independent once both crop jobs have passed:
+```bash
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_all.sh)                    # S01-S16, run main
+bash scripts/hpc/watch_jobs.sh $(PATHS=box bash scripts/hpc/submit_all.sh roi_box)   # S17-S24
+bash scripts/hpc/watch_jobs.sh $(PATHS=crop bash scripts/hpc/submit_all.sh roi_crop) # S25-S32
+```
+
+**3. Evaluation and summaries (CPU).** These are the commands of T08, T15, T17 and T18 with `X=$EXPERIMENTS_DIR`:
+```bash
+X=$EXPERIMENTS_DIR; C="srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012_FORWCL /common/sif/pytorch-24.11-py3.sif python"
+for r in main roi_box roi_crop; do $C src/evaluation/evaluate.py --experiments-root $X/$r; done
+$C src/evaluation/summarize.py --experiments-root $X/main
+$C src/evaluation/box_summary.py --box-root $X/roi_box --main-root $X/main
+$C src/evaluation/crop_summary.py --crop-root $X/roi_crop
+$C src/evaluation/single_box.py --main-root $X/main --crop-root $X/roi_crop     # T21
+$C src/evaluation/top_crop.py --main-root $X/main --crop-root $X/roi_crop       # T22
+```
+
+**4. Cross-validation (GPU, then CPU):**
+```bash
+bash scripts/hpc/watch_jobs.sh $(bash scripts/hpc/submit_cv.sh)
+bash scripts/hpc/watch_jobs.sh $(MAIN_RUN=roi_box CV_RUN=cv_box PATHS=box bash scripts/hpc/submit_cv.sh)
+$C src/evaluation/cv_summary.py --cv-root $X/cv
+$C src/evaluation/cv_box_summary.py --cv-box-root $X/cv_box --cv-main-root $X/cv
+```
+
+**5. Grad-CAM (needs `export TORCH_HOME=/project/a260012_FORWCL/torch_cache`).** Grad-CAM picks its example photos again from the new test set:
+```bash
+$C src/evaluation/gradcam.py --experiments-root $X/main
+$C src/evaluation/gradcam.py --device cpu --experiments-root $X/roi_box --box-manifest $WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  --examples $X/main/gradcam/examples.csv
+$C src/evaluation/gradcam.py --device cpu --experiments-root $X/roi_box --box-manifest $WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  --main-root $X/main --all-test --classes "cut wound" "penetration wound" scratch
+```
+
+**6. Verification (Experiments 1-3):**
+```bash
+$C src/evaluation/verify.py --experiments-root $X/main --cv-root $X/cv
+$C src/evaluation/verify_box.py --box-root $X/roi_box --main-root $X/main --cv-root $X/cv_box --cv-main-root $X/cv
+$C src/evaluation/verify_crop.py --crop-root $X/roi_crop --main-root $X/main
+```
+
+**7. Experiment 4 (auto-box ROI).** Follow the T19 steps 1-8 above, with these substitutions: `X=$EXPERIMENTS_DIR`; `data/roi_auto` becomes `$WOUND_DATA_DIR/roi_auto`, which already holds the T23 reference boxes (1,808, from the 23 Oct exports) from step 0; `$P/derived_data/roi_auto_*` becomes `$DERIVED_DIR/roi_auto_*`. Every arm is selected and gated again on the new development photos. 4F is retrained on the new train split. For 4P, reuse the re-saved public weights instead of preparing them again: `mkdir -p $X/auto_4P && cp -r /project/a260012_FORWCL/experiments/auto_4P/weights $X/auto_4P/weights`.
+
+**8. Results to the laptop:**
+```bash
+source scripts/hpc/relabel_env.sh
+for r in main cv roi_box cv_box roi_crop auto_summary; do bash scripts/hpc/fetch_results.sh $r; done   # -> ../results_figures/relabel_2026_10_23/<run>/
+```
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.

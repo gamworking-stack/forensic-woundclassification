@@ -34,6 +34,7 @@ from src.evaluation.verify import (  # noqa: E402
     check_ensemble, check_lr_selection, check_svm_selection, close, read_json,
 )
 from src.training.photo import PHOTO_COLUMN  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 SUMMARY_FILES = ("evaluation_index.csv", "summary/crop_summary_table.csv")
@@ -43,8 +44,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verification of the per-crop ROI run (T18).")
     parser.add_argument("--crop-root", type=Path, required=True)
     parser.add_argument("--main-root", type=Path, required=True, help="Main run, for the training budget.")
-    parser.add_argument("--split-assignments", type=Path, default=Path("data/splits/case_split_assignments.csv"))
-    parser.add_argument("--crop-manifest", type=Path, default=Path("data/roi_box/roi_manifest.csv"))
+    parser.add_argument("--split-assignments", type=Path, default=DATA_DIR / "splits/case_split_assignments.csv")
+    parser.add_argument("--crop-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--bootstrap", type=int, default=2000, help="0 skips the interval checks.")
     return parser.parse_args(argv)
 

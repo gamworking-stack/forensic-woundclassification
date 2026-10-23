@@ -20,6 +20,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_roi_dataset import SPLIT_NAMES  # noqa: E402
+from src.data.paths import DATA_DIR  # noqa: E402
 
 
 JOIN_KEYS = ["canonical_wound_label", "filename"]
@@ -205,25 +206,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--full-manifest",
         type=Path,
-        default=Path("data/splits/case_level_split_manifest.csv"),
+        default=DATA_DIR / "splits/case_level_split_manifest.csv",
         help="Authoritative case-level split manifest (full-image path).",
     )
     parser.add_argument(
         "--roi-manifest",
         type=Path,
-        default=Path("data/roi/roi_manifest.csv"),
+        default=DATA_DIR / "roi/roi_manifest.csv",
         help="ROI manifest produced by create_roi_dataset.py.",
     )
     parser.add_argument(
         "--crop-summary",
         type=Path,
-        default=Path("data/roi/crop_summary.json"),
+        default=DATA_DIR / "roi/crop_summary.json",
         help="crop_summary.json from create_roi_dataset.py, used to explain why images were dropped.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/audits"),
+        default=DATA_DIR / "audits",
         help="Directory to save full_vs_roi_audit_table.csv and full_vs_roi_audit_report.json.",
     )
     parser.add_argument(
