@@ -4,7 +4,7 @@
 - **Phase**: Rerun of Experiments 1–4 and their supplementary analyses on a new dataset version (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: every earlier ticket. T01, T02, T03 and T12b (CV folds) are redone on the new sheet and the new CVAT exports. T19 §2.1 (reference boxes) is redone too. Training, evaluation and verification are unchanged.
 - **Scenarios**: S01–S32 and the T19 arms again, under the same IDs, in their own experiments folder
-- **Status**: Manifests built and committed 2026-10-23. HPC runs not started: Raptor was unreachable from the laptop (off the CMU network) when the manifests were built.
+- **Status**: Experiments 1–3 run, evaluated and verified 2026-10-24 (results §8); Experiment 4 running.
 
 ---
 
@@ -119,5 +119,48 @@ Run order and commands: runbook, "Relabelled rerun (T23)".
 
 ## 7. Run log
 
-- 2026-10-23: manifests built on the laptop with the 23 Oct annotations and committed (§4).
-- 2026-10-23 18:2x: commit `10c7281` synced; crop jobs 235210 (union, 1,032) and 235211 (per-box, 1,808) both `ROI comparison PASSED`; S01–S32 submitted (116 jobs, from 235212). `run_config.json` records `git_dirty: true` only because of three untracked files left on Raptor by the original study (`data/roi_auto/4F/`, `data/roi_auto/4Z/`, `docs/methodology_two_experiments.md`); no tracked file differs from `10c7281`, and T23 reads none of them. Raptor not reachable (`nc` timeout, off the CMU network); nothing submitted yet.
+- 2026-10-23 (laptop): manifests built with the 23 Oct annotations and committed (§4); Raptor was not reachable at first (off the CMU network).
+- 2026-10-23 18:2x: commit `10c7281` synced. Crop jobs 235210 (union, 1,032) and 235211 (per-box, 1,808) both `ROI comparison PASSED`. S01–S32 submitted (116 jobs, from 235212). `run_config.json` records `git_dirty: true` only because of three untracked files left on Raptor by the original study (`data/roi_auto/4F/`, `data/roi_auto/4Z/`, `docs/methodology_two_experiments.md`); no tracked file differs from `10c7281`, and T23 reads none of them.
+- 2026-10-23 21:51: S01–S32 finished (about 3.5 h on the 3 GPUs). Evaluation, summaries, T21, T22 and Grad-CAM run on CPU as each experiment finished.
+- 2026-10-24 00:26 / 01:17: CV finished, Experiment 1 (80 folds, 110 jobs) and Experiment 2 (40 folds, 55 jobs).
+- `verify.py` first failed one check: two Grad-CAM examples came from one case (case 251 holds a graze and a laceration test photo; T14's draw kept cases distinct only within a class). Fixed in `80a849b` (a clashing case is redrawn; the original study's 14 examples are reproduced exactly), Grad-CAM of Experiments 1 and 2 redrawn, `verify.py` rerun.
+- Verification: `verify.py` 313 PASS, `verify_box.py` 203 PASS, `verify_crop.py` 157 PASS, 0 FAIL. NOTEs: the `git_dirty` flag above, and Grad-CAM recomputed on CPU differs from the GPU (bf16) prediction file on 4 of 196 maps (Experiment 1) and 4 of 175 crops (Experiment 2), as in the original study.
+- Experiment 4 development jobs submitted 2026-10-23 22:00 (4F lr 0.005/0.01/0.02, 4Z gdino/owlv2, 4P); 4P reuses the original re-saved public weights; WILLIE stays out (T19).
+- Results fetched to `../results_figures/relabel_2026_10_23/{main,cv,roi_box,cv_box,roi_crop}/`.
+
+---
+
+## 8. Results, Experiments 1–3 (test: 149 photos, 51 groups; CV: 883 photos, 283 groups)
+
+Macro-F1 per family. Original study in brackets where it helps.
+
+| Family | Full (S01–S15) | Union ROI (S02–S16) | Per-box, photo (S17–S24) | Per-crop (S25–S32, 276 crops) | Top crop (T22) |
+|---|---|---|---|---|---|
+| EfficientNet-B0 | 0.785 | **0.847** | 0.809 | **0.745** | 0.767 |
+| ResNet152 | **0.823** | 0.765 | 0.734 | 0.736 | 0.757 |
+| MobileNetV3-Small | 0.593 | 0.698 | 0.736 | 0.695 | 0.731 |
+| GoogLeNet | 0.733 | 0.739 | 0.771 | 0.718 | 0.745 |
+| VGG16 | 0.766 | 0.722 | 0.785 | 0.722 | 0.759 |
+| ViT-B/16 | 0.646 | 0.797 | 0.788 | 0.731 | 0.771 |
+| CNN-SVM | 0.487 | 0.680 | 0.720 | 0.701 | 0.738 |
+| AlexNet ensemble | 0.628 | 0.744 | 0.745 | 0.592 | 0.667 |
+
+Paired comparisons (pooled over the 8 families, 2,000 case resamples):
+
+| Comparison | Test set | CV | Original test | Original CV |
+|---|---|---|---|---|
+| Union ROI − full | +0.067 [−0.006, +0.123] | **+0.066 [+0.039, +0.092]** | +0.036 [−0.031, +0.091] | +0.061 [+0.036, +0.085] |
+| Per-box − full | +0.078 [−0.010, +0.158] | **+0.080 [+0.052, +0.109]** | +0.073 [+0.009, +0.129] | +0.060 [+0.037, +0.083] |
+| Per-box − union | +0.012 [−0.026, +0.052] | +0.014 [−0.003, +0.032] | +0.037 [+0.006, +0.071] | −0.001 [−0.018, +0.017] |
+| T21 per-crop − full (97 single-box photos, 41 groups) | +0.048 [−0.067, +0.135] | – | +0.037 [−0.033, +0.107] (127 photos) | – |
+| T21 union − full (same photos) | +0.065 [−0.031, +0.126] | – | +0.031 [−0.045, +0.099] | – |
+
+Families significant after Holm: test set, CNN-SVM only (union and per-box); CV union, MobileNetV3-Small, CNN-SVM, AlexNet ensemble; CV per-box, MobileNetV3-Small, ViT-B/16, CNN-SVM, AlexNet ensemble.
+
+- **ROI improves on the full image**, as in the original study: both crop designs gain about +0.07 on average, clearly in CV; the 51-group test set is too small for the test intervals to exclude 0.
+- **The two crop designs perform about the same** (CV +0.014, n.s.).
+- **Best test models**: EfficientNet-B0 union ROI 0.847 (accuracy 89.3%, macro AUC 0.985); best full image ResNet152 0.823. Best per-crop EfficientNet-B0 0.745 (original 0.797).
+- **T22**: top crop above the full image for 5 of 8 families (original 7 of 8); EfficientNet-B0, ResNet152 and VGG16 are slightly better on the full photo.
+- Penetration wound has 4 test photos, and 1 in the T21 subset: its per-class scores are not interpretable.
+
+Experiment 4: pending (§7).

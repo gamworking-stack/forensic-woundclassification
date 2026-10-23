@@ -3,7 +3,8 @@
 #   source scripts/hpc/relabel_env.sh
 # The original data/, experiments/, derived_data/ and ../results_figures/<run> are not touched.
 
-T23_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# The repo root from git, so bash and zsh agree (zsh has no BASH_SOURCE)
+T23_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 T23_PROJECT_ROOT="${PROJECT_ROOT:-/project/a260012_FORWCL}"
 
 export WOUND_DATA_DIR=data/relabel_2026_10_23                                  # manifests (Python and SLURM)
