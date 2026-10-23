@@ -118,11 +118,21 @@ def draw_examples(roi_manifest: Path, per_class: int, seed: int) -> pd.DataFrame
     # Per class, draw distinct cases at random and take each one's first image; 'set' numbers the draws
     rng = np.random.default_rng(seed)
     picked = []
+    used = set()
     for label in sorted(rows[LABEL_COLUMN].unique()):
         of_class = rows[rows[LABEL_COLUMN] == label].sort_values("roi_relative_path")
         cases = sorted(of_class[GROUP_COLUMN].unique(), key=lambda c: (len(c), c))
-        for k, case in enumerate(rng.choice(cases, size=min(per_class, len(cases)), replace=False), start=1):
+        drawn = list(rng.choice(cases, size=min(per_class, len(cases)), replace=False))
+        # A case already drawn for an earlier class is redrawn from this class's unused cases (T23:
+        # one case can hold several classes); without a clash the draws, and so the examples, are unchanged
+        clash = [c for c in drawn if c in used]
+        if clash:
+            spare = [c for c in cases if c not in used and c not in drawn]
+            fresh = list(rng.choice(spare, size=min(len(clash), len(spare)), replace=False))
+            drawn = [fresh.pop(0) if c in used and fresh else c for c in drawn]
+        for k, case in enumerate(drawn, start=1):
             picked.append({**of_class[of_class[GROUP_COLUMN] == case].iloc[0].to_dict(), "set": k})
+            used.add(case)
     return pd.DataFrame(picked).reset_index(drop=True)
 
 

@@ -53,6 +53,18 @@ def test_example_draw_is_fixed_and_balanced(data):
     assert sorted(a["set"].unique()) == [1, 2]
 
 
+def test_examples_never_reuse_a_case_across_classes(tmp_path):
+    # Case "1" has a test image of both classes; each class has one more case of its own
+    rows = [("1", "cut wound", "a"), ("1", "scratch", "b"), ("2", "cut wound", "c"), ("3", "scratch", "d")]
+    manifest = tmp_path / "roi_manifest.csv"
+    pd.DataFrame([{"pseudonimized_id": c, "canonical_wound_label": l, "roi_relative_path": f"test/{l}/{p}.jpg",
+                   "split": "test"} for c, l, p in rows]).to_csv(manifest, index=False)
+    # Whatever the seed, the two picks come from two different cases
+    for seed in range(20):
+        examples = draw_examples(manifest, 1, seed)
+        assert not examples["pseudonimized_id"].duplicated().any(), seed
+
+
 def test_all_test_images_takes_every_test_image_of_the_classes(data):
     # Selected rows must be exactly the manifest's test images of the two classes
     rows = all_test_images(data["roi_manifest"], ["cut wound", "scratch"])

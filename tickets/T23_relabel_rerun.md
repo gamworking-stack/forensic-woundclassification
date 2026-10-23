@@ -119,4 +119,5 @@ Run order and commands: runbook, "Relabelled rerun (T23)".
 
 ## 7. Run log
 
-- 2026-10-23: manifests built on the laptop with the 23 Oct annotations and committed (§4). Raptor not reachable (`nc` timeout, off the CMU network); nothing submitted yet.
+- 2026-10-23: manifests built on the laptop with the 23 Oct annotations and committed (§4).
+- 2026-10-23 18:2x: commit `10c7281` synced; crop jobs 235210 (union, 1,032) and 235211 (per-box, 1,808) both `ROI comparison PASSED`; S01–S32 submitted (116 jobs, from 235212). `run_config.json` records `git_dirty: true` only because of three untracked files left on Raptor by the original study (`data/roi_auto/4F/`, `data/roi_auto/4Z/`, `docs/methodology_two_experiments.md`); no tracked file differs from `10c7281`, and T23 reads none of them. Raptor not reachable (`nc` timeout, off the CMU network); nothing submitted yet.
