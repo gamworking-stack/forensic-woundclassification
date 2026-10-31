@@ -48,6 +48,30 @@ def test_difference_is_contrast_minus_original(tmp_path):
     assert (acc["original"], acc["more_contrast"], acc["difference"]) == pytest.approx((0.8, 1.0, 0.2))
     assert acc["ci_low"] <= acc["difference"] <= acc["ci_high"]
     assert (tmp_path / "out" / "contrast_vs_original_macro_f1.png").exists()
+    # Per class: the 6 flipped rows are 2 of each class's 10, so recall 0.8 -> 1.0 and 2 images gained
+    per_class = pd.read_csv(tmp_path / "out" / "contrast_per_class.csv")
+    recall = per_class[(per_class["metric"] == "recall") & (per_class["family"] == "vgg16")
+                       & (per_class["input_path"] == "crop")].set_index("true_class")
+    assert recall["difference"].tolist() == pytest.approx([0.2, 0.2, 0.2])
+    assert recall.loc["cut wound", "test_images"] == 10
+    changes = pd.read_csv(tmp_path / "out" / "contrast_per_class_changes.csv")
+    row = changes[(changes["family"] == "vgg16") & (changes["input_path"] == "full")
+                  & (changes["true_class"] == "scratch")].iloc[0]
+    assert (row["original_correct"], row["more_contrast_correct"], row["gained"], row["lost"]) == (8, 10, 2, 0)
+    assert (tmp_path / "out" / "contrast_per_class_recall.png").exists()
+
+
+def test_class_scores_match_the_class_report():
+    from src.evaluation.contrast_compare import class_scores
+    from src.evaluation.metrics import Predictions, class_report
+    rng = np.random.default_rng(3)
+    probs = rng.dirichlet(np.ones(3), size=40)
+    y_true = rng.integers(0, 3, size=40)
+    cases = np.repeat([f"c{i}" for i in range(10)], 4)
+    p = Predictions(frame=pd.DataFrame({"pseudonimized_id": cases}), classes=CLASSES,
+                    y_true=y_true, y_pred=probs.argmax(axis=1), probs=probs, cases=cases)
+    report = class_report(p).iloc[:3]
+    np.testing.assert_allclose(class_scores(p), report[["recall", "precision", "f1", "auc"]].to_numpy(dtype=float))
 
 
 def test_different_test_sets_are_refused(tmp_path):

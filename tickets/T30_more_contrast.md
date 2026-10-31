@@ -57,3 +57,24 @@ CLAHE minus original (T23) on the same test images; 95% patient-level paired boo
 - Per model, only the per-crop AlexNet ensemble changes after Holm adjustment (accuracy 0.717 → 0.768, +0.051 [+0.018, +0.087], Holm p 0.04). Full-image AlexNet ensemble macro-F1 −0.084 [−0.162, −0.002] has nominal p 0.04, Holm p 0.34. Best full-image model is still ResNet152 (accuracy 0.893, as in T23). Best per-crop accuracy is now EfficientNet-B0, 0.855 (its T23 value 0.822, +0.033 [−0.004, +0.069]; T23's best per-crop was VGG16, 0.833).
 - With the 0.60 threshold (T29) the picture is the same: full image 22.5% inconclusive, accuracy on the rest 0.861 [0.803, 0.911] (T23: 23.6%, 0.866); per-crop 16.3%, 0.868 [0.775, 0.936] (T23: 16.9%, 0.866).
 - The training augmentation already varies contrast by ±20%, and CLAHE leaves global contrast and colour unchanged, so a small effect is plausible. One clip limit and tile size were tried, chosen before any result; no tuning.
+
+## 6. Per wound class (added 2026-10-31)
+
+The researcher asked for the added value of CLAHE per wound class. `contrast_compare.py` now also scores recall, precision, F1 and one-vs-rest AUC per class on the same paired patient resamples (pooled rows Holm-adjusted over the 7 classes), and counts per model the images gained (original wrong, CLAHE right) and lost. Rerun on fresh prediction copies (deleted after); the overall table was reproduced exactly. Outputs: `contrast_per_class.csv`, `contrast_per_class_changes.csv`, `contrast_per_class_{recall,f1}.png`.
+
+Recall (= accuracy within the class), mean of 8 families, CLAHE minus original [95% CI]; mean images gained / lost per model:
+
+| Class | Full image: test photos (patients) | Recall change | Gained / lost | Per-crop: test crops (patients) | Recall change | Gained / lost |
+|---|---|---|---|---|---|---|
+| Gunshot wound | 41 (16) | +0.006 [−0.018, +0.036] | 1.4 / 1.1 | 77 (16) | **+0.036 [+0.006, +0.058]** | 4.6 / 1.9 |
+| Graze wound | 40 (20) | −0.006 [−0.040, +0.026] | 1.8 / 2.0 | 83 (20) | −0.020 [−0.050, +0.010] | 3.5 / 5.1 |
+| Contusion | 23 (14) | −0.043 [−0.104, +0.000] | 0.8 / 1.8 | 24 (14) | +0.010 [−0.010, +0.047] | 0.6 / 0.4 |
+| Laceration | 16 (12) | +0.023 [−0.025, +0.089] | 1.0 / 0.6 | 24 (12) | **+0.062 [+0.008, +0.112]** | 2.1 / 0.6 |
+| Cut wound | 13 (5) | **−0.067 [−0.125, −0.047]** | 0.4 / 1.3 | 31 (5) | +0.008 [−0.025, +0.062] | 2.1 / 1.9 |
+| Scratch | 12 (6) | +0.000 [−0.172, +0.094] | 1.0 / 1.0 | 29 (6) | +0.013 [−0.042, +0.028] | 2.0 / 1.6 |
+| Penetration wound | 4 (3) | −0.062 [−0.250, +0.000] | 0.3 / 0.5 | 8 (3) | +0.047 [−0.312, +0.250] | 1.0 / 0.6 |
+
+- **Per-crop, where CLAHE helps most:** gunshot wounds (recall +0.036, 6 of 8 models up; net +2.8 crops of 77 per model) and lacerations (+0.062, 5 of 8 up; net +1.5 of 24). Precision also rises for contusion (+0.056 [+0.007, +0.114]), cut wound (+0.067 [+0.000, +0.134]) and graze wound (+0.024 [+0.003, +0.059]); F1 for contusion +0.038 [+0.005, +0.083] and cut wound +0.024 [+0.005, +0.090]; cut-wound AUC +0.037 [+0.017, +0.058] (the only per-class change on per-crop with Holm p < 0.05, 0.035). Graze-wound recall leans down (−0.020; 5 of 8 down, net −1.6 of 83).
+- **Full image, no class gains:** cut-wound recall −0.067 (0.683 → 0.615; Holm p < 0.001) and F1 −0.064 [−0.105, −0.032] (Holm p 0.014); contusion recall −0.043 [−0.104, +0.000] and AUC −0.019 [−0.043, −0.002]. Every other class is unchanged.
+- **Caution:** cut wounds come from 5 test patients and penetration wounds from 3; with so few clusters the patient bootstrap understates the uncertainty (as for the living subgroup, T24 §7), so the narrow cut-wound intervals are not reliable evidence. The full-image cut-wound loss is about 1 photo of 13 per model (8.9 → 8.0 correct). Per family, 6 of 112 recall comparisons have p < 0.05, about the number expected by chance.
+- **Reading:** on crops, enhanced local contrast slightly helps the classes defined by edges and texture (gunshot entry margins, laceration edges; precision for contusion and cut wound), with nothing lost elsewhere except a small graze-wound dip. On full images, where the wound is a small part of the picture, CLAHE also sharpens surrounding skin and background and gives no class a gain. Post hoc and descriptive.
