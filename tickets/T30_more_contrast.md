@@ -78,3 +78,38 @@ Recall (= accuracy within the class), mean of 8 families, CLAHE minus original [
 - **Full image, no class gains:** cut-wound recall −0.067 (0.683 → 0.615; Holm p < 0.001) and F1 −0.064 [−0.105, −0.032] (Holm p 0.014); contusion recall −0.043 [−0.104, +0.000] and AUC −0.019 [−0.043, −0.002]. Every other class is unchanged.
 - **Caution:** cut wounds come from 5 test patients and penetration wounds from 3; with so few clusters the patient bootstrap understates the uncertainty (as for the living subgroup, T24 §7), so the narrow cut-wound intervals are not reliable evidence. The full-image cut-wound loss is about 1 photo of 13 per model (8.9 → 8.0 correct). Per family, 6 of 112 recall comparisons have p < 0.05, about the number expected by chance.
 - **Reading:** on crops, enhanced local contrast slightly helps the classes defined by edges and texture (gunshot entry margins, laceration edges; precision for contusion and cut wound), with nothing lost elsewhere except a small graze-wound dip. On full images, where the wound is a small part of the picture, CLAHE also sharpens surrounding skin and background and gives no class a gain. Post hoc and descriptive.
+
+## 7. Five models per wound class (added 2026-10-31)
+
+The researcher asked to focus on ResNet152, EfficientNet-B0, VGG16, ViT-B/16 and MobileNetV3-Small, per wound class. `contrast_compare.py --families ...` compares and pools only those (pooled row "mean of 5 families", Holm over the 5); each model's own values are identical to the 8-model run (checked, 280 rows), since the resamples do not depend on the families. Outputs: `../results_figures/More contrast experiment/five_models/` (same files as §5–6, plus `contrast_per_class_{recall,f1}_by_model.png`, model × class heatmaps).
+
+Overall (mean of 5): full image accuracy 0.823 → 0.813, −0.009 [−0.039, +0.020]; per-crop 0.819 → 0.836, +0.017 [−0.003, +0.037].
+
+Recall, original → CLAHE (images gained / lost); * = 95% interval excludes 0:
+
+| Per-crop | EfficientNet-B0 | ResNet152 | MobileNetV3-S | VGG16 | ViT-B/16 | Mean of 5 [95% CI] |
+|---|---|---|---|---|---|---|
+| Gunshot (77) | 0.95 → 0.95 (2/2) | 0.88 → 0.94 (4/0) | 0.86 → 0.95 (8/1)* | 0.88 → 0.96 (7/1)* | 0.94 → 0.96 (3/1) | **+0.049 [+0.023, +0.072]** |
+| Laceration (24) | 0.71 → 0.79 (2/0) | 0.75 → 0.75 (1/1) | 0.62 → 0.83 (5/0) | 0.67 → 0.75 (3/1) | 0.71 → 0.75 (1/0) | +0.083 [+0.000, +0.153] |
+| Graze (83) | 0.87 → 0.93 (7/2)* | 0.90 → 0.90 (5/5) | 0.90 → 0.87 (3/6) | 0.96 → 0.84 (0/10)* | 0.90 → 0.89 (4/5) | −0.022 [−0.049, +0.010] |
+| Scratch (29) | 0.79 → 0.90 (5/2) | 0.79 → 0.76 (1/2) | 0.83 → 0.83 (1/1) | 0.76 → 0.83 (2/0) | 0.90 → 0.83 (0/2) | +0.014 [−0.160, +0.043] |
+| Cut (31) | 0.48 → 0.48 (1/1) | 0.52 → 0.55 (3/2) | 0.45 → 0.55 (3/0) | 0.65 → 0.52 (2/6) | 0.52 → 0.52 (4/4) | +0.000 [−0.040, +0.100] |
+| Contusion (24) | 0.92 → 0.88 (0/1) | 0.92 → 0.92 (1/1) | 0.83 → 0.83 (0/0) | 0.92 → 0.92 (1/1) | 0.83 → 0.88 (1/0) | +0.000 [−0.035, +0.050] |
+| Penetration (8) | 0.62 → 0.62 (1/1) | 0.50 → 0.62 (1/0) | 0.50 → 0.38 (0/1) | 0.25 → 0.38 (2/1) | 0.38 → 0.38 (1/1) | +0.025 [−0.400, +0.250] |
+
+| Full image | EfficientNet-B0 | ResNet152 | MobileNetV3-S | VGG16 | ViT-B/16 | Mean of 5 [95% CI] |
+|---|---|---|---|---|---|---|
+| Gunshot (41) | 0.98 → 0.90 (0/3) | 1.00 → 0.98 (0/1) | 0.90 → 0.98 (3/0) | 0.90 → 0.95 (2/0) | 0.93 → 0.90 (0/1) | +0.000 [−0.036, +0.036] |
+| Graze (40) | 0.90 → 0.85 (2/4) | 0.93 → 0.97 (2/0) | 0.75 → 0.70 (2/4) | 0.85 → 0.93 (3/0) | 0.90 → 0.90 (2/2) | +0.005 [−0.055, +0.060] |
+| Contusion (23) | 0.91 → 0.87 (1/2) | 0.87 → 0.87 (1/1) | 0.96 → 0.70 (0/6)* | 0.83 → 0.83 (1/1) | 0.74 → 0.74 (1/1) | −0.061 [−0.140, +0.000] |
+| Laceration (16) | 0.75 → 0.75 (0/0) | 0.94 → 0.88 (0/1) | 0.69 → 0.62 (0/1) | 0.75 → 0.94 (3/0) | 0.56 → 0.62 (1/0) | +0.025 [−0.031, +0.100] |
+| Cut (13) | 0.85 → 0.69 (0/2) | 0.77 → 0.77 (0/0) | 0.69 → 0.54 (1/3) | 0.69 → 0.46 (0/3) | 0.85 → 0.85 (0/0) | −0.108 [−0.267, −0.040] |
+| Scratch (12) | 0.58 → 0.58 (0/0) | 0.67 → 0.67 (0/0) | 0.08 → 0.42 (4/0) | 0.67 → 0.67 (1/1) | 0.58 → 0.67 (2/1) | +0.083 [−0.120, +0.200] |
+| Penetration (4) | 0.50 → 0.75 (1/0) | 0.50 → 0.50 (0/0) | 0.25 → 0.25 (0/0) | 0.75 → 0.25 (0/2) | 0.00 → 0.00 (0/0) | −0.050 [−0.200, +0.000] |
+
+- **Gunshot wounds, per-crop: the one consistent gain.** All 5 models are equal or better (net +3.8 crops of 77 per model; mean +0.049, Holm p < 0.001), largest for MobileNetV3-Small and VGG16 (+0.09, +0.08).
+- **Lacerations, per-crop:** 4 of 5 better, none worse (mean +0.083, interval touching 0); MobileNetV3-Small +0.21 (5 crops gained, 0 lost).
+- **Graze wounds, per-crop: model-dependent.** EfficientNet-B0 gains (+0.06*, 7/2) but VGG16 loses 10 crops and gains none (−0.12*).
+- **Full image: no consistent gain for any class.** Cut wounds drop in 3 of 5 models (mean −0.108; 5 test patients, so the interval is too narrow to trust); MobileNetV3-Small loses 6 of 23 contusions (0.96 → 0.70*) but gains 4 of 12 scratches (0.08 → 0.42).
+- **Per model:** MobileNetV3-Small, the weakest model, changes most in both directions; ResNet152, the strongest on full images, barely changes (full-image accuracy 0.893 both times). EfficientNet-B0 becomes the best per-crop model (0.855) but drops on full images (0.866 → 0.819).
+- F1 (heatmap): per-crop contusion +0.05* (EfficientNet-B0 +0.15*); full-image laceration VGG16 +0.16*. Post hoc and descriptive; with 5 models × 7 classes × 2 inputs some intervals exclude 0 by chance.

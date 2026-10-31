@@ -61,6 +61,20 @@ def test_difference_is_contrast_minus_original(tmp_path):
     assert (tmp_path / "out" / "contrast_per_class_recall.png").exists()
 
 
+def test_a_subset_of_families_is_pooled_on_its_own(tmp_path):
+    write_run(tmp_path / "original", 0, flip=6)
+    write_run(tmp_path / "contrast", 1, flip=3)
+    assert main(["--original-root", str(tmp_path / "original"), "--contrast-root", str(tmp_path / "contrast"),
+                 "--output-dir", str(tmp_path / "out"), "--bootstrap", "20", "--families", "vgg16", "resnet152"]) == 0
+    per_class = pd.read_csv(tmp_path / "out" / "contrast_per_class.csv")
+    assert set(per_class["family"]) == {"resnet152", "vgg16", "mean of 2 families"}
+    recall = per_class[per_class["metric"] == "recall"].set_index(["input_path", "family", "true_class"])["difference"]
+    pooled = recall.loc[("full", "mean of 2 families", "contusion")]
+    assert pooled == pytest.approx((recall.loc[("full", "vgg16", "contusion")]
+                                    + recall.loc[("full", "resnet152", "contusion")]) / 2)
+    assert (tmp_path / "out" / "contrast_per_class_recall_by_model.png").exists()
+
+
 def test_class_scores_match_the_class_report():
     from src.evaluation.contrast_compare import class_scores
     from src.evaluation.metrics import Predictions, class_report
