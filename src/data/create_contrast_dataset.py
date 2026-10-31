@@ -70,7 +70,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     root, out = args.image_root.resolve(), args.output_dir.resolve()
     if out == root or root in out.parents:
         raise ValueError(f"--output-dir {out} must not be the image root or inside it")
-    sources = sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS)
+    # Hidden files are skipped: macOS copies leave "._<name>.JPG" metadata files beside the photos
+    sources = sorted(p for p in root.rglob("*")
+                     if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS and not p.name.startswith("."))
     if not sources:
         raise FileNotFoundError(f"No images under {root}")
     relative = [p.relative_to(root) for p in sources]

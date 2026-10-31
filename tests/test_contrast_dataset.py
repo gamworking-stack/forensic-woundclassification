@@ -48,12 +48,14 @@ def test_tree_is_mirrored_upright_without_exif(tmp_path):
     photo.save(root / "gsw" / "P0001.JPG", exif=exif)
     low_contrast_photo(60, 60).save(root / "gsw" / "P0002.JPG")
     (root / "gsw" / "notes.txt").write_text("not an image")
+    (root / "gsw" / "._P0001.JPG").write_bytes(b"\x00\x05\x16\x07 macOS metadata, not a JPEG")
 
     assert main(["--image-root", str(root), "--output-dir", str(out), "--workers", "1"]) == 0
     with Image.open(out / "gsw" / "P0001.JPG") as copy:
         assert copy.size == (80, 120)
         assert 0x0112 not in copy.getexif()
     assert not (out / "gsw" / "notes.txt").exists()
+    assert not (out / "gsw" / "._P0001.JPG").exists()
     manifest = pd.read_csv(out / "contrast_manifest.csv")
     assert manifest["relative_path"].tolist() == ["gsw/P0001.JPG", "gsw/P0002.JPG"]
     assert json.loads((out / "contrast_report.json").read_text())["images"] == 2
