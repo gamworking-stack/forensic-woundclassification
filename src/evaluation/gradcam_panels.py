@@ -8,6 +8,11 @@ input overlaid with the map, dashed wound box on the full image), and ``panels.c
 prediction, whether it is right, whether it matches the reported prediction file and, for the full
 image, the share of the map inside the wound box.
 
+With ``--all-test`` every test photo is explained instead, with every one of its crops (photos with
+several wounds included): panels go to ``<family>/<class>/case<case>_<photo>_full.png`` (all the
+photo's wound boxes drawn) and ``..._crop<k>.png``, and ``<family>/<class>_p<page>.png`` shows each
+crop next to its full image with that crop's box, 20 crops per page. Each model is loaded once.
+
 The panels are overlays on patient photographs: they stay on Raptor; any copy used outside it must be
 de-identified and allowed by the ethics approval.
 """
@@ -32,11 +37,13 @@ from torchvision import transforms as T  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_roi_dataset import find_source_image  # noqa: E402
 from src.data.paths import DATA_DIR  # noqa: E402
-from src.evaluation.gradcam import FAMILIES, checkpoint_folder, grad_cam, load_model, mass_in_box, wound_box  # noqa: E402
+from src.evaluation.gradcam import FAMILIES, checkpoint_folder, grad_cam, load_model, plot_rows, wound_box  # noqa: E402
 from src.training.common import resolve_device  # noqa: E402
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN, load_image  # noqa: E402
 from src.training.photo import MANIFEST_PHOTO_COLUMN  # noqa: E402
 from src.training.transforms import IMAGENET_MEAN, IMAGENET_STD, PadToSquare  # noqa: E402
+
+PAGE_ROWS = 20  # crops per overview page (--all-test)
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -44,52 +51,141 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--main-root", type=Path, required=True, help="Main run (full-image models).")
     parser.add_argument("--crop-root", type=Path, required=True, help="Per-crop run (wound-crop models).")
     parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
-    parser.add_argument("--photos", nargs="+", required=True, help="Test photos (manifest relative_path), one crop each.")
+    which = parser.add_mutually_exclusive_group(required=True)
+    which.add_argument("--photos", nargs="+", help="Test photos (manifest relative_path), one crop each.")
+    which.add_argument("--all-test", action="store_true", help="Every test photo and every one of its crops.")
     parser.add_argument("--families", nargs="+", choices=FAMILIES, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument("--no-pretrained", dest="pretrained", action="store_false",
+                        help="Build backbones without ImageNet weights before loading the checkpoint (tests).")
     return parser.parse_args(argv)
 
 
-def panel(experiments: Path, input_path: str, family: str, row: Dict, device) -> Dict:
-    """Grad-CAM of one family on one input of one photo, as ``gradcam.explain`` computes it."""
-    # Checkpoint, run config, model and the training preprocessing of the scenario
+def scenario(experiments: Path, input_path: str, family: str, pretrained: bool, device) -> Dict:
+    """Checkpoint, model, preprocessing and reported test predictions of one scenario, loaded once."""
     folder = checkpoint_folder(experiments, input_path, family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
-    classes, size, root = config["classes"], int(config["image_size"]), Path(config["image_root"])
-    model = load_model(folder, family, len(classes), True, device)
-    show = T.Compose([PadToSquare(), T.Resize((size, size))])
-    to_input = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
-    # The source photo for the full image, the crop file for the wound crop
-    path = find_source_image(root, row) if input_path == "full" else root / row["roi_relative_path"]
-    if path is None or not Path(path).is_file():
-        raise FileNotFoundError(f"{input_path} image of {row[MANIFEST_PHOTO_COLUMN]} not found under {root}")
-    image = show(load_image(Path(path), 2 * size if config.get("cache", True) else None))
-    cam, probs = grad_cam(model, family, to_input(image).unsqueeze(0).to(device))
-    # Prediction, its agreement with the reported prediction file, and the map's share in the wound box
-    predicted = classes[int(probs.argmax())]
+    size = int(config["image_size"])
     reported = pd.read_csv(folder / "test_predictions.csv", dtype=str).set_index("relative_path")["predicted_class"]
-    key = Path(path).relative_to(root).as_posix()
-    box = wound_box(row, size) if input_path == "full" else None
-    return {"case": row[GROUP_COLUMN], "photo": row[MANIFEST_PHOTO_COLUMN], "family": family, "input_path": input_path,
-            "class": row[LABEL_COLUMN], "predicted_class": predicted, "probability": float(probs.max()),
-            "correct": predicted == row[LABEL_COLUMN], "matches_prediction_file": reported.get(key) == predicted,
-            "cam_in_box": mass_in_box(cam, box)[0] if box else np.nan,
-            "_image": np.asarray(image), "_cam": cam, "_box": box}
+    return {"family": family, "input_path": input_path, "classes": config["classes"], "size": size,
+            "root": Path(config["image_root"]), "cache": config.get("cache", True), "reported": reported,
+            "model": load_model(folder, family, len(config["classes"]), pretrained, device),
+            "show": T.Compose([PadToSquare(), T.Resize((size, size))]),
+            "to_input": T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])}
+
+
+def mass_in_boxes(cam: np.ndarray, boxes: List) -> float:
+    """Share of the map's mass inside any of ``boxes`` (overlaps counted once); NaN without a box or map."""
+    if not boxes or cam.sum() <= 0:
+        return float("nan")
+    inside = np.zeros(cam.shape, dtype=bool)
+    for box in boxes:
+        x1, y1, x2, y2 = (max(0, int(round(v))) for v in box)
+        inside[y1:y2, x1:x2] = True
+    return float(cam[inside].sum() / cam.sum())
+
+
+def panel(s: Dict, row: Dict, device, boxes: Optional[List[Dict]] = None) -> Dict:
+    """Grad-CAM of one scenario on one input of one photo, as ``gradcam.explain`` computes it.
+
+    ``row`` is a crop row of the box manifest; on the full image ``boxes`` are the crop rows whose
+    boxes are drawn and scored (default: ``row`` alone).
+    """
+    # The source photo for the full image, the crop file for the wound crop
+    full = s["input_path"] == "full"
+    path = find_source_image(s["root"], row) if full else s["root"] / row["roi_relative_path"]
+    if path is None or not Path(path).is_file():
+        raise FileNotFoundError(f"{s['input_path']} image of {row[MANIFEST_PHOTO_COLUMN]} not found under {s['root']}")
+    image = s["show"](load_image(Path(path), 2 * s["size"] if s["cache"] else None))
+    cam, probs = grad_cam(s["model"], s["family"], s["to_input"](image).unsqueeze(0).to(device))
+    # Prediction, its agreement with the reported prediction file, and the map's share in the wound boxes
+    predicted = s["classes"][int(probs.argmax())]
+    key = Path(path).relative_to(s["root"]).as_posix()
+    drawn = [b for b in (wound_box(r, s["size"]) for r in (boxes or [row])) if b is not None] if full else []
+    return {"case": row[GROUP_COLUMN], "photo": row[MANIFEST_PHOTO_COLUMN], "family": s["family"],
+            "input_path": s["input_path"], "crop": "" if full else row["roi_relative_path"],
+            "crop_index": "" if full else row.get("crop_index", ""), "class": row[LABEL_COLUMN],
+            "predicted_class": predicted, "probability": float(probs.max()), "correct": predicted == row[LABEL_COLUMN],
+            "matches_prediction_file": s["reported"].get(key) == predicted,
+            "cam_in_box": mass_in_boxes(cam, drawn) if full else np.nan,
+            "_image": np.asarray(image), "_cam": cam, "_boxes": drawn}
 
 
 def save_panel(r: Dict, path: Path) -> None:
-    """The input overlaid with the map (inferno, as gradcam.py), dashed wound box on the full image."""
+    """The input overlaid with the map (inferno, as gradcam.py), dashed wound boxes on the full image."""
     fig = plt.figure(figsize=(4, 4))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_axis_off()
     ax.imshow(r["_image"])
     ax.imshow(r["_cam"], cmap="inferno", alpha=0.5, vmin=0, vmax=1)
-    if r["_box"] is not None:
-        x1, y1, x2, y2 = r["_box"]
+    for x1, y1, x2, y2 in r["_boxes"]:
         ax.add_patch(Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, edgecolor="white", linewidth=1.5, linestyle="--"))
     fig.savefig(path, dpi=150)
     plt.close(fig)
+
+
+def chosen_photos(args: argparse.Namespace, crops: pd.DataFrame, device) -> List[Dict]:
+    """--photos: the full image and the single crop of each chosen photo, one file per family and input."""
+    results = []
+    for family in args.families:
+        for experiments, input_path in ((args.main_root, "full"), (args.crop_root, "crop")):
+            s = scenario(experiments, input_path, family, args.pretrained, device)
+            for photo in args.photos:
+                # The photo's single crop: its manifest row serves both inputs (photo fields and crop box)
+                of_photo = crops[crops[MANIFEST_PHOTO_COLUMN] == photo]
+                if len(of_photo) != 1:
+                    raise ValueError(f"{photo!r} has {len(of_photo)} crops; choose photos with exactly one")
+                r = panel(s, of_photo.iloc[0].to_dict(), device)
+                save_panel(r, args.output_dir / f"case{r['case']}_{family}_{input_path}.png")
+                results.append(r)
+                print(f"case {r['case']} {family} {input_path}: {'right' if r['correct'] else 'wrong'} "
+                      f"({r['predicted_class']} {r['probability']:.2f}); matches prediction file: {r['matches_prediction_file']}")
+    return results
+
+
+def all_test(args: argparse.Namespace, crops: pd.DataFrame, device) -> List[Dict]:
+    """--all-test: every test photo's full image and each of its crops, filed by family and class."""
+    test = crops[crops["split"].str.strip().str.lower() == "test"].sort_values(
+        [LABEL_COLUMN, MANIFEST_PHOTO_COLUMN, "roi_relative_path"])
+    results = []
+    for family in args.families:
+        full_s = scenario(args.main_root, "full", family, args.pretrained, device)
+        crop_s = scenario(args.crop_root, "crop", family, args.pretrained, device)
+        rows: Dict[str, List] = {}
+        for photo, of_photo in test.groupby(MANIFEST_PHOTO_COLUMN, sort=False):
+            # The full image once, with every wound box of the photo; then each crop on its own
+            boxes = of_photo.to_dict("records")
+            label = boxes[0][LABEL_COLUMN]
+            folder = args.output_dir / family / label.replace(" ", "_")
+            folder.mkdir(parents=True, exist_ok=True)
+            full = panel(full_s, boxes[0], device, boxes)
+            stem = f"case{full['case']}_{Path(photo).stem}"
+            save_panel(full, folder / f"{stem}_full.png")
+            results.append(full)
+            for k, crop_row in enumerate(boxes, start=1):
+                r = panel(crop_s, crop_row, device)
+                save_panel(r, folder / f"{stem}_crop{crop_row.get('crop_index') or k}.png")
+                results.append(r)
+                # Overview row: the full image with only this crop's box, next to the crop
+                box = wound_box(crop_row, full_s["size"])
+                rows.setdefault(label, []).append((f"case {full['case']} {Path(photo).stem} crop {k}/{len(boxes)}",
+                                                   {"full": {**full, "_box": box}, "crop": r}))
+        # Overview pages per class, then report this family's counts
+        for label, of_class in rows.items():
+            for p in range(0, len(of_class), PAGE_ROWS):
+                page = p // PAGE_ROWS + 1
+                plot_rows(of_class[p:p + PAGE_ROWS], f"{family} Grad-CAM, {label}: full image (box: this crop) "
+                          f"and per-crop model, page {page}", args.output_dir / family / f"{label.replace(' ', '_')}_p{page}.png")
+        mine = [r for r in results if r["family"] == family]
+        for input_path in ("full", "crop"):
+            of_path = [r for r in mine if r["input_path"] == input_path]
+            print(f"{family} {input_path}: {sum(r['correct'] for r in of_path)}/{len(of_path)} correct, "
+                  f"{sum(r['matches_prediction_file'] for r in of_path)}/{len(of_path)} match the prediction file", flush=True)
+        # Keep only the numbers once the figures are drawn
+        for r in mine:
+            r.pop("_image"), r.pop("_cam")
+    return results
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -97,20 +193,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(args.device)
     crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    results = []
-    for photo in args.photos:
-        # The photo's single crop: its manifest row serves both inputs (photo fields and crop box)
-        of_photo = crops[crops[MANIFEST_PHOTO_COLUMN] == photo]
-        if len(of_photo) != 1:
-            raise ValueError(f"{photo!r} has {len(of_photo)} crops; choose photos with exactly one")
-        row = of_photo.iloc[0].to_dict()
-        for family in args.families:
-            for experiments, input_path in ((args.main_root, "full"), (args.crop_root, "crop")):
-                r = panel(experiments, input_path, family, row, device)
-                save_panel(r, args.output_dir / f"case{r['case']}_{family}_{input_path}.png")
-                results.append(r)
-                print(f"case {r['case']} {family} {input_path}: {'right' if r['correct'] else 'wrong'} "
-                      f"({r['predicted_class']} {r['probability']:.2f}); matches prediction file: {r['matches_prediction_file']}")
+    results = all_test(args, crops, device) if args.all_test else chosen_photos(args, crops, device)
     pd.DataFrame([{k: v for k, v in r.items() if not k.startswith("_")} for r in results]).to_csv(
         args.output_dir / "panels.csv", index=False)
     print(f"Wrote {len(results)} panels and panels.csv to {args.output_dir}")

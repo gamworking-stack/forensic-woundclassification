@@ -1,4 +1,4 @@
-"""T14 Grad-CAM: maps for every family, the fixed example draw and an end-to-end run (CPU)."""
+"""T14 Grad-CAM: maps for every family, the fixed example draw, an end-to-end run and the panels (CPU)."""
 
 import sys
 from pathlib import Path
@@ -11,10 +11,11 @@ import pytest
 import torch
 
 from src.evaluation.gradcam import all_test_images, draw_examples, grad_cam, main as gradcam_main, mass_in_box, wound_box
+from src.evaluation.gradcam_panels import main as panels_main
 from src.training.config import FAMILIES
 from src.training.models import build_model
 from src.training.train import main as train_main
-from tests.synthetic_data import RAW_FOLDERS, build_synthetic_dataset
+from tests.synthetic_data import RAW_FOLDERS, build_synthetic_box_dataset, build_synthetic_dataset
 from tests.test_training import run_args
 
 
@@ -116,3 +117,30 @@ def test_end_to_end_on_synthetic_runs(data, tmp_path):
         for k in (1, 2):
             assert (exp / "gradcam" / f"{family}_set{k}.png").is_file()
 
+
+def test_panels_explain_every_test_photo_and_crop(data, tmp_path):
+    # Per-box crops of the synthetic photos, a full-image model (main run) and a per-crop model
+    box = build_synthetic_box_dataset(tmp_path, data)
+    exp = tmp_path / "exp"
+    assert train_main(run_args("mobilenet_v3_small", "full", data, exp / "full" / "mobilenet_v3_small", "--smoke")) == 0
+    assert train_main(["--family", "mobilenet_v3_small", "--input-path", "crop", "--manifest", str(box["box_manifest"]),
+                       "--image-root", str(box["box_root"]), "--output-dir", str(exp / "crop" / "mobilenet_v3_small"),
+                       "--no-pretrained", "--device", "cpu", "--num-workers", "0", "--image-size", "64",
+                       "--max-epochs", "1"]) == 0
+
+    # Panels for every test photo and crop
+    out = tmp_path / "panels"
+    assert panels_main(["--main-root", str(exp), "--crop-root", str(exp), "--box-manifest", str(box["box_manifest"]),
+                        "--all-test", "--families", "mobilenet_v3_small", "--output-dir", str(out),
+                        "--device", "cpu", "--no-pretrained"]) == 0
+    test = pd.read_csv(box["box_manifest"], dtype=str)
+    test = test[test["split"] == "test"]
+    panels = pd.read_csv(out / "panels.csv", dtype=str, keep_default_na=False)
+    # One full-image panel per test photo and one per crop, each agreeing with its prediction file
+    assert sorted(panels.loc[panels["input_path"] == "full", "photo"]) == sorted(test["relative_path"].unique())
+    assert sorted(panels.loc[panels["input_path"] == "crop", "crop"]) == sorted(test["roi_relative_path"])
+    assert (panels["matches_prediction_file"] == "True").all()
+    # A file per panel in its class folder, and one overview page per class
+    family = out / "mobilenet_v3_small"
+    assert len(list(family.glob("*/*.png"))) == len(panels)
+    assert {p.name for p in family.glob("*.png")} == {f"{c.replace(' ', '_')}_p1.png" for c in test["canonical_wound_label"].unique()}
