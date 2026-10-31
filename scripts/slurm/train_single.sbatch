@@ -8,6 +8,7 @@
 # INPUT_PATH=crop (T18) trains on the same crops, each its own sample; use RUN_NAME=roi_crop.
 # AUTO_ARM=4Z|4P|4F (T19) swaps in that arm's auto-box crops; use RUN_NAME=auto_<arm>_<union|box|crop>.
 # WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
+# RAW_IMAGE_ROOT replaces the raw photographs for INPUT_PATH=full (T30: source scripts/hpc/contrast_env.sh).
 #SBATCH --job-name=train_single
 #SBATCH --account=a260012
 #SBATCH --partition=gpu
@@ -34,7 +35,7 @@ REPO_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
 case "$INPUT_PATH" in
   full)
     MANIFEST=$DATA_DIR/splits/case_level_split_manifest.csv
-    IMAGE_ROOT="$PROJECT_ROOT/raw_data/wound_ml_7classes" ;;
+    IMAGE_ROOT="${RAW_IMAGE_ROOT:-$PROJECT_ROOT/raw_data/wound_ml_7classes}" ;;
   roi)
     MANIFEST=$DATA_DIR/roi/roi_manifest.csv
     IMAGE_ROOT="$DERIVED_DIR/roi_union_p008" ;;
