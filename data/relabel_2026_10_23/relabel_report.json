@@ -9,24 +9,25 @@
   },
   "excluded_by_reason": {
     "inclusion_false": 65,
-    "label_outside_7_classes": 7
+    "label_outside_7_classes": 7,
+    "no_annotation": 9
   },
   "excluded_by_label": {
-    "graze": 29,
+    "graze": 31,
+    "scratch": 11,
+    "laceration": 10,
     "penetrating wound (sharp&blunt)": 9,
-    "laceration": 9,
-    "scratch": 7,
+    "contusion": 7,
     "imprint": 7,
-    "contusion": 6,
-    "cut": 4,
+    "cut": 5,
     "gsw": 1
   },
-  "included_photos": 1041,
-  "included_photos_without_patient_id": 8,
-  "included_source_cases": 392,
-  "included_groups": 336,
+  "included_photos": 1032,
+  "included_photos_without_patient_id": 7,
+  "included_source_cases": 390,
+  "included_groups": 334,
   "groups_joining_several_source_cases": 19,
-  "photos_in_joined_groups": 200,
+  "photos_in_joined_groups": 199,
   "relabelled_photos": [
     {
       "source_pseudonimized_id": "59",

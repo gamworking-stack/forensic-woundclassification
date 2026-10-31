@@ -2,7 +2,7 @@
   "folds": 5,
   "seed": 42,
   "trials": 50000,
-  "development_cases": 285,
+  "development_cases": 283,
   "scored_on": "data/relabel_2026_10_23/roi/roi_manifest.csv",
   "roi_rows": {
     "1": {

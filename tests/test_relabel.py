@@ -143,9 +143,10 @@ def test_committed_relabel_manifests():
     excluded = pd.read_csv(RELABEL_DIR / "excluded_photos.csv", dtype=str)
     # No patient identifier or demographic column is committed
     assert "patient_id" not in metadata.columns and "patient_id" not in split.columns
-    # 1,113 sheet photos = 1,041 included + 65 Inclusion FALSE + 7 imprint
-    assert len(metadata) == len(split) == 1041
-    assert excluded["reason"].value_counts().to_dict() == {"inclusion_false": 65, "label_outside_7_classes": 7}
+    # 1,113 sheet photos = 1,032 included + 65 Inclusion FALSE + 7 imprint + 9 without a CVAT box (T26)
+    assert len(metadata) == len(split) == 1032
+    assert excluded["reason"].value_counts().to_dict() == {"inclusion_false": 65, "label_outside_7_classes": 7,
+                                                           "no_annotation": 9}
     # No group in two splits, and all 7 classes in every split
     assert split.groupby("pseudonimized_id")["split"].nunique().max() == 1
     assert (split.groupby("split")["canonical_wound_label"].nunique() == 7).all()
@@ -156,7 +157,7 @@ def test_committed_relabel_manifests():
     per_box = pd.read_csv(RELABEL_DIR / "roi_box/roi_manifest.csv", dtype=str)
     reference = pd.read_csv(RELABEL_DIR / "roi_auto/reference_boxes.csv", dtype=str)
     assert len(union) == 1032 and len(per_box) == len(reference) == 1808
-    assert set(per_box["relative_path"]) == set(union["relative_path"]) <= set(split["relative_path"])
+    assert set(per_box["relative_path"]) == set(union["relative_path"]) == set(split["relative_path"])
     assert set(union["annotation_export"]) <= {f"{c}_22_Oct.zip" for c in (
         "contusion", "cut", "graze", "gsw", "laceration", "penetrate", "scratch")}
     # The two photos relabelled after annotation keep their gsw boxes but carry the new class

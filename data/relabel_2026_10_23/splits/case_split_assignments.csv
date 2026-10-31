@@ -127,7 +127,6 @@ pseudonimized_id,split
 218,train
 219,validation
 22,train
-220,train
 221,train
 222,validation
 223,train
@@ -176,7 +175,6 @@ pseudonimized_id,split
 265,test
 266,train
 267,train
-268,train
 269,train
 27,train
 270,train

@@ -14,18 +14,19 @@
     "penetration wound",
     "scratch"
   ],
-  "total_records": 1041,
-  "total_unique_cases": 336,
+  "total_records": 1032,
+  "total_unique_cases": 334,
   "case_counts_by_split": {
-    "train": 235,
-    "validation": 50,
-    "test": 51
+    "test": 51,
+    "train": 233,
+    "validation": 50
   },
   "image_counts_by_split": {
-    "train": 733,
-    "validation": 158,
-    "test": 150
+    "train": 728,
+    "validation": 155,
+    "test": 149
   },
   "leakage_check": "passed",
-  "frozen": true
+  "frozen": true,
+  "dropped_no_annotation": 9
 }

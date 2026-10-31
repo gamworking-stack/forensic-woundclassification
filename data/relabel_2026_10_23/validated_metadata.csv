@@ -225,7 +225,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 92,1,ZZ120405.JPG,graze,graze wound,graze wound/ZZ120405.JPG,92,graze
 92,2,ZZ120427.JPG,graze,graze wound,graze wound/ZZ120427.JPG,92,graze
 93,1,ZZ120894.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/ZZ120894.JPG,93,penetrating wound (sharp&blunt)
-94,1,ZZ140321.JPG,scratch,scratch,scratch/ZZ140321.JPG,94,scratch
 94,1,ZZ140334.JPG,laceration,laceration,laceration/ZZ140334.JPG,94,laceration
 95,1,ZZ200013.JPG,laceration,laceration,laceration/ZZ200013.JPG,95,laceration
 95,2,ZZ200022.JPG,laceration,laceration,laceration/ZZ200022.JPG,95,laceration
@@ -276,7 +275,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 109,3,ZZ140528.JPG,graze,graze wound,graze wound/ZZ140528.JPG,109,graze
 110,1,ZZ160043.JPG,contusion,contusion,contusion/ZZ160043.JPG,110,contusion
 110,2,ZZ160051.JPG,contusion,contusion,contusion/ZZ160051.JPG,110,contusion
-110,1,ZZ160063.JPG,graze,graze wound,graze wound/ZZ160063.JPG,110,graze
 111,1,ZZ270113.JPG,gsw,gunshot wound,gunshot wound/ZZ270113.JPG,111,gsw
 111,2,ZZ270148.JPG,gsw,gunshot wound,gunshot wound/ZZ270148.JPG,111,gsw
 111,3,ZZ270151.JPG,gsw,gunshot wound,gunshot wound/ZZ270151.JPG,111,gsw
@@ -338,7 +336,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 133,1,ZZ110087.JPG,contusion,contusion,contusion/ZZ110087.JPG,133,contusion
 134,1,ZZ220302.JPG,gsw,gunshot wound,gunshot wound/ZZ220302.JPG,134,gsw
 134,2,ZZ220438.JPG,gsw,gunshot wound,gunshot wound/ZZ220438.JPG,134,gsw
-135,1,ZZ240050.JPG,graze,graze wound,graze wound/ZZ240050.JPG,135,graze
 135,2,ZZ240051.JPG,graze,graze wound,graze wound/ZZ240051.JPG,135,graze
 135,1,ZZ240081.JPG,laceration,laceration,laceration/ZZ240081.JPG,135,laceration
 135,2,ZZ240090.JPG,laceration,laceration,laceration/ZZ240090.JPG,135,laceration
@@ -443,7 +440,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 166,1,ZZ310447.JPG,laceration,laceration,laceration/ZZ310447.JPG,166,laceration
 167,1,ZZ310759.JPG,laceration,laceration,laceration/ZZ310759.JPG,167,laceration
 167,1,ZZ310776.JPG,scratch,scratch,scratch/ZZ310776.JPG,167,scratch
-167,1,ZZ310855.JPG,contusion,contusion,contusion/ZZ310855.JPG,167,contusion
 168,1,ZZ095893.JPG,graze,graze wound,graze wound/ZZ095893.JPG,168,graze
 169,1,ZZ106897.JPG,laceration,laceration,laceration/ZZ106897.JPG,169,laceration
 169,1,ZZ106943.JPG,graze,graze wound,graze wound/ZZ106943.JPG,169,graze
@@ -505,7 +501,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 185,1,ZZ156137.JPG,graze,graze wound,graze wound/ZZ156137.JPG,185,graze
 185,1,ZZ156176.JPG,scratch,scratch,scratch/ZZ156176.JPG,185,scratch
 186,1,ZZ176832.JPG,contusion,contusion,contusion/ZZ176832.JPG,186,contusion
-187,1,ZZ230784.JPG,scratch,scratch,scratch/ZZ230784.JPG,187,scratch
 187,1,ZZ230798.JPG,graze,graze wound,graze wound/ZZ230798.JPG,187,graze
 187,2,ZZ230853.JPG,graze,graze wound,graze wound/ZZ230853.JPG,187,graze
 187,3,ZZ230859.JPG,graze,graze wound,graze wound/ZZ230859.JPG,187,graze
@@ -572,7 +567,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 218,1,ZZ217099.JPG,graze,graze wound,graze wound/ZZ217099.JPG,218,graze
 218,2,ZZ217130.JPG,graze,graze wound,graze wound/ZZ217130.JPG,218,graze
 219,1,PC235170.JPG,laceration,laceration,laceration/PC235170.JPG,219,laceration
-220,1,PC235480.JPG,scratch,scratch,scratch/PC235480.JPG,220,scratch
 221,1,ZZ238735.JPG,contusion,contusion,contusion/ZZ238735.JPG,221,contusion
 222,1,ZZ249035.JPG,gsw,gunshot wound,gunshot wound/ZZ249035.JPG,222,gsw
 222,1,ZZ249077.JPG,cut,cut wound,cut wound/ZZ249077.JPG,222,cut
@@ -678,7 +672,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 266,1,P5270082.JPG,contusion,contusion,contusion/P5270082.JPG,266,contusion
 266,2,P5270099.JPG,contusion,contusion,contusion/P5270099.JPG,266,contusion
 267,1,P6170075.JPG,graze,graze wound,graze wound/P6170075.JPG,267,graze
-268,1,P6293420.JPG,laceration,laceration,laceration/P6293420.JPG,268,laceration
 269,1,P6300084.JPG,gsw,gunshot wound,gunshot wound/P6300084.JPG,269,gsw
 269,2,P6300098.JPG,gsw,gunshot wound,gunshot wound/P6300098.JPG,269,gsw
 269,3,P6300109.JPG,gsw,gunshot wound,gunshot wound/P6300109.JPG,269,gsw
@@ -980,7 +973,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 378,3,IMG_3176.JPG,graze,graze wound,graze wound/IMG_3176.JPG,385,graze
 378,2,IMG_3446.JPG,graze,graze wound,graze wound/IMG_3446.JPG,386,graze
 378,3,IMG_3449.JPG,graze,graze wound,graze wound/IMG_3449.JPG,386,graze
-378,1,IMG_3520.JPG,scratch,scratch,scratch/IMG_3520.JPG,386,scratch
 378,1,IMG_4264.JPG,scratch,scratch,scratch/IMG_4264.JPG,387,scratch
 378,1,IMG_4279.JPG,contusion,contusion,contusion/IMG_4279.JPG,387,contusion
 378,1,IMG_3527.JPG,graze,graze wound,graze wound/IMG_3527.JPG,387,graze
@@ -1035,7 +1027,6 @@ pseudonimized_id,wound_id,filename,wound_label,canonical_wound_label,relative_pa
 411,,IMG_1427.JPG,scratch,scratch,scratch/IMG_1427.JPG,411,scratch
 412,,IMG_4761.JPG,graze,graze wound,graze wound/IMG_4761.JPG,412,graze
 413,,P1070312.JPG,graze,graze wound,graze wound/P1070312.JPG,413,graze
-413,,P1071425,cut,cut wound,cut wound/P1071425,413,cut
 413,,P2030254.JPG,gsw,gunshot wound,gunshot wound/P2030254.JPG,413,gsw
 414,,P6160256,cut,cut wound,cut wound/P6160256,414,cut
 414,,P6290474.JPG,penetrating wound (sharp&blunt),penetration wound,penetration wound/P6290474.JPG,414,penetrating wound (sharp&blunt)

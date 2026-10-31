@@ -71,3 +71,12 @@ source_pseudonimized_id,wound_id,filename,wound_label,reason
 420,5,P8250054.JPG,imprint,label_outside_7_classes
 421,6,P8250061.JPG,imprint,label_outside_7_classes
 422,7,P8250104.JPG,imprint,label_outside_7_classes
+94,1,ZZ140321.JPG,scratch,no_annotation
+110,1,ZZ160063.JPG,graze,no_annotation
+135,1,ZZ240050.JPG,graze,no_annotation
+167,1,ZZ310855.JPG,contusion,no_annotation
+187,1,ZZ230784.JPG,scratch,no_annotation
+220,1,PC235480.JPG,scratch,no_annotation
+268,1,P6293420.JPG,laceration,no_annotation
+386,1,IMG_3520.JPG,scratch,no_annotation
+413,,P1071425,cut,no_annotation
