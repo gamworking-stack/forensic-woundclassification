@@ -444,3 +444,104 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments_relabel_2026_10_23/`, `<project>/derived_data/relabel_2026_10_23/`, `../results_figures/relabel_2026_10_23/`
 
+## T24: Subgroups by age, race/ethnicity and skin tone (extra)
+
+- **Commits**: see `git log --grep 'T24'`
+- **Used**
+  - `../thesis_data_26_oct.csv` (outside the repo; holds `patient_id` and demographics, never committed); checked again on `../thesis_data_27_oct.csv` (same test subgroups)
+  - `data/relabel_2026_10_23/splits/case_level_split_manifest.csv`, `roi/roi_manifest.csv`, `roi_box/roi_manifest.csv`
+  - `src/data/prepare_relabel.py` (`read_sheet`), `src/evaluation/single_box.py` (`photo_stem`), `src/evaluation/summarize.py`, `src/evaluation/metrics.py`
+  - the T23 test predictions (`<exp>/main`, `roi_box`, `roi_crop`), copied to a temporary folder
+- **Created**
+  - `tickets/T24_subgroups.md`
+  - `src/evaluation/subgroup.py`
+  - `tests/test_subgroup.py`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../results_figures/relabel_2026_10_23/subgroup/`
+
+## T25: One case per patient (extra)
+
+- **Commits**: see `git log --grep 'T25'`
+- **Used**
+  - `../thesis_data_27_oct_corrected.csv` (outside the repo; holds `patient_id`, never committed)
+  - `data/relabel_2026_10_23/splits/case_level_split_manifest.csv`, `roi/roi_manifest.csv`, `roi_box/roi_manifest.csv`
+  - `src/data/prepare_relabel.py` (`read_sheet`), `src/evaluation/single_box.py` (`photo_stem`), `evaluate.py`, `summarize.py`, `crop_summary.py`, `subgroup.py`
+  - the T23 prediction files (`<exp>/main`, `roi_box`, `roi_crop`), copied to a temporary folder
+- **Created**
+  - `tickets/T25_patient_cases.md`
+  - `src/data/patient_cases.py`, `src/evaluation/patient_rescore.py`
+  - `data/relabel_2026_10_23/splits/patient_cases.csv`
+  - `tests/test_patient_cases.py`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../results_figures/relabel_2026_10_23_patient/`
+
+## T26: Photos without a CVAT box dropped (extra)
+
+- **Commits**: see `git log --grep 'T26'`
+- **Used**
+  - `data/relabel_2026_10_23/roi/crop_summary.json` (`unannotated_records`)
+  - `src/data/create_case_split.py` (`generate_summary`), `src/data/prepare_relabel.py` (`SOURCE_ID`)
+- **Created**
+  - `tickets/T26_drop_unannotated.md`
+  - `src/data/drop_unannotated.py`
+  - `tests/test_drop_unannotated.py`
+- **Changed**
+  - `data/relabel_2026_10_23/` (metadata, exclusions, split manifest, patient cases, case assignments, CV folds, summary, reports)
+  - `tests/test_relabel.py`, `ROADMAP.md`, `tickets/T25_patient_cases.md`
+
+## T27: Manuscript figures (extra)
+
+- **Commits**: see `git log --grep 'T27'`
+- **Used**
+  - `../thesis_data_27_oct_corrected.csv` (outside the repo; only counts are drawn)
+  - `data/relabel_2026_10_23/excluded_photos.csv`, `splits/patient_cases.csv`, `roi_box/roi_manifest.csv`
+  - `src/data/prepare_relabel.py` (`read_sheet`, `PATIENT_PLACEHOLDERS`)
+- **Created**
+  - `tickets/T27_manuscript_figures.md`
+  - `src/visualization/manuscript_figures.py`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../results_figures/manuscript/`
+
+## T28: Precision and recall with intervals (extra)
+
+- **Commits**: see `git log --grep 'T28'`
+- **Used**
+  - `src/evaluation/metrics.py` (`load_predictions`; resampling as `bootstrap_draws`), `src/evaluation/patient_rescore.py`
+  - the T23 test predictions (`<exp>/main/full`, `roi_crop/crop`), copied to a temporary folder; the T25 `test_metrics.json`
+- **Created**
+  - `tickets/T28_precision_recall.md`
+  - `src/evaluation/precision_recall.py`
+  - `tests/test_precision_recall.py`
+- **Changed**
+  - `ROADMAP.md`
+- **Outside Git**: `../results_figures/relabel_2026_10_23_patient/precision_recall.csv`, `../08_Manuscript/Table 2 (precision recall).docx`
+
+## T29: Confidence threshold, "Halloween experiment" (extra)
+
+- **Commits**: see `git log --grep 'T29'`
+- **Used**
+  - `src/evaluation/metrics.py` (`load_predictions`, `summary_metrics`; resampling as `bootstrap_draws`), `precision_recall.py`, `patient_rescore.py`, `summarize.py` (`POOLED`), `plots.py`
+  - the T23 test predictions (`<exp>/main/full`, `roi_crop/crop`), copied to a temporary folder; the T25 `test_metrics.json`
+- **Created**
+  - `tickets/T29_confidence_threshold.md`
+  - `src/evaluation/confidence_threshold.py`
+  - `tests/test_confidence_threshold.py`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../results_figures/Halloween experiment/`
+
+## T30: More contrast experiment (extra)
+
+- **Commits**: see `git log --grep 'T30'`
+- **Used**
+  - the T23 dataset (`data/relabel_2026_10_23/`), `src/data/create_roi_dataset.py` (`IMAGE_EXTENSIONS`, `find_source_image`), the T03 crop job, `submit_all.sh`
+- **Created**
+  - `tickets/T30_more_contrast.md`
+  - `src/data/create_contrast_dataset.py`, `tests/test_contrast_dataset.py`
+  - `scripts/slurm/contrast_images.sbatch`, `scripts/hpc/contrast_env.sh`
+- **Changed**
+  - `scripts/slurm/train_single.sbatch` (`RAW_IMAGE_ROOT`), `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/derived_data/relabel_2026_10_23_more_contrast/`, `<project>/experiments_relabel_2026_10_23_more_contrast/`, `../results_figures/More contrast experiment/`

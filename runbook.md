@@ -480,6 +480,12 @@ $C src/evaluation/gradcam.py --device cpu --experiments-root $X/roi_box --box-ma
 $C src/evaluation/gradcam.py --device cpu --experiments-root $X/roi_box --box-manifest $WOUND_DATA_DIR/roi_box/roi_manifest.csv \
   --main-root $X/main --all-test --classes "cut wound" "penetration wound" scratch
 ```
+Every test photo (149) and every one of its crops (276), full-image model (main run) and per-crop model (Experiment 3, S25–S32), one panel file each, as requested on 2026-10-29 (CPU, 16 cores: 5–20 minutes per family):
+```bash
+$C src/evaluation/gradcam_panels.py --main-root $X/main --crop-root $X/roi_crop --box-manifest $WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  --all-test --families resnet152 mobilenet_v3_small efficientnet_b0 vgg16 --output-dir $X/roi_crop/gradcam_all_test --device cpu
+```
+Outputs in `roi_crop/gradcam_all_test/`: `<family>/<class>/case<case>_<photo>_full.png` (all the photo's boxes) and `..._crop<k>.png`, overview pages `<family>/<class>_p<n>.png` (each crop next to its full image with that crop's box, 20 per page) and `panels.csv` (prediction, right/wrong, agreement with the prediction file, full-image map share inside the boxes). Patient photographs: they stay on Raptor.
 
 **6. Verification (Experiments 1-3):**
 ```bash
@@ -495,6 +501,71 @@ $C src/evaluation/verify_crop.py --crop-root $X/roi_crop --main-root $X/main
 source scripts/hpc/relabel_env.sh
 for r in main cv roi_box cv_box roi_crop auto_summary; do bash scripts/hpc/fetch_results.sh $r; done   # -> ../results_figures/relabel_2026_10_23/<run>/
 ```
+
+**9. Subgroups by age, race/ethnicity, skin tone, setting, body region and tattoo (T24, laptop).** The demographic sheet stays on the laptop, so copy the test prediction files from Raptor to a temporary folder outside the repo and score them there. Plan and results: `tickets/T24_subgroups.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+P=$(mktemp -d)   # per-image predictions: temporary, never in the repo or results_figures
+ssh preenapun.s@raptor.med.cmu.ac.th "cd $EXPERIMENTS_DIR && ls main/full/*/test_predictions.csv main/roi/*/test_predictions.csv \
+  roi_box/box/*/photo/test_predictions.csv roi_crop/crop/*/test_predictions.csv | tar -cf - -T -" | tar -xf - -C $P
+python src/evaluation/subgroup.py --sheet ../thesis_data_27_oct_corrected.csv --main-root $P/main --box-root $P/roi_box \
+  --crop-root $P/roi_crop --output-dir ../results_figures/relabel_2026_10_23/subgroup
+rm -r $P
+```
+Outputs: `subgroup_counts.csv`, `subgroup_metrics.csv`, `subgroup_gaps.csv`, `subgroup_class_accuracy.csv`, `subgroup_accuracy.png`, `subgroup_macro_f1.png`.
+
+**10. One case per patient (T25, laptop).** Re-scores the T23 predictions with patients as the bootstrap unit; the split and models are unchanged. Plan and results: `tickets/T25_patient_cases.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+python src/data/patient_cases.py --sheet ../thesis_data_27_oct_corrected.csv   # -> $WOUND_DATA_DIR/splits/patient_cases.csv
+T=$(mktemp -d)   # per-image predictions: temporary, never in the repo or results_figures
+ssh preenapun.s@raptor.med.cmu.ac.th "cd $EXPERIMENTS_DIR && ls main/full/*/{test,validation}_predictions.csv main/roi/*/{test,validation}_predictions.csv \
+  roi_box/box/*/photo/test_predictions.csv roi_crop/crop/*/{test,validation}_predictions.csv | tar -cf - -T -" | tar -xf - -C $T
+python src/evaluation/patient_rescore.py --source-root $T --output-root $T/patient
+python src/evaluation/evaluate.py --experiments-root $T/patient/main
+python src/evaluation/evaluate.py --experiments-root $T/patient/roi_crop
+python src/evaluation/summarize.py --experiments-root $T/patient/main
+python src/evaluation/crop_summary.py --crop-root $T/patient/roi_crop
+python src/evaluation/subgroup.py --sheet ../thesis_data_27_oct_corrected.csv --main-root $T/patient/main --box-root $T/patient/roi_box \
+  --crop-root $T/patient/roi_crop --split-manifest $T/patient/split_manifest.csv --output-dir $T/subgroup
+O=../results_figures/relabel_2026_10_23_patient; mkdir -p $O
+(cd $T/patient && find main roi_crop -type f ! -name '*_predictions.csv' | tar -cf - -T -) | tar -xf - -C $O; cp -r $T/subgroup $O/
+rm -r $T
+```
+
+**11. Manuscript figures (T27, laptop).** Figure 1 (pipeline) and Figure 2 (flow, counts from the data). Plan: `tickets/T27_manuscript_figures.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+python src/visualization/manuscript_figures.py --sheet ../thesis_data_27_oct_corrected.csv --output-dir ../results_figures/manuscript
+```
+
+**12. Confidence threshold, "Halloween experiment" (T29, laptop).** A prediction with top probability below 0.60 is inconclusive; scored on the patient copies (T25), checked against the saved patient-level `test_metrics.json` at threshold 0. Plan and results: `tickets/T29_confidence_threshold.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+T=$(mktemp -d)   # per-image predictions: temporary, never in the repo or results_figures
+ssh preenapun.s@raptor.med.cmu.ac.th "cd $EXPERIMENTS_DIR && ls main/full/*/test_predictions.csv roi_crop/crop/*/test_predictions.csv | tar -cf - -T -" | tar -xf - -C $T
+python src/evaluation/patient_rescore.py --source-root $T --output-root $T/patient
+R=../results_figures/relabel_2026_10_23_patient
+python src/evaluation/confidence_threshold.py --main-root $T/patient/main --crop-root $T/patient/roi_crop \
+  --reference-main $R/main --reference-crop $R/roi_crop --output-dir "../results_figures/Halloween experiment"
+rm -r $T
+```
+Outputs: `threshold_summary.csv`, `threshold_per_class.csv`, `threshold_confusion.csv`, `threshold_sweep.csv`, `threshold_coverage.png`.
+
+**13. More contrast experiment (T30).** Every photograph CLAHE-enhanced, crops cut again, S01-S15 and S25-S32 retrained as in T23. Plan: `tickets/T30_more_contrast.md`. On Raptor, **source `contrast_env.sh` (not `relabel_env.sh`) in every new shell**:
+```bash
+cd ~/forensic-woundclassification && source scripts/hpc/contrast_env.sh && module load apptainer/1.3.5
+sbatch scripts/slurm/contrast_images.sbatch                       # CLAHE copies of the 1,112 photos -> $RAW_IMAGE_ROOT
+# when it has finished: per-box crops from the enhanced photos, checked against the T23 manifest (1,808 crops)
+sbatch --export=ALL,CROP_MODE=individual,IMAGE_ROOT=$RAW_IMAGE_ROOT,OUTPUT_DIR=$DERIVED_DIR/roi_box_p008,EXPECTED_MANIFEST=$WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  scripts/slurm/t03_roi_crops.sbatch
+bash scripts/hpc/watch_jobs.sh $(PATHS=full bash scripts/hpc/submit_all.sh main)       # S01-S15 on the enhanced photos
+bash scripts/hpc/watch_jobs.sh $(PATHS=crop bash scripts/hpc/submit_all.sh roi_crop)   # S25-S32, after the crop job passed
+X=$EXPERIMENTS_DIR; C="srun -p compute -c 4 --mem=16G -t 3:00:00 apptainer exec --bind /project/a260012_FORWCL /common/sif/pytorch-24.11-py3.sif python"
+for r in main roi_crop; do $C src/evaluation/evaluate.py --experiments-root $X/$r; done
+$C src/evaluation/crop_summary.py --crop-root $X/roi_crop
+```
+`submit_all.sh` with `PATHS=full` submits only the full-image scenarios; rerunning it resubmits only what is missing.
 
 ## Diagrams
 

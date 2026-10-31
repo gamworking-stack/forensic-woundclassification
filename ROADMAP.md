@@ -135,6 +135,13 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T21** Single-box test photos: on the 127 test photos (57 cases) with exactly one box, one full image vs one crop: per-crop (S25-S32) and union ROI each minus full image, T15 paired bootstrap on existing test predictions; post hoc, no training. Plan: `tickets/T21_single_box.md`.
 - **T22** One crop per photo: the per-crop models (S25-S32) scored on all 157 test photos, each photo keeping its most confident crop, listed next to the full image (S01-S15); descriptive, no paired test, no training. Plan: `tickets/T22_top_crop.md`.
 - **T23** Relabelled rerun: every experiment (S01-S32, CV, Grad-CAM, T19 arms, T21, T22) again on the 23 Oct 2026 sheet and CVAT annotations: `Inclusion` FALSE and `imprint` excluded, 2 photos relabelled, boxes redrawn, a new split grouped by case or patient. It has its own manifests (`data/relabel_2026_10_23/`, selected with `WOUND_DATA_DIR`), its own runs and its own crops; the original split stays frozen for the original study. Plan: `tickets/T23_relabel_rerun.md`.
+- **T24** Subgroups: T23 test performance (S01-S32) by age group, race/ethnicity, Monk skin tone, setting, body region and tattoo from the 26/27 Oct 2026 sheets; case-bootstrap intervals, each subgroup against the largest; post hoc, descriptive, no training. Plan: `tickets/T24_subgroups.md`.
+- **T26** Photos without a CVAT box: the 9 unannotated photos removed from every T23 manifest (1,032 photos left, exactly the photos the models used); split and folds unchanged, no result changes. Plan: `tickets/T26_drop_unannotated.md`.
+- **T28** Precision and recall: macro precision and macro recall (= balanced accuracy) with patient-level bootstrap intervals for manuscript Table 2, on the T08 resamples; no shared code changed. Plan: `tickets/T28_precision_recall.md`.
+- **T27** Manuscript figures: Figure 1 pipeline and models, Figure 2 inclusion/exclusion flow with counts read from the data. Plan: `tickets/T27_manuscript_figures.md`.
+- **T25** One case per patient: the T23 test intervals, paired comparisons, per-crop table and T24 subgroups re-scored with `patient_id` as the bootstrap unit instead of the T23 groups; same split and models, no training. Plan: `tickets/T25_patient_cases.md`.
+- **T29** Confidence threshold (Halloween experiment): a prediction whose top probability is below 0.60 is inconclusive; per scenario (S01-S15, S25-S32) the inconclusive count and the Table 2 metrics on the conclusive images, patient-level intervals; post hoc, descriptive, no training. Plan: `tickets/T29_confidence_threshold.md`.
+- **T30** More contrast: every photograph CLAHE-enhanced (L* only), per-box crops cut again from the enhanced photos, S01-S15 and S25-S32 retrained exactly as T23; Table 2 metrics, the 0.60 threshold and CLAHE minus T23 on the same test images. Plan: `tickets/T30_more_contrast.md`.
 
 ## 6. Risks to track
 
@@ -180,3 +187,10 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T18 per-crop ROI experiment (extra)
 - [ ] T19 auto-box ROI experiment (extra; plan frozen 2026-10-16, not run)
 - [ ] T23 relabelled rerun of every experiment (manifests committed 2026-10-23; HPC runs pending)
+- [x] T24 subgroups by age, race/ethnicity, skin tone, setting, body region and tattoo (extra, T23 data)
+- [x] T25 one case per patient for the T23 intervals (extra)
+- [x] T26 photos without a CVAT box dropped from the T23 manifests (extra)
+- [x] T27 manuscript Figures 1 and 2
+- [x] T28 precision and recall with intervals for Table 2
+- [x] T29 confidence threshold, inconclusive below 0.60 (Halloween experiment)
+- [ ] T30 more contrast experiment (CLAHE, retrained; submitted 2026-10-31)
