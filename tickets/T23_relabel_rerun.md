@@ -127,6 +127,7 @@ Run order and commands: runbook, "Relabelled rerun (T23)".
 - Verification: `verify.py` 313 PASS, `verify_box.py` 203 PASS, `verify_crop.py` 157 PASS, 0 FAIL. NOTEs: the `git_dirty` flag above, and Grad-CAM recomputed on CPU differs from the GPU (bf16) prediction file on 4 of 196 maps (Experiment 1) and 4 of 175 crops (Experiment 2), as in the original study.
 - Experiment 4 development jobs submitted 2026-10-23 22:00 (4F lr 0.005/0.01/0.02, 4Z gdino/owlv2, 4P); 4P reuses the original re-saved public weights; WILLIE stays out (T19).
 - Results fetched to `../results_figures/relabel_2026_10_23/{main,cv,roi_box,cv_box,roi_crop}/`.
+- 2026-10-27 (laptop): `prepare_relabel.py` rerun on the researcher's 27 Oct sheet into a temporary folder. It gives the same 1,041 included photos with the same classes, groups, sheet case IDs and paths as the committed metadata; only `wound_id` differs (3 photos filled, a column no step reads), and the 7 `imprint` photos are now `Inclusion = FALSE` in the sheet itself. The committed T23 data and every T23 result stand; nothing was rebuilt or rerun.
 
 ---
 
