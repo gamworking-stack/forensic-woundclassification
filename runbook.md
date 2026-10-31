@@ -566,6 +566,23 @@ for r in main roi_crop; do $C src/evaluation/evaluate.py --experiments-root $X/$
 $C src/evaluation/crop_summary.py --crop-root $X/roi_crop
 ```
 `submit_all.sh` with `PATHS=full` submits only the full-image scenarios; rerunning it resubmits only what is missing.
+Then on the laptop (patient-level scoring and the comparison with T23; per-image files stay in a temporary folder):
+```bash
+source scripts/hpc/contrast_env.sh
+T=$(mktemp -d); mkdir -p $T/t30 $T/t23; R="$RESULTS_DIR"
+ssh preenapun.s@raptor.med.cmu.ac.th "cd $EXPERIMENTS_DIR && ls main/full/*/{test,validation}_predictions.csv roi_crop/crop/*/{test,validation}_predictions.csv | tar -cf - -T -" | tar -xf - -C $T/t30
+ssh preenapun.s@raptor.med.cmu.ac.th "cd /project/a260012_FORWCL/experiments_relabel_2026_10_23 && ls main/full/*/test_predictions.csv roi_crop/crop/*/test_predictions.csv | tar -cf - -T -" | tar -xf - -C $T/t23
+for s in t30 t23; do python src/evaluation/patient_rescore.py --source-root $T/$s --output-root $T/$s/patient; done
+P=$T/t30/patient
+python src/evaluation/evaluate.py --experiments-root $P/main; python src/evaluation/evaluate.py --experiments-root $P/roi_crop
+python src/evaluation/crop_summary.py --crop-root $P/roi_crop
+mkdir -p "$R"; (cd $P && find main roi_crop -type f ! -name '*_predictions.csv' | tar -cf - -T -) | tar -xf - -C "$R"
+python src/evaluation/precision_recall.py --main-root $P/main --crop-root $P/roi_crop --output "$R/precision_recall.csv"
+python src/evaluation/confidence_threshold.py --main-root $P/main --crop-root $P/roi_crop --reference-main "$R/main" \
+  --reference-crop "$R/roi_crop" --output-dir "$R/threshold_0.60"
+python src/evaluation/contrast_compare.py --original-root $T/t23/patient --contrast-root $P --output-dir "$R"
+rm -r $T
+```
 
 ## Diagrams
 

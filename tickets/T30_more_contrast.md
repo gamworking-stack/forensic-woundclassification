@@ -4,7 +4,7 @@
 - **Phase**: Extra experiment on the T23 dataset (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T23](T23_relabel_rerun.md) (data, split, runs), [T25](T25_patient_cases.md) (patient intervals), [T28](T28_precision_recall.md), [T29](T29_confidence_threshold.md)
 - **Scenarios**: S01–S15 (full image) and S25–S32 (per-crop) retrained and tested on contrast-enhanced images; the T23 runs are not touched
-- **Status**: Planned and submitted 2026-10-31
+- **Status**: Done (2026-10-31; results §5)
 
 ---
 
@@ -38,4 +38,22 @@ The researcher asked (2026-10-31) to add more contrast to every image and rerun 
 
 ## 4. Run log
 
-- 2026-10-31: `pytest tests/test_contrast_dataset.py` 3 passed (laptop, Python 3.11, OpenCV 4.10).
+- 2026-10-31: `pytest tests/test_contrast_dataset.py tests/test_contrast_compare.py` 5 passed (laptop, Python 3.11, OpenCV 4.10).
+- Raptor, commit `c9c6faf`: job 241622 failed on a macOS `._PB106186.JPG` metadata file (2 in the raw tree, never read by any run); fixed by skipping hidden files. Job 241623 enhanced the 1,110 photos (47 s). Check on 40 random photos (statistics only, no image left Raptor): sizes kept 40/40; local contrast (9 × 9 window SD of L*) median ×1.45 at 224 px (10–90%: ×1.32–1.62), edge strength ×1.55; global L* SD ×1.00; mean a*/b* change 0.4 of 255.
+- Crop job 241627: 1,808 per-box crops, `ROI comparison PASSED` against the T23 manifest.
+- Training jobs 241628–241685 (58): all completed 17:05–19:00. `run_config.json`: `image_root` the CLAHE folders, `git_commit` c9c6faf, `git_dirty: true` only because of the untracked T19 files on Raptor (as in T23).
+- Evaluation: `evaluate.py` and `crop_summary.py` on Raptor (job 241696, group-level). Laptop (runbook step 13): the 32 T30 and 16 T23 prediction files copied to a temporary folder, rewritten per patient (`patient_rescore.py`), scored (`evaluate.py`, `crop_summary.py`, `precision_recall.py`, `confidence_threshold.py`, `contrast_compare.py`), deleted. Outputs: `../results_figures/More contrast experiment/`. `confidence_threshold.py` reproduced every new `test_metrics.json` at threshold 0; the original side of `contrast_vs_original.csv` equals Table 2.
+
+## 5. Results (test: 149 photos / 276 crops, 55 patients)
+
+CLAHE minus original (T23) on the same test images; 95% patient-level paired bootstrap, mean of the 8 families:
+
+| Input | Accuracy | Balanced accuracy | Macro-F1 | Macro AUC |
+|---|---|---|---|---|
+| Full image | 0.791 → 0.779, −0.012 [−0.029, +0.005] | −0.021 [−0.062, +0.001] | 0.683 → 0.661, −0.021 [−0.055, +0.003] | −0.006 [−0.014, +0.005] |
+| Per-crop | 0.806 → 0.820, +0.014 [−0.003, +0.031] | +0.022 [−0.034, +0.055] | 0.705 → 0.726, +0.021 [−0.027, +0.057] | +0.010 [−0.004, +0.020] |
+
+- **No clear effect.** Every pooled interval includes 0. Full image leans slightly worse, per-crop slightly better.
+- Per model, only the per-crop AlexNet ensemble changes after Holm adjustment (accuracy 0.717 → 0.768, +0.051 [+0.018, +0.087], Holm p 0.04). Full-image AlexNet ensemble macro-F1 −0.084 [−0.162, −0.002] has nominal p 0.04, Holm p 0.34. Best full-image model is still ResNet152 (accuracy 0.893, as in T23). Best per-crop accuracy is now EfficientNet-B0, 0.855 (its T23 value 0.822, +0.033 [−0.004, +0.069]; T23's best per-crop was VGG16, 0.833).
+- With the 0.60 threshold (T29) the picture is the same: full image 22.5% inconclusive, accuracy on the rest 0.861 [0.803, 0.911] (T23: 23.6%, 0.866); per-crop 16.3%, 0.868 [0.775, 0.936] (T23: 16.9%, 0.866).
+- The training augmentation already varies contrast by ±20%, and CLAHE leaves global contrast and colour unchanged, so a small effect is plausible. One clip limit and tile size were tried, chosen before any result; no tuning.

@@ -193,4 +193,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T27 manuscript Figures 1 and 2
 - [x] T28 precision and recall with intervals for Table 2
 - [x] T29 confidence threshold, inconclusive below 0.60 (Halloween experiment)
-- [ ] T30 more contrast experiment (CLAHE, retrained; submitted 2026-10-31)
+- [x] T30 more contrast experiment (CLAHE, retrained; no clear effect)
