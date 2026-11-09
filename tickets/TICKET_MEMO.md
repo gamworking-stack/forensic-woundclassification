@@ -568,3 +568,14 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `tests/test_subgroup.py`, `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `../results_figures/relabel_2026_10_23_patient/subgroup_confusion/`, `../08_Manuscript/Figures 3-4 (confusion matrices by subgroup).docx`
+
+## T33: Computational cost of the models (extra)
+
+- **Commits**: see `git log --grep 'T33'`
+- **Used**
+  - `src/training/models.py` (`build_model`, `feature_extractor`, `input_size`), `src/training/engine.py` (`train_one_epoch`, `_autocast`), `src/training/cnn_svm.py` (`fit_svm`, `DEFAULT_EXTRACTORS`), `src/training/data.py` (`load_manifest`, `prepare_rows`)
+- **Created**
+  - `tickets/T33_compute_cost.md`, `src/evaluation/compute_cost.py`, `tests/test_compute_cost.py`, `scripts/slurm/compute_cost.sbatch`
+- **Changed**
+  - `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments_relabel_2026_10_23/compute_cost/`, `../results_figures/Computational resources/`, `../08_Manuscript/Table 5 (computational cost).docx`

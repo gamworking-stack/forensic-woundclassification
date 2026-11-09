@@ -607,6 +607,15 @@ rm -r $P
 ```
 Outputs: `confusion_<full|crop>_<attribute>.png` (a row per subgroup, a column per family) and `subgroup_confusion.csv` (counts).
 
+**16. Computational cost (T33, Raptor).** Parameters, FLOPs, GPU and CPU latency, GPU throughput and peak training memory of the 8 families; the T23 CNN-SVM runs' SVMs are refitted from their cached features. Plan: `tickets/T33_compute_cost.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+sbatch --nodelist=raptor-g-002 scripts/slurm/compute_cost.sbatch   # g-001 shares its GPU in shards
+# laptop:
+rsync -a preenapun.s@raptor.med.cmu.ac.th:$EXPERIMENTS_DIR/compute_cost/ "../results_figures/Computational resources/"
+```
+Outputs: `compute_cost.csv` (per family), `svm_cost.csv` (both CNN-SVM runs), `compute_cost.json` (settings, environment).
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
