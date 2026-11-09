@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from PIL import Image
 
-from src.data.export_generator_crops import REPO_ROOT, main as export_main
+from src.data.export_generator_crops import PROMPT, REPO_ROOT, main as export_main
 from tests.synthetic_data import build_synthetic_box_dataset, build_synthetic_dataset
 
 
@@ -39,6 +39,10 @@ def test_exports_training_crops_only(boxes, tmp_path):
         with Image.open(tmp_path / name) as image:
             assert image.size == (32, 32) and image.mode == "RGB"
     assert crops.groupby("class").size().to_dict() == info["crops_per_class"]
+    # Captions name each crop's own class
+    captions = [json.loads(line) for line in (tmp_path / "metadata.jsonl").read_text().splitlines()]
+    assert [c["file_name"] for c in captions] == [name for name, _ in labels]
+    assert all(c["text"] == PROMPT.format(info["classes"][label]) for c, (_, label) in zip(captions, labels))
 
 
 def test_refuses_output_inside_repo(boxes):

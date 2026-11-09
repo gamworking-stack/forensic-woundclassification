@@ -8,7 +8,7 @@ crops come in the classifiers' own form. All 7 classes are written: the generato
 class-conditional and learn skin, light and texture from every class.
 
 Writes ``<class index>/<n>.png``, ``dataset.json`` (StyleGAN's ``{"labels": [[file, class], ...]}``),
-``crops.csv`` (file, class, source crop, case; for the memorisation check) and ``dataset_info.json``
+``metadata.jsonl`` (one caption per crop naming its class, for the diffusion model), ``crops.csv`` (file, class, source crop, case; for the memorisation check) and ``dataset_info.json``
 (classes, counts, settings). Patient images: run on Raptor, outputs stay there.
 """
 
@@ -29,6 +29,7 @@ from src.training.data import GROUP_COLUMN, load_manifest, prepare_rows  # noqa:
 from src.training.transforms import PadToSquare  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+PROMPT = "a forensic close-up photograph of a {} on human skin"
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -69,10 +70,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                      "roi_relative_path": row["roi_relative_path"], "case": row[GROUP_COLUMN]})
 
     (out / "dataset.json").write_text(json.dumps({"labels": labels}), encoding="utf-8")
+    captions = [json.dumps({"file_name": name, "text": PROMPT.format(classes[label])}) for name, label in labels]
+    (out / "metadata.jsonl").write_text("\n".join(captions) + "\n", encoding="utf-8")
     crops = pd.DataFrame(rows)
     crops.to_csv(out / "crops.csv", index=False)
     info = {"classes": classes, "size": args.size, "manifest": str(args.manifest), "image_root": str(args.image_root),
-            "cv_folds": str(args.cv_folds) if args.cv_folds else None, "fold": args.fold,
+            "cv_folds": str(args.cv_folds) if args.cv_folds else None, "fold": args.fold, "prompt": PROMPT,
             "crops_per_class": {c: int((crops["class"] == c).sum()) for c in classes},
             "cases": int(crops["case"].nunique())}
     (out / "dataset_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
