@@ -45,6 +45,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--image-root", type=Path, required=True, help="Per-box crop folder, for the validation crops.")
     parser.add_argument("--detector", type=Path, required=True, help="StyleGAN's Inception TorchScript pickle.")
+    parser.add_argument("--stylegan-code", type=Path, default=None,
+                        help="NVlabs/stylegan3 checkout; its detector pickle needs the repo's torch_utils.")
     parser.add_argument("--output-dir", type=Path, required=True, help="Outside the repository.")
     parser.add_argument("--quantile", type=float, default=0.95)
     parser.add_argument("--size", type=int, default=256, help="Side the images are read at before the detector.")
@@ -116,6 +118,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         raise ValueError(f"--output-dir {out} is inside the repository; patient-derived images stay outside it")
     (out / "panels").mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if args.stylegan_code:
+        sys.path.insert(0, str(args.stylegan_code))
     with open(args.detector, "rb") as f:
         detector = pickle.load(f).to(device).eval()
     rng = np.random.default_rng(args.seed)

@@ -56,7 +56,7 @@ case "$MODE" in
     : "${SAMPLES:?set SAMPLES to one or more samples folders}"
     # shellcheck disable=SC2086
     run src/evaluation/generated_quality.py --samples $SAMPLES --train-dir "$TRAIN_DIR" \
-      --image-root "$DERIVED_DIR/roi_box_p008" --detector "$DETECTOR" \
+      --image-root "$DERIVED_DIR/roi_box_p008" --detector "$DETECTOR" --stylegan-code "$TOOLS/stylegan3" \
       --output-dir "${OUT:-$EXPERIMENTS_DIR/generators/quality}" ;;
   *)
     echo "MODE must be generate or quality, got: $MODE" >&2; exit 1 ;;
