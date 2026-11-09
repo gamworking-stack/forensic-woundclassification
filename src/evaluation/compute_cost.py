@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import nn
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.utils.flop_counter import FlopCounterMode
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -111,12 +112,13 @@ def count_parameters(model: nn.Module) -> int:
 def count_flops(model: nn.Module, size: int) -> int:
     """FLOPs of one image (float32, CPU; the count does not depend on the device).
 
-    Gradients stay on: without them nn.MultiheadAttention (ViT) takes a fused path the counter
-    does not see, which would drop the attention projections.
+    Gradients stay on and attention runs on the math backend: nn.MultiheadAttention's fused
+    inference path and the fused CPU attention kernel are invisible to the counter, which would
+    drop ViT's attention projections and products.
     """
     model = model.cpu().eval()
     counter = FlopCounterMode(display=False)
-    with counter:
+    with sdpa_kernel(SDPBackend.MATH), counter:
         model(torch.randn(1, 3, size, size))
     return int(counter.get_total_flops())
 
