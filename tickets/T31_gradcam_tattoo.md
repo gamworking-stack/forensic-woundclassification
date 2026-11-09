@@ -52,4 +52,4 @@ Correct (training, validation and test together; training photos were seen in tr
 | ViT-B/16 | 19/19 | 53/59 | 19/19 | 52/59 |
 | AlexNet ensemble (representative member) | 17/19 | 50/59 | 16/19 | 51/59 |
 
-- Agreement with the prediction files: every test image agrees. 11 of 560 validation checks differ (T23: 6, CLAHE: 5; 8 of them MobileNetV3-Small, the others EfficientNet-B0 and ResNet152), the fp32 (CPU) against bf16 (GPU) effect recorded in T17 §6: the file's top two probabilities are close (e.g. 0.373 / 0.370) or the model is MobileNetV3-Small, which T17 showed to flip under bf16.
+- Agreement with the prediction files: every test image agrees. 11 of 336 validation checks differ (T23: 6, CLAHE: 5; 9 of them MobileNetV3-Small, one EfficientNet-B0 and one ResNet152), the fp32 (CPU) against bf16 (GPU) effect recorded in T17 §6: the file's top two probabilities are close (e.g. 0.373 / 0.370) or the model is MobileNetV3-Small, which T17 showed to flip under bf16.
