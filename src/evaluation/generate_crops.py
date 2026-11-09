@@ -77,7 +77,8 @@ def diffusion_sampler(args: argparse.Namespace, classes: List[str], device: torc
 
     pipe = StableDiffusionPipeline.from_pretrained(args.base, torch_dtype=torch.bfloat16, safety_checker=None,
                                                    requires_safety_checker=False).to(device)
-    pipe.load_lora_weights(args.checkpoint)
+    # Named explicitly: offline, diffusers will not look the file up itself
+    pipe.load_lora_weights(args.checkpoint, weight_name="pytorch_lora_weights.safetensors")
     pipe.set_progress_bar_config(disable=True)
 
     @torch.no_grad()
