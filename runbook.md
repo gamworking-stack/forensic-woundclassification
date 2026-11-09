@@ -596,6 +596,17 @@ sbatch --export=ALL,PHOTO_LIST=/project/a260012_FORWCL/experiments_relabel_2026_
 ```
 Outputs in `roi_crop/gradcam_tattoo/` of both experiment folders: `<family>/<split>/<class>/case<case>_<photo>_full.png` and `..._crop<k>.png`, overview pages `<family>/<split>_p<n>.png` and `panels.csv`. Patient photographs: they stay on Raptor.
 
+**15. Confusion matrices per subgroup (T32, laptop).** ResNet152, EfficientNet-B0, VGG16 and MobileNetV3-Small, full image and per crop, by the Table 3 subgroups. Plan: `tickets/T32_subgroup_confusion.md`.
+```bash
+source scripts/hpc/relabel_env.sh
+P=$(mktemp -d)   # per-image predictions: temporary, never in the repo or results_figures
+ssh preenapun.s@raptor.med.cmu.ac.th "cd $EXPERIMENTS_DIR && ls main/full/*/test_predictions.csv roi_crop/crop/*/test_predictions.csv | tar -cf - -T -" | tar -xf - -C $P
+python src/evaluation/subgroup_confusion.py --sheet ../thesis_data_27_oct_corrected.csv --main-root $P/main --crop-root $P/roi_crop \
+  --output-dir ../results_figures/relabel_2026_10_23_patient/subgroup_confusion
+rm -r $P
+```
+Outputs: `confusion_<full|crop>_<attribute>.png` (a row per subgroup, a column per family) and `subgroup_confusion.csv` (counts).
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.

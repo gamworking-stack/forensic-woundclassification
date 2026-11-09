@@ -143,6 +143,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T29** Confidence threshold (Halloween experiment): a prediction whose top probability is below 0.60 is inconclusive; per scenario (S01-S15, S25-S32) the inconclusive count and the Table 2 metrics on the conclusive images, patient-level intervals; post hoc, descriptive, no training. Plan: `tickets/T29_confidence_threshold.md`.
 - **T30** More contrast: every photograph CLAHE-enhanced (L* only), per-box crops cut again from the enhanced photos, S01-S15 and S25-S32 retrained exactly as T23; Table 2 metrics, the 0.60 threshold and CLAHE minus T23 on the same test images. Plan: `tickets/T30_more_contrast.md`.
 - **T31** Grad-CAM of the tattoo photos: the 19 photos with a tattoo (train 8, validation 8, test 3) and their 59 crops, explained by the full-image and per-crop models of T23 and T30 (7 families; CNN-SVM has none); panels stay on Raptor. Plan: `tickets/T31_gradcam_tattoo.md`.
+- **T32** Confusion matrices per subgroup: ResNet152, EfficientNet-B0, VGG16 and MobileNetV3-Small, full image and per crop, by age group, race/ethnicity, Monk Skin Tone, setting and body region (Table 3 subgroups); counts only, Word figures for the manuscript. Plan: `tickets/T32_subgroup_confusion.md`.
 
 ## 6. Risks to track
 
@@ -195,4 +196,5 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T28 precision and recall with intervals for Table 2
 - [x] T29 confidence threshold, inconclusive below 0.60 (Halloween experiment)
 - [x] T30 more contrast experiment (CLAHE, retrained; no clear effect)
-- [ ] T31 Grad-CAM of the tattoo photos (train, validation, test; T23 and T30 models)
+- [x] T31 Grad-CAM of the tattoo photos (train, validation, test; T23 and T30 models)
+- [x] T32 confusion matrices per subgroup (4 families, full image and per crop)

@@ -4,7 +4,7 @@
 - **Phase**: Extra analysis (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T14](T14_gradcam.md) (Grad-CAM), [T24](T24_subgroups.md) (tattoo flag), [T23](T23_relabel_rerun.md), [T30](T30_more_contrast.md)
 - **Scenarios**: none new; the models of S01–S15 (full image) and S25–S32 (per crop) of T23 and of T30 (CLAHE)
-- **Status**: In progress (2026-11-09)
+- **Status**: Done (Raptor, 2026-11-09; results §4)
 
 ---
 
@@ -38,3 +38,18 @@ Outputs per experiment in `<run>/roi_crop/gradcam_tattoo/`: `<family>/<split>/<c
 ## 4. Run log and results
 
 - 2026-11-09 (laptop): `subgroup_photos.py` on the 27 Oct corrected sheet: 19 photos (train 8, validation 8, test 3).
+- 2026-11-09 (Raptor, job 243722, CPU, 21 min, commit 08fad4d): `pytest tests/test_gradcam.py tests/test_subgroup.py` 20 passed; 546 panels per experiment (7 families × (19 full images + 59 crops)).
+
+Correct (training, validation and test together; training photos were seen in training):
+
+| Family | T23 full | T23 crop | T30 CLAHE full | T30 CLAHE crop |
+|---|---|---|---|---|
+| EfficientNet-B0 | 16/19 | 52/59 | 15/19 | 50/59 |
+| ResNet152 | 18/19 | 52/59 | 18/19 | 54/59 |
+| MobileNetV3-Small | 15/19 | 53/59 | 14/19 | 52/59 |
+| GoogLeNet | 15/19 | 55/59 | 16/19 | 52/59 |
+| VGG16 | 18/19 | 53/59 | 16/19 | 53/59 |
+| ViT-B/16 | 19/19 | 53/59 | 19/19 | 52/59 |
+| AlexNet ensemble (representative member) | 17/19 | 50/59 | 16/19 | 51/59 |
+
+- Agreement with the prediction files: every test image agrees. 11 of 560 validation checks differ (T23: 6, CLAHE: 5; 8 of them MobileNetV3-Small, the others EfficientNet-B0 and ResNet152), the fp32 (CPU) against bf16 (GPU) effect recorded in T17 §6: the file's top two probabilities are close (e.g. 0.373 / 0.370) or the model is MobileNetV3-Small, which T17 showed to flip under bf16.

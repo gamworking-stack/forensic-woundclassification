@@ -557,3 +557,14 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `src/evaluation/gradcam_panels.py` (`--photo-list`), `tests/test_gradcam.py`, `tests/test_subgroup.py`, `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments_relabel_2026_10_23/tattoo_photos.csv`, `<run>/roi_crop/gradcam_tattoo/` in the T23 and T30 experiment folders
+
+## T32: Confusion matrices per subgroup (extra)
+
+- **Commits**: see `git log --grep 'T32'`
+- **Used**
+  - `src/evaluation/subgroup.py` (`test_photos`, `photo_keys`, `labelled_predictions`, `scored_levels`), `src/evaluation/plots.py` (`FAMILY_LABELS`, `INK`)
+- **Created**
+  - `tickets/T32_subgroup_confusion.md`, `src/evaluation/subgroup_confusion.py`
+- **Changed**
+  - `tests/test_subgroup.py`, `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../results_figures/relabel_2026_10_23_patient/subgroup_confusion/`, `../08_Manuscript/Figures 3-4 (confusion matrices by subgroup).docx`

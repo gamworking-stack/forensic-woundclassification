@@ -207,3 +207,23 @@ def test_subgroup_photos_lists_every_split(tmp_path):
     # Train before test, matched on the sheet's own case ID, and no sheet attribute in the file
     assert listed["relative_path"].tolist() == ["contusion/T.JPG", "cut wound/E.JPG"]
     assert listed.columns.tolist() == ["relative_path", "split", "canonical_wound_label"]
+
+
+def test_subgroup_confusion_counts(runs):
+    from src.evaluation.subgroup_confusion import main as confusion_main
+    tmp_path, args = runs
+    keep = {"--sheet", "--main-root", "--crop-root", "--split-manifest", "--roi-manifest", "--box-manifest", "--min-photos"}
+    chosen = [a for i in range(0, len(args), 2) if args[i] in keep for a in args[i:i + 2]]
+    out = tmp_path / "confusion"
+    assert confusion_main(chosen + ["--output-dir", str(out), "--families", "vgg16", "resnet152"]) == 0
+    table = pd.read_csv(out / "subgroup_confusion.csv").set_index(
+        ["input_path", "attribute", "subgroup", "family", "true_class", "predicted_class"]).sort_index()["count"]
+    # 18-39 is A, B and C: on the full image C (cut wound) is called a contusion; per crop B has 2 crops, all right
+    full = table.loc[("full", "age_group", "18-39", "vgg16")]
+    assert (full.loc[("contusion", "contusion")], full.loc[("cut wound", "cut wound")],
+            full.loc[("cut wound", "contusion")]) == (1, 1, 1)
+    crop = table.loc[("crop", "age_group", "18-39", "resnet152")]
+    assert (crop.loc[("cut wound", "cut wound")], crop.loc[("contusion", "contusion")], crop.sum()) == (3, 1, 4)
+    # Unknowns are left out, and one figure per input path and attribute
+    assert UNKNOWN not in table.index.get_level_values("subgroup")
+    assert len(list(out.glob("confusion_*.png"))) == 2 * 5
