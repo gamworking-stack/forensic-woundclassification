@@ -41,9 +41,10 @@ module purge
 module load apptainer/1.3.5
 
 # The venv sits on the container's own Python and PyTorch; the hub is offline (weights are cached)
+# The host's CA bundle path does not exist in the Ubuntu container; use the container's own
 run() {
   apptainer exec --nv --bind "$PROJECT_ROOT" --pwd "$REPO_DIR" \
-    --env "TORCH_HOME=$PROJECT_ROOT/torch_cache,HF_HOME=$HF_HOME,HF_HUB_OFFLINE=1,HF_DATASETS_OFFLINE=1" \
+    --env "TORCH_HOME=$PROJECT_ROOT/torch_cache,HF_HOME=$HF_HOME,HF_HUB_OFFLINE=1,HF_DATASETS_OFFLINE=1,SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt,REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt,CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" \
     "$SIF" "$@"
 }
 

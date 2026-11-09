@@ -37,9 +37,10 @@ echo "Repo: $REPO_DIR ($(git rev-parse --short HEAD 2>/dev/null || echo 'no git'
 module purge
 module load apptainer/1.3.5
 
+# The host's CA bundle path does not exist in the Ubuntu container; use the container's own
 run() {
   apptainer exec --nv --bind "$PROJECT_ROOT" --pwd "$REPO_DIR" \
-    --env "TORCH_HOME=$PROJECT_ROOT/torch_cache,TORCH_EXTENSIONS_DIR=$PROJECT_ROOT/torch_cache/extensions,DNNLIB_CACHE_DIR=$PROJECT_ROOT/torch_cache/dnnlib" \
+    --env "TORCH_HOME=$PROJECT_ROOT/torch_cache,TORCH_EXTENSIONS_DIR=$PROJECT_ROOT/torch_cache/extensions,DNNLIB_CACHE_DIR=$PROJECT_ROOT/torch_cache/dnnlib,SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt,REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt,CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" \
     "$SIF" "$@"
 }
 
