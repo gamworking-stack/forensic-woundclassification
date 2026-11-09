@@ -109,10 +109,14 @@ def count_parameters(model: nn.Module) -> int:
 
 
 def count_flops(model: nn.Module, size: int) -> int:
-    """FLOPs of one image (float32, CPU; the count does not depend on the device)."""
+    """FLOPs of one image (float32, CPU; the count does not depend on the device).
+
+    Gradients stay on: without them nn.MultiheadAttention (ViT) takes a fused path the counter
+    does not see, which would drop the attention projections.
+    """
     model = model.cpu().eval()
     counter = FlopCounterMode(display=False)
-    with torch.no_grad(), counter:
+    with counter:
         model(torch.randn(1, 3, size, size))
     return int(counter.get_total_flops())
 

@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 import pytest
 from torch import nn
+from torchvision.models import GoogLeNet_Weights, ViT_B_16_Weights
 
 from src.evaluation.compute_cost import build, count_flops, count_parameters, main as cost_main, svm_cost
 from src.training.cnn_svm import main as svm_main
@@ -29,6 +30,13 @@ def svm_run(tmp_path_factory):
 def test_flops_count_a_multiply_add_as_two():
     # 1x1 convolution, 3 -> 4 channels on a 2 x 2 image: 3 * 4 * 4 multiply-adds
     assert count_flops(nn.Conv2d(3, 4, 1, bias=False), 2) == 2 * 3 * 4 * 4
+
+
+@pytest.mark.parametrize("family", ["vit_b16", "googlenet"])
+def test_flops_match_torchvision_at_224(family):
+    # torchvision's catalogue gives multiply-adds (its "GFLOPS") at 224 px with the ImageNet head
+    weights = {"vit_b16": ViT_B_16_Weights, "googlenet": GoogLeNet_Weights}[family].DEFAULT
+    assert count_flops(build(family), 224) / 2e9 == pytest.approx(weights.meta["_ops"], rel=0.01)
 
 
 def test_ensemble_costs_three_members():
