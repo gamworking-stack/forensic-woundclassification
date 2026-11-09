@@ -144,3 +144,42 @@ def test_panels_explain_every_test_photo_and_crop(data, tmp_path):
     family = out / "mobilenet_v3_small"
     assert len(list(family.glob("*/*.png"))) == len(panels)
     assert {p.name for p in family.glob("*.png")} == {f"{c.replace(' ', '_')}_p1.png" for c in test["canonical_wound_label"].unique()}
+
+
+def test_panels_explain_listed_photos_of_any_split(data, tmp_path):
+    box = build_synthetic_box_dataset(tmp_path, data)
+    exp = tmp_path / "exp"
+    assert train_main(run_args("mobilenet_v3_small", "full", data, exp / "full" / "mobilenet_v3_small", "--smoke")) == 0
+    assert train_main(["--family", "mobilenet_v3_small", "--input-path", "crop", "--manifest", str(box["box_manifest"]),
+                       "--image-root", str(box["box_root"]), "--output-dir", str(exp / "crop" / "mobilenet_v3_small"),
+                       "--no-pretrained", "--device", "cpu", "--num-workers", "0", "--image-size", "64",
+                       "--max-epochs", "1"]) == 0
+
+    # One photo of each split, listed in a CSV
+    crops = pd.read_csv(box["box_manifest"], dtype=str)
+    listed = crops.drop_duplicates("split").sort_values("split")[["split", "relative_path"]]
+    listed.to_csv(tmp_path / "list.csv", index=False)
+    out = tmp_path / "panels"
+    assert panels_main(["--main-root", str(exp), "--crop-root", str(exp), "--box-manifest", str(box["box_manifest"]),
+                        "--photo-list", str(tmp_path / "list.csv"), "--families", "mobilenet_v3_small",
+                        "--output-dir", str(out), "--device", "cpu", "--no-pretrained"]) == 0
+    panels = pd.read_csv(out / "panels.csv", dtype=str, keep_default_na=False)
+    chosen = crops[crops["relative_path"].isin(listed["relative_path"])]
+    # Every listed photo once on the full image, and every one of its crops
+    assert sorted(panels.loc[panels["input_path"] == "full", "photo"]) == sorted(listed["relative_path"])
+    assert sorted(panels.loc[panels["input_path"] == "crop", "crop"]) == sorted(chosen["roi_relative_path"])
+    # Validation and test images agree with their prediction files; training images have none
+    known = panels["split"] != "train"
+    assert (panels.loc[known, "matches_prediction_file"] == "True").all()
+    assert (panels.loc[~known, "matches_prediction_file"] == "").all()
+    # Panels filed by split and class, and an overview page per split
+    family = out / "mobilenet_v3_small"
+    assert len(list(family.glob("*/*/*.png"))) == len(panels)
+    assert {p.name for p in family.glob("*.png")} == {f"{s}_p1.png" for s in listed["split"]}
+
+    # A listed photo without a crop is refused
+    pd.DataFrame({"relative_path": ["nowhere/none.jpg"]}).to_csv(tmp_path / "bad.csv", index=False)
+    with pytest.raises(ValueError, match="no crop"):
+        panels_main(["--main-root", str(exp), "--crop-root", str(exp), "--box-manifest", str(box["box_manifest"]),
+                     "--photo-list", str(tmp_path / "bad.csv"), "--families", "mobilenet_v3_small",
+                     "--output-dir", str(out), "--device", "cpu", "--no-pretrained"])

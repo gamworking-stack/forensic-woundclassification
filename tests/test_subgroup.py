@@ -184,3 +184,26 @@ def test_photo_missing_from_sheet_is_an_error(runs):
     sheet[sheet["filename"] != "D.JPG"].to_csv(tmp_path / "sheet.csv", index=False)
     with pytest.raises(ValueError, match="1 test photos are not in the sheet"):
         subgroup_main(args)
+
+
+def test_subgroup_photos_lists_every_split(tmp_path):
+    from src.evaluation.subgroup_photos import main as photos_main
+    # Tattoo on E (test) and on a train photo of another sheet case filed under group 4; G has no tattoo entry
+    sheet = [{"pseudonimized_id": case, "patient_id": f"P{case}", "filename": f"{name}.JPG", "skin_tone": "4",
+              "wound_label": RAW_FOLDER[label], "race_ethnicity": "Asian", "age": "30", "autopsy": "1",
+              "body_site": "arm", "tattoo": tattoo, "Inclusion": "TRUE"}
+             for case, name, label, tattoo in (("3", "E", "cut wound", "1"), ("1", "A", "contusion", "0"),
+                                               ("6", "T", "contusion", "1"), ("4", "G", "cut wound", ""))]
+    split = [{"pseudonimized_id": group, "filename": f"{name}.JPG", "canonical_wound_label": label,
+              "relative_path": f"{label}/{name}.JPG", "source_pseudonimized_id": case, "split": s}
+             for group, case, name, label, s in (("3", "3", "E", "cut wound", "test"), ("1", "1", "A", "contusion", "train"),
+                                                 ("4", "6", "T", "contusion", "train"), ("4", "4", "G", "cut wound", "validation"))]
+    pd.DataFrame(sheet).to_csv(tmp_path / "sheet.csv", index=False)
+    pd.DataFrame(split).to_csv(tmp_path / "split.csv", index=False)
+    out = tmp_path / "out" / "tattoo.csv"
+    assert photos_main(["--sheet", str(tmp_path / "sheet.csv"), "--split-manifest", str(tmp_path / "split.csv"),
+                        "--output", str(out)]) == 0
+    listed = pd.read_csv(out, dtype=str)
+    # Train before test, matched on the sheet's own case ID, and no sheet attribute in the file
+    assert listed["relative_path"].tolist() == ["contusion/T.JPG", "cut wound/E.JPG"]
+    assert listed.columns.tolist() == ["relative_path", "split", "canonical_wound_label"]

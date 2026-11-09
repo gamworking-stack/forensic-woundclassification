@@ -12,6 +12,9 @@ With ``--all-test`` every test photo is explained instead, with every one of its
 several wounds included): panels go to ``<family>/<class>/case<case>_<photo>_full.png`` (all the
 photo's wound boxes drawn) and ``..._crop<k>.png``, and ``<family>/<class>_p<page>.png`` shows each
 crop next to its full image with that crop's box, 20 crops per page. Each model is loaded once.
+``--photo-list`` does the same for the photos listed in a CSV (``relative_path``), from any split: panels go
+to ``<family>/<split>/<class>/`` and the overview pages to ``<family>/<split>_p<page>.png``. Training
+photos have no prediction file, so their ``matches_prediction_file`` is left empty.
 
 The panels are overlays on patient photographs: they stay on Raptor; any copy used outside it must be
 de-identified and allowed by the ethics approval.
@@ -54,6 +57,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     which = parser.add_mutually_exclusive_group(required=True)
     which.add_argument("--photos", nargs="+", help="Test photos (manifest relative_path), one crop each.")
     which.add_argument("--all-test", action="store_true", help="Every test photo and every one of its crops.")
+    which.add_argument("--photo-list", type=Path,
+                       help="CSV with a relative_path column: every listed photo (any split) and every one of its crops.")
     parser.add_argument("--families", nargs="+", choices=FAMILIES, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
@@ -67,7 +72,10 @@ def scenario(experiments: Path, input_path: str, family: str, pretrained: bool, 
     folder = checkpoint_folder(experiments, input_path, family)
     config = json.loads((folder / "run_config.json").read_text(encoding="utf-8"))
     size = int(config["image_size"])
-    reported = pd.read_csv(folder / "test_predictions.csv", dtype=str).set_index("relative_path")["predicted_class"]
+    # Reported predictions of the validation and test images (training images have none)
+    reported = pd.concat([pd.read_csv(folder / f"{split}_predictions.csv", dtype=str)
+                          for split in ("validation", "test") if (folder / f"{split}_predictions.csv").is_file()])
+    reported = reported.set_index("relative_path")["predicted_class"]
     return {"family": family, "input_path": input_path, "classes": config["classes"], "size": size,
             "root": Path(config["image_root"]), "cache": config.get("cache", True), "reported": reported,
             "model": load_model(folder, family, len(config["classes"]), pretrained, device),
@@ -103,11 +111,13 @@ def panel(s: Dict, row: Dict, device, boxes: Optional[List[Dict]] = None) -> Dic
     predicted = s["classes"][int(probs.argmax())]
     key = Path(path).relative_to(s["root"]).as_posix()
     drawn = [b for b in (wound_box(r, s["size"]) for r in (boxes or [row])) if b is not None] if full else []
-    return {"case": row[GROUP_COLUMN], "photo": row[MANIFEST_PHOTO_COLUMN], "family": s["family"],
+    known = key in s["reported"].index
+    return {"case": row[GROUP_COLUMN], "photo": row[MANIFEST_PHOTO_COLUMN], "split": row.get("split", ""),
+            "family": s["family"],
             "input_path": s["input_path"], "crop": "" if full else row["roi_relative_path"],
             "crop_index": "" if full else row.get("crop_index", ""), "class": row[LABEL_COLUMN],
             "predicted_class": predicted, "probability": float(probs.max()), "correct": predicted == row[LABEL_COLUMN],
-            "matches_prediction_file": s["reported"].get(key) == predicted,
+            "matches_prediction_file": s["reported"].get(key) == predicted if known else np.nan,
             "cam_in_box": mass_in_boxes(cam, drawn) if full else np.nan,
             "_image": np.asarray(image), "_cam": cam, "_boxes": drawn}
 
@@ -144,20 +154,28 @@ def chosen_photos(args: argparse.Namespace, crops: pd.DataFrame, device) -> List
     return results
 
 
-def all_test(args: argparse.Namespace, crops: pd.DataFrame, device) -> List[Dict]:
-    """--all-test: every test photo's full image and each of its crops, filed by family and class."""
-    test = crops[crops["split"].str.strip().str.lower() == "test"].sort_values(
-        [LABEL_COLUMN, MANIFEST_PHOTO_COLUMN, "roi_relative_path"])
+def listed_photos(photo_list: Path, crops: pd.DataFrame) -> pd.DataFrame:
+    """The crop rows of the photos listed in ``photo_list``; every listed photo must have a crop."""
+    listed = set(pd.read_csv(photo_list, dtype=str, keep_default_na=False)["relative_path"])
+    missing = sorted(listed - set(crops[MANIFEST_PHOTO_COLUMN]))
+    if missing:
+        raise ValueError(f"{len(missing)} listed photos have no crop in the box manifest (e.g. {missing[:3]})")
+    return crops[crops[MANIFEST_PHOTO_COLUMN].isin(listed)]
+
+
+def every_crop(args: argparse.Namespace, chosen: pd.DataFrame, device, by_split: bool) -> List[Dict]:
+    """Every chosen photo's full image and each of its crops, filed by family and class (and split)."""
+    chosen = chosen.sort_values([LABEL_COLUMN, MANIFEST_PHOTO_COLUMN, "roi_relative_path"])
     results = []
     for family in args.families:
         full_s = scenario(args.main_root, "full", family, args.pretrained, device)
         crop_s = scenario(args.crop_root, "crop", family, args.pretrained, device)
         rows: Dict[str, List] = {}
-        for photo, of_photo in test.groupby(MANIFEST_PHOTO_COLUMN, sort=False):
+        for photo, of_photo in chosen.groupby(MANIFEST_PHOTO_COLUMN, sort=False):
             # The full image once, with every wound box of the photo; then each crop on its own
             boxes = of_photo.to_dict("records")
-            label = boxes[0][LABEL_COLUMN]
-            folder = args.output_dir / family / label.replace(" ", "_")
+            label, split = boxes[0][LABEL_COLUMN], boxes[0]["split"].strip().lower()
+            folder = args.output_dir / family / (split if by_split else "") / label.replace(" ", "_")
             folder.mkdir(parents=True, exist_ok=True)
             full = panel(full_s, boxes[0], device, boxes)
             stem = f"case{full['case']}_{Path(photo).stem}"
@@ -169,19 +187,21 @@ def all_test(args: argparse.Namespace, crops: pd.DataFrame, device) -> List[Dict
                 results.append(r)
                 # Overview row: the full image with only this crop's box, next to the crop
                 box = wound_box(crop_row, full_s["size"])
-                rows.setdefault(label, []).append((f"case {full['case']} {Path(photo).stem} crop {k}/{len(boxes)}",
-                                                   {"full": {**full, "_box": box}, "crop": r}))
-        # Overview pages per class, then report this family's counts
-        for label, of_class in rows.items():
-            for p in range(0, len(of_class), PAGE_ROWS):
+                name = f"case {full['case']} {Path(photo).stem} crop {k}/{len(boxes)}"
+                rows.setdefault(split if by_split else label, []).append(
+                    (f"{name}, {label}" if by_split else name, {"full": {**full, "_box": box}, "crop": r}))
+        # Overview pages per class (per split for a photo list), then report this family's counts
+        for group, of_group in rows.items():
+            for p in range(0, len(of_group), PAGE_ROWS):
                 page = p // PAGE_ROWS + 1
-                plot_rows(of_class[p:p + PAGE_ROWS], f"{family} Grad-CAM, {label}: full image (box: this crop) "
-                          f"and per-crop model, page {page}", args.output_dir / family / f"{label.replace(' ', '_')}_p{page}.png")
+                plot_rows(of_group[p:p + PAGE_ROWS], f"{family} Grad-CAM, {group}: full image (box: this crop) "
+                          f"and per-crop model, page {page}", args.output_dir / family / f"{group.replace(' ', '_')}_p{page}.png")
         mine = [r for r in results if r["family"] == family]
         for input_path in ("full", "crop"):
             of_path = [r for r in mine if r["input_path"] == input_path]
+            known = [r for r in of_path if not pd.isna(r["matches_prediction_file"])]
             print(f"{family} {input_path}: {sum(r['correct'] for r in of_path)}/{len(of_path)} correct, "
-                  f"{sum(r['matches_prediction_file'] for r in of_path)}/{len(of_path)} match the prediction file", flush=True)
+                  f"{sum(r['matches_prediction_file'] for r in known)}/{len(known)} match the prediction file", flush=True)
         # Keep only the numbers once the figures are drawn
         for r in mine:
             r.pop("_image"), r.pop("_cam")
@@ -193,7 +213,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     device = resolve_device(args.device)
     crops = pd.read_csv(args.box_manifest, dtype=str, keep_default_na=False)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    results = all_test(args, crops, device) if args.all_test else chosen_photos(args, crops, device)
+    if args.all_test:
+        results = every_crop(args, crops[crops["split"].str.strip().str.lower() == "test"], device, by_split=False)
+    elif args.photo_list:
+        results = every_crop(args, listed_photos(args.photo_list, crops), device, by_split=True)
+    else:
+        results = chosen_photos(args, crops, device)
     pd.DataFrame([{k: v for k, v in r.items() if not k.startswith("_")} for r in results]).to_csv(
         args.output_dir / "panels.csv", index=False)
     print(f"Wrote {len(results)} panels and panels.csv to {args.output_dir}")

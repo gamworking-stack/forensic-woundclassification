@@ -142,6 +142,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T25** One case per patient: the T23 test intervals, paired comparisons, per-crop table and T24 subgroups re-scored with `patient_id` as the bootstrap unit instead of the T23 groups; same split and models, no training. Plan: `tickets/T25_patient_cases.md`.
 - **T29** Confidence threshold (Halloween experiment): a prediction whose top probability is below 0.60 is inconclusive; per scenario (S01-S15, S25-S32) the inconclusive count and the Table 2 metrics on the conclusive images, patient-level intervals; post hoc, descriptive, no training. Plan: `tickets/T29_confidence_threshold.md`.
 - **T30** More contrast: every photograph CLAHE-enhanced (L* only), per-box crops cut again from the enhanced photos, S01-S15 and S25-S32 retrained exactly as T23; Table 2 metrics, the 0.60 threshold and CLAHE minus T23 on the same test images. Plan: `tickets/T30_more_contrast.md`.
+- **T31** Grad-CAM of the tattoo photos: the 19 photos with a tattoo (train 8, validation 8, test 3) and their 59 crops, explained by the full-image and per-crop models of T23 and T30 (7 families; CNN-SVM has none); panels stay on Raptor. Plan: `tickets/T31_gradcam_tattoo.md`.
 
 ## 6. Risks to track
 
@@ -194,3 +195,4 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T28 precision and recall with intervals for Table 2
 - [x] T29 confidence threshold, inconclusive below 0.60 (Halloween experiment)
 - [x] T30 more contrast experiment (CLAHE, retrained; no clear effect)
+- [ ] T31 Grad-CAM of the tattoo photos (train, validation, test; T23 and T30 models)

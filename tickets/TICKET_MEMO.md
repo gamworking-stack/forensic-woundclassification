@@ -545,3 +545,15 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `scripts/slurm/train_single.sbatch` (`RAW_IMAGE_ROOT`), `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/derived_data/relabel_2026_10_23_more_contrast/`, `<project>/experiments_relabel_2026_10_23_more_contrast/`, `../results_figures/More contrast experiment/`
+
+## T31: Grad-CAM of the tattoo photos (extra)
+
+- **Commits**: see `git log --grep 'T31'`
+- **Used**
+  - `src/evaluation/subgroup.py` (`subgroup_columns`), `src/data/prepare_relabel.py` (`read_sheet`), `src/evaluation/gradcam.py`
+- **Created**
+  - `tickets/T31_gradcam_tattoo.md`
+  - `src/evaluation/subgroup_photos.py`, `scripts/slurm/gradcam_tattoo.sbatch`
+- **Changed**
+  - `src/evaluation/gradcam_panels.py` (`--photo-list`), `tests/test_gradcam.py`, `tests/test_subgroup.py`, `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `<project>/experiments_relabel_2026_10_23/tattoo_photos.csv`, `<run>/roi_crop/gradcam_tattoo/` in the T23 and T30 experiment folders

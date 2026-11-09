@@ -584,6 +584,18 @@ python src/evaluation/contrast_compare.py --original-root $T/t23/patient --contr
 rm -r $T
 ```
 
+**14. Grad-CAM of the tattoo photos (T31).** The photos with a tattoo in every split, explained by the full-image and per-crop models of T23 and of T30 (7 families). Plan: `tickets/T31_gradcam_tattoo.md`. The list is made on the laptop, where the sheet stays; it holds only paths, split and class:
+```bash
+python src/evaluation/subgroup_photos.py --sheet ../thesis_data_27_oct_corrected.csv --output $TMPDIR/tattoo_photos.csv
+scp $TMPDIR/tattoo_photos.csv preenapun.s@raptor.med.cmu.ac.th:/project/a260012_FORWCL/experiments_relabel_2026_10_23/
+```
+On Raptor (CPU, both experiments in one job):
+```bash
+cd ~/forensic-woundclassification && source scripts/hpc/relabel_env.sh
+sbatch --export=ALL,PHOTO_LIST=/project/a260012_FORWCL/experiments_relabel_2026_10_23/tattoo_photos.csv scripts/slurm/gradcam_tattoo.sbatch
+```
+Outputs in `roi_crop/gradcam_tattoo/` of both experiment folders: `<family>/<split>/<class>/case<case>_<photo>_full.png` and `..._crop<k>.png`, overview pages `<family>/<split>_p<n>.png` and `panels.csv`. Patient photographs: they stay on Raptor.
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.
