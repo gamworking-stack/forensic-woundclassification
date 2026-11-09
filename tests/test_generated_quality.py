@@ -68,7 +68,7 @@ def test_copies_of_training_crops_are_flagged(tmp_path):
     assert quality["generated"] == len(scratch) and quality["flagged_share"] == 1
     near = pd.read_csv(out / "nearest.csv")
     assert sorted(near["nearest_train"]) == sorted(scratch["file"])
-    assert (out / "panels" / "copier_scratch_closest.png").is_file()
+    assert (out / "panels" / "samples_copier_scratch_closest.png").is_file()
 
 
 def test_refuses_output_inside_repo(tmp_path):

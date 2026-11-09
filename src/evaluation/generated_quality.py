@@ -146,19 +146,19 @@ def main(argv: Optional[List[str]] = None) -> int:
             real_val = f_val[(val["canonical_wound_label"] == name).to_numpy()]
             index, sim = nearest(f_gen, f_train)
             flagged = sim > threshold
-            rows.append({"generator": generator, "class": name, "generated": len(paths), "real_train": len(real_train),
+            rows.append({"samples": folder.name, "generator": generator, "class": name, "generated": len(paths), "real_train": len(real_train),
                          "real_validation": len(real_val), "kid_vs_train": kid(f_gen, real_train, rng),
                          "kid_vs_validation": kid(f_gen, real_val, rng),
                          "kid_real_validation_vs_train": kid(real_val, real_train, rng),
                          "nearest_similarity_median": float(np.median(sim)), "flagged_share": float(flagged.mean()),
                          "threshold": threshold})
-            near += [{"generator": generator, "class": name, "file": str(p), "nearest_train": train["file"][i],
+            near += [{"samples": folder.name, "generator": generator, "class": name, "file": str(p), "nearest_train": train["file"][i],
                       "nearest_train_class": train["class"][i], "similarity": s, "flagged": bool(fl)}
                      for p, i, s, fl in zip(paths, index, sim, flagged)]
             print(" | ".join(f"{k} {v:.4f}" if isinstance(v, float) else f"{k} {v}" for k, v in rows[-1].items()), flush=True)
 
             # Panels: 16 generated over 16 real training crops; the 8 closest generated-training pairs
-            slug = f"{generator}_{name.replace(' ', '_')}"
+            slug = f"{folder.name}_{generator}_{name.replace(' ', '_')}"
             real_paths = [train_paths[i] for i in np.flatnonzero((train["class"] == name).to_numpy())]
             picks = rng.choice(len(real_paths), min(16, len(real_paths)), replace=False)
             stack([tile_row(paths[:8]), tile_row(paths[8:16]), tile_row([real_paths[i] for i in picks[:8]]),
