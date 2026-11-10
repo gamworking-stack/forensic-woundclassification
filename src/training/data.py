@@ -138,6 +138,34 @@ def prepare_rows(df: pd.DataFrame, input_path: str, image_root: Path) -> Tuple[p
     return df, classes
 
 
+def add_extra_train(df: pd.DataFrame, extra_train: Path, classes: List[str]) -> pd.DataFrame:
+    """Append extra training images (T34: generated crops) to the train split of prepared rows.
+
+    ``extra_train`` is a CSV with an absolute ``path`` and a ``class`` per image. The rows only ever
+    join the train split, so validation, test and model selection stay on real images. Each gets its
+    own case id (``generated_<n>``), which no real case shares.
+    """
+    extra = read_csv(extra_train)
+    unknown = sorted(set(extra["class"]) - set(classes))
+    if unknown:
+        raise ValueError(f"{extra_train} has classes {unknown} that are not among {classes}")
+    missing = [p for p in extra["path"] if not Path(p).is_file()]
+    if missing:
+        raise FileNotFoundError(f"{len(missing)} extra training images not found: {missing[:5]}")
+    rows = pd.DataFrame({
+        "split": "train",
+        LABEL_COLUMN: extra["class"],
+        GROUP_COLUMN: [f"generated_{i}" for i in range(len(extra))],
+        "relative_path": extra["path"],
+        "roi_relative_path": extra["path"],
+        "image_path": [Path(p) for p in extra["path"]],
+        "image_relative_path": extra["path"],
+        "label_index": extra["class"].map({name: i for i, name in enumerate(classes)}),
+        "generated": True,
+    })
+    return pd.concat([df.assign(generated=False), rows], ignore_index=True)
+
+
 def load_image(path: Path, max_side: Optional[int] = None) -> Image.Image:
     # Decode, apply the EXIF orientation and convert to RGB
     with Image.open(path) as opened:

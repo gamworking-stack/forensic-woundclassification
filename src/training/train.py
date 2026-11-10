@@ -33,6 +33,8 @@ from src.training.common import (  # noqa: E402
 from src.training.config import parse_args  # noqa: E402
 from src.training.data import (  # noqa: E402
     GROUP_COLUMN,
+    LABEL_COLUMN,
+    add_extra_train,
     SPLIT_NAMES,
     ManifestImageDataset,
     load_manifest,
@@ -91,6 +93,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     df = load_manifest(cfg.manifest, cfg.input_path, cfg.full_scope, cfg.roi_manifest, cfg.smoke,
                        cfg.cv_folds, cfg.fold)
     df, classes = prepare_rows(df, cfg.input_path, cfg.image_root)
+    if cfg.extra_train:
+        df = add_extra_train(df, cfg.extra_train, classes)
 
     # T17 per-box crops: each photo counts once in the loss and selection is on photo level.
     per_box = cfg.input_path in PHOTO_INPUT_PATHS
@@ -137,6 +141,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "classes": classes,
         "class_weights": [round(float(w), 6) for w in class_weights],
         "images_per_split": {s: int((df["split"] == s).sum()) for s in SPLIT_NAMES},
+        **({"extra_train_per_class": df.loc[df["generated"], LABEL_COLUMN].value_counts().to_dict()}
+           if cfg.extra_train else {}),
         "cases_per_split": {s: int(df.loc[df["split"] == s, GROUP_COLUMN].nunique()) for s in SPLIT_NAMES},
         **({"photos_per_split": {s: len(set(manifest_photos(df[df["split"] == s]))) for s in SPLIT_NAMES},
             "selection_unit": "photo", "loss_weights": "1 / crops per photo"} if per_box else {}),

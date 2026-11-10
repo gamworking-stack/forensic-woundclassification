@@ -9,6 +9,7 @@
 # AUTO_ARM=4Z|4P|4F (T19) swaps in that arm's auto-box crops; use RUN_NAME=auto_<arm>_<union|box|crop>.
 # WOUND_DATA_DIR, EXPERIMENTS_DIR and DERIVED_DIR select another dataset version (T23: source scripts/hpc/relabel_env.sh).
 # RAW_IMAGE_ROOT replaces the raw photographs for INPUT_PATH=full (T30: source scripts/hpc/contrast_env.sh).
+# EXTRA_TRAIN adds a CSV of extra training images, train split only (T34: source scripts/hpc/generated_env.sh).
 #SBATCH --job-name=train_single
 #SBATCH --account=a260012
 #SBATCH --partition=gpu
@@ -61,7 +62,7 @@ export PYTHONUNBUFFERED=1  # log lines reach the .out/.err files immediately
 
 cd "$REPO_DIR"
 echo "Job $SLURM_JOB_ID on $(hostname) at $(date -Is)"
-echo "Family: $FAMILY | Input: $INPUT_PATH | Run: $RUN_NAME | Extra: ${EXTRA_ARGS:-none}"
+echo "Family: $FAMILY | Input: $INPUT_PATH | Run: $RUN_NAME | Extra: ${EXTRA_ARGS:-none} | Extra train: ${EXTRA_TRAIN:-none}"
 echo "Data: $DATA_DIR | Output: $OUTPUT_DIR"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 
@@ -74,6 +75,7 @@ COMMON_ARGS=(
   --image-root "$IMAGE_ROOT"
   --output-dir "$OUTPUT_DIR"
   --num-workers $(( SLURM_CPUS_PER_TASK - 2 ))
+  ${EXTRA_TRAIN:+--extra-train "$EXTRA_TRAIN"}
 )
 if [[ "$FAMILY" == cnn_svm ]]; then
   ENTRY=(src/training/cnn_svm.py)

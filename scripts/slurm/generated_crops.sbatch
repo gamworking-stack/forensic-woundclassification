@@ -5,6 +5,7 @@
 #   sbatch --export=ALL,MODE=generate,GENERATOR=sd15_lora,CHECKPOINT=<LoRA folder> scripts/slurm/generated_crops.sbatch
 #   sbatch --export=ALL,MODE=quality,SAMPLES="<samples dir> <samples dir>" scripts/slurm/generated_crops.sbatch
 #   sbatch --export=ALL,MODE=rating,SAMPLES="<samples dir> <samples dir>" scripts/slurm/generated_crops.sbatch   # blinded set
+#   sbatch --export=ALL,MODE=select,GENERATED=gan,SAMPLES=<samples dir> scripts/slurm/generated_crops.sbatch     # stage 2 CSV
 # Optional: PER_CLASS (default 500), OUT (output folder; default beside the checkpoint, or
 # $EXPERIMENTS_DIR/generators/quality). Everything written stays on Raptor (patient-derived).
 #SBATCH --job-name=t34_generated
@@ -65,8 +66,14 @@ case "$MODE" in
     # shellcheck disable=SC2086
     run src/evaluation/rating_set.py make --samples $SAMPLES --nearest "$Q/nearest.csv" --train-dir "$TRAIN_DIR" \
       --output-dir "${OUT:-$Q/rating_set}" --key-dir "$Q/rating_key" ;;
+  select)
+    : "${GENERATED:?set GENERATED to gan or sd}"
+    : "${SAMPLES:?set SAMPLES to the samples folder of the quality check}"
+    run -m pytest -q tests/test_extra_train.py
+    run src/data/select_generated.py --samples "$SAMPLES" --nearest "$EXPERIMENTS_DIR/generators/quality/nearest.csv" \
+      --train-dir "$TRAIN_DIR" --output "$EXPERIMENTS_DIR/generators/extra_train_$GENERATED.csv" ;;
   *)
-    echo "MODE must be generate, quality or rating, got: $MODE" >&2; exit 1 ;;
+    echo "MODE must be generate, quality, rating or select, got: $MODE" >&2; exit 1 ;;
 esac
 
 echo "Done at $(date -Is)"

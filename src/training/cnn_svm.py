@@ -38,6 +38,8 @@ from src.training.common import (  # noqa: E402
 from src.training.config import FAMILIES  # noqa: E402
 from src.training.data import (  # noqa: E402
     GROUP_COLUMN,
+    LABEL_COLUMN,
+    add_extra_train,
     SPLIT_NAMES,
     ManifestImageDataset,
     load_manifest,
@@ -121,6 +123,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--cv-folds", type=Path, default=None,
                         help="CV run (T12b): fold table; test rows are dropped and --fold is validation.")
     parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--extra-train", type=Path, default=None,
+                        help="T34: CSV (path, class) of extra images for the train split only, e.g. generated crops.")
     parser.add_argument("--svm-params-from", type=Path, default=None,
                         help="run_config.json of a finished CNN-SVM run; fit its best_params instead of the grid.")
     # The two CV options must come as a pair
@@ -160,6 +164,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                        args.cv_folds, args.fold)
     cv = args.cv_folds is not None
     df, classes = prepare_rows(df, args.input_path, args.image_root)
+    if args.extra_train:
+        df = add_extra_train(df, args.extra_train, classes)
     # Rows and labels per split; per-box crops also get photo weights (1 / crops per photo)
     splits = ("train", "validation") if cv else SPLIT_NAMES
     rows = {split: df[df["split"] == split] for split in splits}
@@ -175,6 +181,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "classes": classes,
         "svm_grid": [] if args.svm_params_from else svm_grid(),
         "images_per_split": {s: len(rows[s]) for s in splits},
+        **({"extra_train_per_class": df.loc[df["generated"], LABEL_COLUMN].value_counts().to_dict()}
+           if args.extra_train else {}),
         "cases_per_split": {s: int(rows[s][GROUP_COLUMN].nunique()) for s in splits},
         **git_state(),
         "environment": environment_info(device),

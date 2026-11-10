@@ -50,6 +50,7 @@ class RunConfig:
     cv_folds: Optional[Path] = None
     fold: Optional[int] = None
     checkpoint: str = "best"
+    extra_train: Optional[Path] = None
 
     def to_json(self) -> Dict[str, Any]:
         return {k: str(v) if isinstance(v, Path) else v for k, v in asdict(self).items()}
@@ -96,6 +97,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
     parser.add_argument("--cv-folds", type=Path, default=None,
                         help="CV run (T12b): fold table; test rows are dropped and --fold is validation.")
     parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--extra-train", type=Path, default=None,
+                        help="T34: CSV (path, class) of extra images for the train split only, e.g. generated crops.")
     parser.add_argument("--checkpoint", choices=("best", "last"), default="best",
                         help="Weights that predict: best validation epoch, or the last epoch (fixed-epoch CV).")
     # Parse, then check that the two CV options come as a pair
