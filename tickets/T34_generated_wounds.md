@@ -4,7 +4,7 @@
 - **Phase**: Extra experiment (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T18](T18_crop_roi.md) (per-crop path), [T12b](T12b_cross_validation.md) (CV folds), [T23](T23_relabel_rerun.md), [T30](T30_more_contrast.md) (paired comparison)
 - **Scenarios**: per-crop models (S25–S32 recipe) retrained with generated crops added to training
-- **Status**: In progress: stage 1 (generators training on Raptor, 2026-11-09)
+- **Status**: In progress: stage 1 done; stage 2 retraining on Raptor (2026-11-10); blinded rating with the researcher
 
 ---
 
@@ -45,7 +45,11 @@ Training split (T23): cut 94 crops (59 photos), scratch 77 (40), penetration 39 
 | `scripts/slurm/diffusion_lora_train.sbatch` | New: tests, 512 px export, Stable Diffusion LoRA training (optional `FOLD`) |
 | `src/evaluation/generate_crops.py` | New: crops of chosen classes from a StyleGAN snapshot or a LoRA, one seed per crop |
 | `src/evaluation/generated_quality.py`, `tests/test_generated_quality.py` | New: KID, nearest training crop and panels; tested with a stand-in detector |
-| `scripts/slurm/generated_crops.sbatch` | New: `MODE=generate` or `MODE=quality` |
+| `scripts/slurm/generated_crops.sbatch` | New: `MODE=generate`, `quality`, `rating` or `select` |
+| `src/evaluation/rating_set.py`, `tests/test_rating_set.py` | New: blinded real-or-generated set (key kept apart) and its scoring |
+| `src/training/data.py` (`add_extra_train`), `config.py`, `train.py`, `cnn_svm.py` | `--extra-train`: a CSV of extra images joins the train split only; recorded as `extra_train_per_class` in `run_config.json` |
+| `src/data/select_generated.py`, `tests/test_extra_train.py` | New: unflagged generated crops chosen to top classes up to the median class |
+| `scripts/slurm/train_single.sbatch`, `scripts/hpc/generated_env.sh` | `EXTRA_TRAIN`; the arm's env (`GENERATED=gan` or `sd`) |
 
 Tools on Raptor: `/project/a260012_FORWCL/tools/` (`stylegan3` c233a91, `diffusers_examples` v0.31.0, `venv_diffusers`: diffusers 0.31.0, transformers 4.46.3, peft 0.13.2, accelerate 1.1.1, datasets 3.1.0 on the container's PyTorch 2.6); weights and the Inception detector in `torch_cache/`. Outputs on Raptor only (patient-derived): `$DERIVED_DIR/generator_crops_{256,512}[_fold<k>]/`, `$EXPERIMENTS_DIR/generators/`.
 
@@ -70,3 +74,6 @@ Generated crops are derived from patient photographs. Whether they may be shown 
 
 - StyleGAN's crops are 5–10 times closer to the real crops than the LoRA's, and close to the real-versus-real reference. Its snapshot was chosen by KID against training crops, so its KID against validation crops is the fairer figure. Flag threshold: 0.866, the 95% quantile of the real validation crops' similarity to their nearest training crop; by construction 5% of new real wounds would be flagged, so StyleGAN's 3.0–4.2% is no more copy-like than real new wounds. Validation has only 8 scratch and 8 penetration crops, so those KIDs are rough.
 - Inception features measure similarity to the real crops, not forensic realism: the researcher's blinded rating is still needed.
+- 2026-11-10, blinded rating set (job 244072): per class 10 real training crops, 10 StyleGAN, 10 LoRA (unflagged), 256 px PNG, shuffled; images and sheet copied to `../results_figures/Generated wounds rating/` for the researcher, `answer_key.csv` kept on Raptor in `generators/quality/rating_key/`.
+- Stage 2 training sets (jobs 244073–244074, `pytest tests/test_extra_train.py` 4 passed): cut 94 + 21, scratch 77 + 38, penetration 39 + 76 generated = 115 each (the median class), unflagged, seed 0; `generators/extra_train_{gan,sd}.csv`. Class weights are computed on the augmented train split, as the recipe computes them on whatever it trains on.
+- Stage 2 retraining: the whole T23 per-crop recipe (learning-rate grid, selection on real validation, CNN-SVM, AlexNet ensemble) under `GENERATED=gan source scripts/hpc/generated_env.sh; PATHS=crop bash scripts/hpc/submit_all.sh roi_crop` (jobs 244075–244103). The diffusion arm has the same job names, so a login-node waiter (`logs/t34_submit_sd_after_gan.sh`) submits it when the GAN arm has left the queue.
