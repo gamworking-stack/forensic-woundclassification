@@ -58,4 +58,15 @@ Generated crops are derived from patient photographs. Whether they may be shown 
 - 2026-11-09: NVlabs/stylegan3 cloned to `/project/a260012_FORWCL/tools/stylegan3` (c233a91); the researcher approved running it and the diffusion code on Raptor.
 - Smoke tests: StyleGAN (job 243783, 8 kimg, 15 s/kimg, custom CUDA ops built) and LoRA (job 243785, 20 steps, 3.4 steps/s). Export: 1,310 training crops (contusion 198, cut 94, graze 297, gunshot 490, laceration 115, penetration 39, scratch 77).
 - The first full StyleGAN run (243784) failed at its first KID: the host's CA-bundle path does not exist in the container. The Inception detector was fetched on the login node into `torch_cache/dnnlib` and the jobs now set the container's CA bundle.
-- Running: StyleGAN2-ADA 5,000 kimg (job 243786, about 22 h) and LoRA 15,000 steps (job 243787, about 75 min). StyleGAN KID at kimg 0: 0.361.
+- LoRA 15,000 steps (job 243787, 54 min, 4.6 steps/s). StyleGAN2-ADA 5,000 kimg (job 243786, 22 h 49 min). StyleGAN's own KID (all classes against all training crops): 0.361 at 0, 0.040 at 1,000, lowest 0.0108 at **2,600 kimg**, then 0.015–0.031 and a collapse at the end (0.128 at 4,800, 0.188 at 5,000). Snapshot 2,600 is used.
+- Smoke tests of generation and of the quality check (jobs 243788–243794) found two bugs, fixed: offline diffusers needs the LoRA file named (d55cdf9); the Inception pickle needs the stylegan3 code to unpickle (9c75ee5).
+- 2026-11-10: 500 crops per class from each generator (jobs 243795, 244070) and the quality check (job 244071, `$EXPERIMENTS_DIR/generators/quality/`). The LoRA at 7,500 steps (200 per class, job 243796) scored the same as the final one.
+
+| Class | KID real validation vs real training (reference) | StyleGAN2-ADA vs training | StyleGAN2-ADA vs validation | SD LoRA vs training | SD LoRA vs validation | Flagged as near-copies: StyleGAN / LoRA |
+|---|---|---|---|---|---|---|
+| Cut wound | 0.009 | 0.015 | 0.026 | 0.142 | 0.129 | 3.6% / 0% |
+| Scratch | 0.014 | 0.018 | 0.024 | 0.117 | 0.097 | 4.2% / 0.4% |
+| Penetration wound | 0.002 | 0.019 | 0.046 | 0.099 | 0.122 | 3.0% / 0% |
+
+- StyleGAN's crops are 5–10 times closer to the real crops than the LoRA's, and close to the real-versus-real reference. Its snapshot was chosen by KID against training crops, so its KID against validation crops is the fairer figure. Flag threshold: 0.866, the 95% quantile of the real validation crops' similarity to their nearest training crop; by construction 5% of new real wounds would be flagged, so StyleGAN's 3.0–4.2% is no more copy-like than real new wounds. Validation has only 8 scratch and 8 penetration crops, so those KIDs are rough.
+- Inception features measure similarity to the real crops, not forensic realism: the researcher's blinded rating is still needed.
