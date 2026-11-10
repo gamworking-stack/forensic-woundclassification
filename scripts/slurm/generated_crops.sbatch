@@ -4,6 +4,7 @@
 #   sbatch --export=ALL,MODE=generate,GENERATOR=stylegan2,CHECKPOINT=<network-snapshot.pkl> scripts/slurm/generated_crops.sbatch
 #   sbatch --export=ALL,MODE=generate,GENERATOR=sd15_lora,CHECKPOINT=<LoRA folder> scripts/slurm/generated_crops.sbatch
 #   sbatch --export=ALL,MODE=quality,SAMPLES="<samples dir> <samples dir>" scripts/slurm/generated_crops.sbatch
+#   sbatch --export=ALL,MODE=rating,SAMPLES="<samples dir> <samples dir>" scripts/slurm/generated_crops.sbatch   # blinded set
 # Optional: PER_CLASS (default 500), OUT (output folder; default beside the checkpoint, or
 # $EXPERIMENTS_DIR/generators/quality). Everything written stays on Raptor (patient-derived).
 #SBATCH --job-name=t34_generated
@@ -43,7 +44,7 @@ run() {
     "$SIF" "$TOOLS/venv_diffusers/bin/python" "$@"
 }
 
-run -m pytest -q tests/test_generated_quality.py
+run -m pytest -q tests/test_generated_quality.py tests/test_rating_set.py
 case "$MODE" in
   generate)
     : "${GENERATOR:?set GENERATOR to stylegan2 or sd15_lora}"
@@ -58,8 +59,14 @@ case "$MODE" in
     run src/evaluation/generated_quality.py --samples $SAMPLES --train-dir "$TRAIN_DIR" \
       --image-root "$DERIVED_DIR/roi_box_p008" --detector "$DETECTOR" --stylegan-code "$TOOLS/stylegan3" \
       --output-dir "${OUT:-$EXPERIMENTS_DIR/generators/quality}" ;;
+  rating)
+    : "${SAMPLES:?set SAMPLES to the samples folders of the quality check}"
+    Q="$EXPERIMENTS_DIR/generators/quality"
+    # shellcheck disable=SC2086
+    run src/evaluation/rating_set.py make --samples $SAMPLES --nearest "$Q/nearest.csv" --train-dir "$TRAIN_DIR" \
+      --output-dir "${OUT:-$Q/rating_set}" --key-dir "$Q/rating_key" ;;
   *)
-    echo "MODE must be generate or quality, got: $MODE" >&2; exit 1 ;;
+    echo "MODE must be generate, quality or rating, got: $MODE" >&2; exit 1 ;;
 esac
 
 echo "Done at $(date -Is)"
