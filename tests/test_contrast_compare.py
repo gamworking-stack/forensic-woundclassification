@@ -75,6 +75,21 @@ def test_a_subset_of_families_is_pooled_on_its_own(tmp_path):
     assert (tmp_path / "out" / "contrast_per_class_recall_by_model.png").exists()
 
 
+def test_crop_only_comparison_named_for_the_generated_run(tmp_path):
+    # T34: the generated runs have per-crop scenarios only and are named in columns, files and plots
+    write_run(tmp_path / "original", 0, flip=6)
+    write_run(tmp_path / "generated", 1, flip=0)
+    assert main(["--original-root", str(tmp_path / "original"), "--contrast-root", str(tmp_path / "generated"),
+                 "--output-dir", str(tmp_path / "out"), "--bootstrap", "20", "--paths", "crop",
+                 "--name", "generated_gan"]) == 0
+    table = pd.read_csv(tmp_path / "out" / "generated_gan_vs_original.csv")
+    assert set(table["input_path"]) == {"crop"} and "generated_gan" in table.columns
+    changes = pd.read_csv(tmp_path / "out" / "generated_gan_per_class_changes.csv")
+    assert "generated_gan_correct" in changes.columns
+    for name in ("vs_original_accuracy", "per_class_recall", "per_class_recall_by_model"):
+        assert (tmp_path / "out" / f"generated_gan_{name}.png").exists()
+
+
 def test_class_scores_match_the_class_report():
     from src.evaluation.contrast_compare import class_scores
     from src.evaluation.metrics import Predictions, class_report

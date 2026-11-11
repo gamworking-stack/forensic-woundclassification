@@ -11,6 +11,9 @@ its interval from the per-resample means; p-values are two-sided bootstrap p, Ho
 Per wound class (added 2026-10-31) the same resamples give recall, precision, F1 and one-vs-rest AUC
 per class, CLAHE minus original (pooled rows Holm-adjusted over the 7 classes), and the images each
 model gained (original wrong, CLAHE right) and lost (the reverse).
+
+T34 reuses it for the runs retrained with generated crops: ``--paths crop`` compares the per-crop runs
+only and ``--name`` (e.g. ``generated_gan``) replaces "more_contrast" in columns, files and plot labels.
 """
 
 from __future__ import annotations
@@ -54,6 +57,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--families", nargs="+", choices=FAMILY_ORDER, default=list(FAMILY_ORDER),
                         help="Families to compare and pool (default: all 8).")
+    parser.add_argument("--paths", nargs="+", choices=list(PATHS), default=list(PATHS), help="Input paths to compare.")
+    parser.add_argument("--name", default="more_contrast",
+                        help="Name of the compared run in columns, file names and labels (T34: generated_gan).")
     return parser.parse_args(argv)
 
 
@@ -194,10 +200,17 @@ def change_rows(input_path: str, ids: Dict, pairs: Dict[str, Tuple[Predictions, 
     return rows + pooled[frame.columns].to_dict("records")
 
 
-def plot_class_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name: str = POOLED, n: int = 8) -> None:
+def present_paths(table: pd.DataFrame) -> List[Tuple[str, str]]:
+    """(input path, label) of the paths the table holds, so one compared path draws one panel."""
+    return [(path, label) for path, label in PATH_LABELS.items() if path in set(table["input_path"])]
+
+
+def plot_class_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name: str = POOLED, n: int = 8,
+                      label_name: str = "CLAHE") -> None:
     """Pooled per-class CLAHE minus original, one panel per input path."""
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), sharex=True)
-    for ax, colour, (input_path, label) in zip(axes, CLASS_COLOURS, PATH_LABELS.items()):
+    paths = present_paths(table)
+    fig, axes = plt.subplots(1, len(paths), figsize=(4.5 * len(paths), 3.8), sharex=True, squeeze=False)
+    for ax, colour, (input_path, label) in zip(axes[0], CLASS_COLOURS, paths):
         part = table[(table["input_path"] == input_path) & (table["metric"] == metric)
                      & (table["family"] == pooled_name)].reset_index(drop=True)
         y = np.arange(len(part))[::-1]
@@ -212,21 +225,23 @@ def plot_class_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name:
         ax.grid(axis="x", color=MUTED, alpha=0.25, lw=0.6)
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
-        ax.set_xlabel(f"{metric}: CLAHE - original, mean of {n}", color=INK, fontsize=9)
+        ax.set_xlabel(f"{metric}: {label_name} - original, mean of {n}", color=INK, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
-def plot_class_heatmap(table: pd.DataFrame, metric: str, families: List[str], pooled_name: str, path: Path) -> None:
+def plot_class_heatmap(table: pd.DataFrame, metric: str, families: List[str], pooled_name: str, path: Path,
+                       label_name: str = "CLAHE") -> None:
     """CLAHE minus original per wound class (rows) and family (columns, then their mean), one panel per input path.
 
     Blue = gain, orange = loss, grey = none; bold with * when the 95% interval excludes 0.
     """
     cmap = LinearSegmentedColormap.from_list("gain_loss", [CLASS_COLOURS[1], "#f0f0ee", CLASS_COLOURS[0]])
     columns = [*families, pooled_name]
-    fig, axes = plt.subplots(1, 2, figsize=(1.15 * len(columns) * 2 + 3.5, 4.4))
-    for ax, (input_path, label) in zip(axes, PATH_LABELS.items()):
+    paths = present_paths(table)
+    fig, axes = plt.subplots(1, len(paths), figsize=(1.15 * len(columns) * len(paths) + 3.5, 4.4), squeeze=False)
+    for ax, (input_path, label) in zip(axes[0], paths):
         part = table[(table["input_path"] == input_path) & (table["metric"] == metric)]
         grid = part.pivot(index="true_class", columns="family", values="difference")
         classes = list(dict.fromkeys(part["true_class"]))
@@ -245,7 +260,7 @@ def plot_class_heatmap(table: pd.DataFrame, metric: str, families: List[str], po
         ax.set_xticks(range(len(columns)), [FAMILY_LABELS.get(f, f"Mean of {len(families)}") for f in columns],
                       rotation=35, ha="right", fontsize=8)
         ax.axvline(len(families) - 0.5, color="white", lw=3)
-        ax.set_title(f"{label}: {metric}, CLAHE - original", fontsize=10, color=INK, loc="left")
+        ax.set_title(f"{label}: {metric}, {label_name} - original", fontsize=10, color=INK, loc="left")
         ax.tick_params(length=0)
         for side in ax.spines.values():
             side.set_visible(False)
@@ -254,10 +269,12 @@ def plot_class_heatmap(table: pd.DataFrame, metric: str, families: List[str], po
     plt.close(fig)
 
 
-def plot_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name: str = POOLED) -> None:
+def plot_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name: str = POOLED,
+                label_name: str = "more contrast") -> None:
     """More contrast minus original per family and pooled, one panel per input path."""
-    fig, axes = plt.subplots(1, 2, figsize=(9, 4.2), sharex=True)
-    for ax, colour, (input_path, label) in zip(axes, CLASS_COLOURS, PATH_LABELS.items()):
+    paths = present_paths(table)
+    fig, axes = plt.subplots(1, len(paths), figsize=(4.5 * len(paths), 4.2), sharex=True, squeeze=False)
+    for ax, colour, (input_path, label) in zip(axes[0], CLASS_COLOURS, paths):
         part = table[(table["input_path"] == input_path) & (table["metric"] == metric)].reset_index(drop=True)
         y = np.arange(len(part))[::-1]
         pooled = part["family"] == pooled_name
@@ -271,7 +288,7 @@ def plot_forest(table: pd.DataFrame, metric: str, path: Path, pooled_name: str =
         ax.grid(axis="x", color=MUTED, alpha=0.25, lw=0.6)
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
-        ax.set_xlabel(f"{metric.replace('_', ' ')}: more contrast - original", color=INK, fontsize=9)
+        ax.set_xlabel(f"{metric.replace('_', ' ')}: {label_name} - original", color=INK, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -288,7 +305,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     families = [f for f in FAMILY_ORDER if f in args.families]
     pooled_name = POOLED if len(families) == len(FAMILY_ORDER) else f"mean of {len(families)} families"
     rows, per_class, changes = [], [], []
-    for input_path, (run, ids) in PATHS.items():
+    for input_path, (run, ids) in ((p, PATHS[p]) for p in args.paths):
         pairs = {}
         for f in families:
             original, contrast = (load_predictions(root / run / input_path / f / "test_predictions.csv", "test")
@@ -302,16 +319,23 @@ def main(argv: Optional[List[str]] = None) -> int:
         changes += change_rows(input_path, ids, pairs, pooled_name)
         print(f"{input_path}: {len(families)} families paired", flush=True)
 
+    # Default names are T30's; --name renames the compared run's columns, files and labels
+    prefix = "contrast" if args.name == "more_contrast" else args.name
+    label = {"more_contrast": None}.get(args.name, args.name.replace("_", " "))
+    rename = (lambda frame: frame) if args.name == "more_contrast" else (
+        lambda frame: frame.rename(columns=lambda c: c.replace("more_contrast", args.name)))
     table = pd.DataFrame(rows)
-    table.to_csv(out / "contrast_vs_original.csv", index=False)
+    rename(table).to_csv(out / f"{prefix}_vs_original.csv", index=False)
     for metric in ("accuracy", "macro_f1"):
-        plot_forest(table, metric, out / f"contrast_vs_original_{metric}.png", pooled_name)
+        plot_forest(table, metric, out / f"{prefix}_vs_original_{metric}.png", pooled_name, label or "more contrast")
     class_table = pd.DataFrame(per_class)
-    class_table.to_csv(out / "contrast_per_class.csv", index=False)
-    pd.DataFrame(changes).to_csv(out / "contrast_per_class_changes.csv", index=False)
+    rename(class_table).to_csv(out / f"{prefix}_per_class.csv", index=False)
+    rename(pd.DataFrame(changes)).to_csv(out / f"{prefix}_per_class_changes.csv", index=False)
     for metric in ("recall", "f1"):
-        plot_class_forest(class_table, metric, out / f"contrast_per_class_{metric}.png", pooled_name, len(families))
-        plot_class_heatmap(class_table, metric, families, pooled_name, out / f"contrast_per_class_{metric}_by_model.png")
+        plot_class_forest(class_table, metric, out / f"{prefix}_per_class_{metric}.png", pooled_name, len(families),
+                          label or "CLAHE")
+        plot_class_heatmap(class_table, metric, families, pooled_name, out / f"{prefix}_per_class_{metric}_by_model.png",
+                           label or "CLAHE")
     print(f"Wrote {out}")
     return 0
 
