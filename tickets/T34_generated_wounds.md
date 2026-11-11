@@ -4,7 +4,7 @@
 - **Phase**: Extra experiment (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T18](T18_crop_roi.md) (per-crop path), [T12b](T12b_cross_validation.md) (CV folds), [T23](T23_relabel_rerun.md), [T30](T30_more_contrast.md) (paired comparison)
 - **Scenarios**: per-crop models (S25–S32 recipe) retrained with generated crops added to training
-- **Status**: In progress: stage 1 done; stage 2 retraining on Raptor (2026-11-10); blinded rating with the researcher
+- **Status**: Stages 1 and 2 done (2026-11-11): no gain from either generator; blinded rating with the researcher; stage 3 (CV) not started
 
 ---
 
@@ -77,3 +77,16 @@ Generated crops are derived from patient photographs. Whether they may be shown 
 - 2026-11-10, blinded rating set (job 244072): per class 10 real training crops, 10 StyleGAN, 10 LoRA (unflagged), 256 px PNG, shuffled; images and sheet copied to `../results_figures/Generated wounds rating/` for the researcher, `answer_key.csv` kept on Raptor in `generators/quality/rating_key/`.
 - Stage 2 training sets (jobs 244073–244074, `pytest tests/test_extra_train.py` 4 passed): cut 94 + 21, scratch 77 + 38, penetration 39 + 76 generated = 115 each (the median class), unflagged, seed 0; `generators/extra_train_{gan,sd}.csv`. Class weights are computed on the augmented train split, as the recipe computes them on whatever it trains on.
 - Stage 2 retraining: the whole T23 per-crop recipe (learning-rate grid, selection on real validation, CNN-SVM, AlexNet ensemble) under `GENERATED=gan source scripts/hpc/generated_env.sh; PATHS=crop bash scripts/hpc/submit_all.sh roi_crop` (jobs 244075–244103). The diffusion arm has the same job names, so a login-node waiter (`logs/t34_submit_sd_after_gan.sh`) submits it when the GAN arm has left the queue.
+- 2026-11-11: both arms finished (GAN jobs 244075–244103, diffusion 244123–244151, no failures). On the laptop, T30's pipeline on the per-crop runs: `patient_rescore.py` (391 patients), `evaluate.py`, `crop_summary.py`, and `contrast_compare.py --paths crop --name generated_<arm>` (new options; T23 per-crop predictions as the original). Results in `../results_figures/Generated wounds/{gan,sd}/`; the per-image files were in a temporary folder, deleted.
+
+| Mean of the 8 families, test, patient bootstrap | T23 | + StyleGAN crops | Difference [95% CI] | + LoRA crops | Difference [95% CI] |
+|---|---|---|---|---|---|
+| Accuracy | 0.806 | 0.805 | −0.001 [−0.016, 0.011] | 0.812 | +0.005 [−0.010, 0.019] |
+| Macro-F1 | 0.705 | 0.689 | −0.016 [−0.051, 0.010] | 0.703 | −0.002 [−0.029, 0.017] |
+| Recall, cut wound (31 crops, 5 patients) | 0.480 | 0.496 | +0.016 [−0.028, 0.125] | 0.496 | +0.016 [−0.083, 0.045] |
+| Recall, scratch (29 crops, 6 patients) | 0.767 | 0.737 | −0.030 [−0.091, 0.031] | 0.759 | −0.009 [−0.125, 0.042] |
+| Recall, penetration (8 crops, 3 patients) | 0.406 | 0.281 | −0.125 [−0.438, 0.000] | 0.328 | −0.078 [−0.125, −0.031] |
+
+- No family's accuracy or macro-F1 changed significantly (Holm) in either arm; the largest single change was ResNet152 with StyleGAN crops, macro-F1 −0.090 [−0.190, −0.013], Holm p 0.13.
+- Penetration's interval with LoRA crops excludes 0, but it rests on 3 patients: a patient bootstrap of 3 clusters cannot give a trustworthy interval, so it is not read as a real loss. Per family, penetration recall moves by steps of 0.125 (one crop) and in both directions.
+- Reading: topping the three small classes up to the median class with generated crops did not raise their recall on this test set. The test set cannot detect small effects for these classes; stage 3 (CV, about 41 penetration photos) would be needed for a firmer answer.
