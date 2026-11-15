@@ -60,7 +60,7 @@ Accuracy per family, original → fused (equal); * = Holm p < 0.05:
 | CNN-SVM | 0.651 → 0.812* | 0.819 → 0.808 |
 | AlexNet ensemble | 0.738 → 0.819* | 0.717 → 0.786* |
 
-- **Voting helps clearly, at both levels.** Every pooled interval excludes 0. Photo level: 7 of 8 families gain, 6 significantly after Holm; ResNet152, the best full-image model, is unchanged (0.893). Crop level: 6 of 8 gain, 4 significantly; CNN-SVM and MobileNetV3-Small barely move.
+- **Voting helps clearly, at both levels.** Every pooled interval excludes 0. Photo level: 7 of 8 families gain, 5 significantly after Holm; ResNet152, the best full-image model, is unchanged (0.893). Crop level: 7 of 8 gain, 4 significantly; MobileNetV3-Small barely moves (+0.014) and CNN-SVM drops slightly (−0.011, n.s.).
 - **The best single result moves little**: best photo-level accuracy 0.899 (GoogLeNet fused) against 0.893 (ResNet152 alone); best crop-level 0.884 (VGG16 fused) against 0.833 (VGG16 alone). Voting mostly lifts the weaker models to the level of the best.
 - **Per class (pooled recall, equal)**: photo level graze +0.066 [+0.034, +0.105] and laceration +0.102 [+0.011, +0.196]; crop level gunshot +0.054 [+0.027, +0.083] and laceration +0.120 [+0.035, +0.165]. Scratch (photo +0.229) and penetration change too, on 6 and 3 patients.
 - **Tuned weights** (weight on the full image 0.2–0.6 at photo level, 0.0–0.6 at crop level) give about the same: photo accuracy +0.080 [+0.040, +0.123], macro-F1 +0.106 [+0.035, +0.162]; crop +0.039 [+0.023, +0.057], +0.038 [+0.016, +0.079]. Tuning adds nothing over 0.5, so equal weights are the rule to report.
