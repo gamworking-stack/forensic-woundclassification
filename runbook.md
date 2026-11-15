@@ -395,6 +395,16 @@ sbatch -J auto_verify -p compute --gres=none --export=ALL,PY_ARGS="src/evaluatio
 ```
 Outputs: `experiments/auto_summary/` (`primary_noninferiority.csv`, `primary_by_family.csv`, `secondary_*.csv`, `arms.json`, `verification/verification_report.csv`), `auto_<arm>/detection/test_metrics/`, and Grad-CAM overlays in `main|roi_box/gradcam_auto_<arm>/` (patient photographs: they stay on Raptor).
 
+## YOLO detector and the vote with detector crops (T37, extra)
+
+On the T23 data. One-time setup (done 2026-11-15): COCO weights `yolo11{n,s,m,l}.pt` and `yolo26n.pt` (AMP check only) in `/project/a260012_FORWCL/yolo_weights`; ultralytics settings in `/project/a260012_FORWCL/yolo_config` (weights and runs on /project, `sync` off), written once with `SETTINGS.update(...)` inside the container with `YOLO_CONFIG_DIR` set.
+
+```bash
+source scripts/hpc/relabel_env.sh
+bash scripts/hpc/submit_t37.sh   # prepare -> train s/m/l (+ validation detections) -> select -> test -> metrics, crops -> per-crop predictions -> vote
+```
+Outputs (all under `$EXPERIMENTS_DIR`): `auto_4Y/` (YOLO dataset, runs, detections, `selection.json`, test crops' manifests `roi/`), `detection_t37/{4Y,4F,4Z,report}/`, `fusion_auto/` (sources, fused files, patient copies, `compare/`). Crops in `$DERIVED_DIR/roi_auto_4Y_{union,box}`. Fetch only `detection_t37/report/`, the `metrics.json` files and `fusion_auto/compare/` (no per-photo files).
+
 ## Final verification (T16)
 
 After the main run, T08, T15, T14 and the CV summary: re-derive every selection and reported number from the run files (about 10 minutes on a compute node; the bootstrap intervals are recomputed with the same seed):

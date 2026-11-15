@@ -6,7 +6,7 @@ covering every photo once:
 - 4Z and 4P: the development file plus the test file;
 - 4F: the five cross-fitted ``train_fold<k>.csv``, the validation file and the test file.
 
-A photo in two files is an error.
+A photo in two files is an error. ``--splits`` limits the crops to some splits (T37 cuts test only).
 
 Every photo of the per-box manifest gets its final boxes (``candidate_boxes`` then ``final_boxes``
 with the arm's threshold and the training-split cap and oversize share), and from them:
@@ -35,7 +35,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_roi_dataset import safe_folder  # noqa: E402
 from src.detection.boxes import COORDINATES, PADDING, candidate_boxes, final_boxes, padded_crop_box  # noqa: E402
-from src.detection.common import PHOTO, load_photo, photo_table  # noqa: E402
+from src.detection.common import PHOTO, SPLITS, load_photo, photo_table  # noqa: E402
 from src.detection.evaluate_detection import load_detections  # noqa: E402
 from src.training.data import GROUP_COLUMN, LABEL_COLUMN  # noqa: E402
 from src.data.paths import DATA_DIR  # noqa: E402
@@ -104,6 +104,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                         help="Where crops go: <crop-root>_union/ and <crop-root>_box/ (live run only).")
     parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--limits", type=Path, default=DATA_DIR / "roi_auto/reference_limits.json")
+    parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS),
+                        help="Photos to crop (T37: test only); detections of other photos are ignored.")
     args = parser.parse_args(argv)
     if (args.image_root is None) != (args.crop_root is None):
         parser.error("--image-root and --crop-root go together")
@@ -134,11 +136,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     if (files_per_photo > 1).any():
         raise SystemExit(f"Photos in more than one detections file, e.g. {list(files_per_photo[files_per_photo > 1].index[:3])}")
 
-    # All 1,100 photos; every detected photo must be one of them
+    # All 1,100 photos; every detected photo must be one of them. Then only the photos of --splits
     photos = photo_table(args.box_manifest)
     unknown = set(detections[PHOTO]) - set(photos[PHOTO])
     if unknown:
         raise SystemExit(f"{len(unknown)} detected photos are not in {args.box_manifest}, e.g. {sorted(unknown)[:3]}")
+    photos = photos[photos["split"].isin(args.splits)].reset_index(drop=True)
+    detections = detections[detections[PHOTO].isin(set(photos[PHOTO]))]
     # Final boxes per photo, then the manifest rows of both designs
     finals = final_boxes_by_photo(photos, detections, float(selection["threshold"]), limits)
     rows = build_rows(photos, finals, selection["arm"])
@@ -148,7 +152,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                "detections": [str(p) for p in args.detections], "dry_run": args.image_root is None,
                "photos": int(len(photos)), "fallback": dict(Counter(f for _, _, f in finals.values())),
                "fallback_by_split": {s: dict(Counter(finals[p][2] for p in photos.loc[photos["split"] == s, PHOTO]))
-                                     for s in ("train", "validation", "test")}}
+                                     for s in args.splits}}
     # Write one manifest per design (training and prediction read these)
     for design in DESIGNS:
         frame = pd.DataFrame(rows[design])

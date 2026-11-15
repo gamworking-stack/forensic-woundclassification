@@ -15,6 +15,10 @@ used to choose. Validation and test files are both written, in the layout of the
 (``<rule>/main/full/<family>/`` and ``<rule>/roi_crop/crop/<family>/``), so ``patient_rescore.py`` and
 ``contrast_compare.py`` score them against the original runs unchanged. Also writes
 ``fusion_weights.csv`` (validation macro-F1 at every weight). Output outside the repository.
+
+T37 reuses it with crops cut from a detector's boxes (``--box-manifest`` the auto per-box manifest):
+``--splits test --rules equal crop_only --levels photo``. ``crop_only`` (w = 0) is the photo-level mean
+of the crops alone; ``tuned`` needs the validation split.
 """
 
 from __future__ import annotations
@@ -38,6 +42,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 FULL, CROP = ("main", "full"), ("roi_crop", "crop")
 SPLITS = ("validation", "test")
 GRID = [round(w, 1) for w in np.linspace(0, 1, 11)]
+RULES = ("equal", "tuned", "crop_only")
+LEVELS = {"photo": ("full", FULL), "crop": ("crop", CROP)}
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -48,7 +54,13 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--box-manifest", type=Path, default=DATA_DIR / "roi_box/roi_manifest.csv")
     parser.add_argument("--families", nargs="+", default=list(FAMILY_ORDER))
     parser.add_argument("--grid", nargs="+", type=float, default=GRID, help="Weights on the full image to try.")
-    return parser.parse_args(argv)
+    parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS))
+    parser.add_argument("--rules", nargs="+", choices=RULES, default=["equal", "tuned"])
+    parser.add_argument("--levels", nargs="+", choices=tuple(LEVELS), default=list(LEVELS))
+    args = parser.parse_args(argv)
+    if "tuned" in args.rules and "validation" not in args.splits:
+        parser.error("the tuned rule chooses its weight on validation: add validation to --splits")
+    return args
 
 
 def prob_columns(frame: pd.DataFrame) -> List[str]:
@@ -125,30 +137,34 @@ def main(argv: Optional[List[str]] = None) -> int:
         files = {split: {name: pd.read_csv(args.source_root / run / path / family / f"{split}_predictions.csv",
                                            dtype={"pseudonimized_id": str})
                          for name, (run, path) in (("full", FULL), ("crop", CROP))}
-                 for split in SPLITS}
-        # Validation macro-F1 at every weight, per level; the tuned weight is the best (ties: nearest 0.5)
-        scores = {w: {level: macro_f1(frame) for level, frame in
-                      fuse(files["validation"]["full"], files["validation"]["crop"], boxes, w).items()} for w in grid}
-        chosen = {"equal": {"full": 0.5, "crop": 0.5}}
-        chosen["tuned"] = {level: max(grid, key=lambda w: (round(scores[w][level], 10), -abs(w - 0.5)))
-                           for level in ("full", "crop")}
-        for w in grid:
-            for level in ("full", "crop"):
-                weights.append({"family": family, "level": "photo" if level == "full" else "crop", "weight_full": w,
-                                "validation_macro_f1": scores[w][level],
-                                "tuned": w == chosen["tuned"][level], "equal": w == 0.5})
+                 for split in args.splits}
+        fixed = {"equal": 0.5, "crop_only": 0.0}
+        chosen = {rule: {"full": fixed[rule], "crop": fixed[rule]} for rule in args.rules if rule in fixed}
+        if "tuned" in args.rules:
+            # Validation macro-F1 at every weight, per level; the tuned weight is the best (ties: nearest 0.5)
+            scores = {w: {level: macro_f1(frame) for level, frame in
+                          fuse(files["validation"]["full"], files["validation"]["crop"], boxes, w).items()} for w in grid}
+            chosen["tuned"] = {level: max(grid, key=lambda w: (round(scores[w][level], 10), -abs(w - 0.5)))
+                               for level in ("full", "crop")}
+            for w in grid:
+                for level in ("full", "crop"):
+                    weights.append({"family": family, "level": "photo" if level == "full" else "crop", "weight_full": w,
+                                    "validation_macro_f1": scores[w][level],
+                                    "tuned": w == chosen["tuned"][level], "equal": w == 0.5})
+            print(f"{family}: tuned weight on the full image, photo level {chosen['tuned']['full']}, "
+                  f"crop level {chosen['tuned']['crop']}", flush=True)
         for rule, by_level in chosen.items():
-            for split in SPLITS:
-                for level, (run, path) in (("full", FULL), ("crop", CROP)):
+            for split in args.splits:
+                for level, (run, path) in (LEVELS[name] for name in args.levels):
                     frame = fuse(files[split]["full"], files[split]["crop"], boxes, by_level[level])[level]
                     target = out / rule / run / path / family
                     target.mkdir(parents=True, exist_ok=True)
                     frame.to_csv(target / f"{split}_predictions.csv", index=False)
-        print(f"{family}: tuned weight on the full image, photo level {chosen['tuned']['full']}, "
-              f"crop level {chosen['tuned']['crop']}", flush=True)
 
-    pd.DataFrame(weights).to_csv(out / "fusion_weights.csv", index=False)
-    print(f"Wrote fused predictions (equal, tuned) and fusion_weights.csv to {out}")
+    if weights:
+        pd.DataFrame(weights).to_csv(out / "fusion_weights.csv", index=False)
+    print(f"Wrote fused predictions ({', '.join(args.rules)}; {', '.join(args.levels)} level; "
+          f"{', '.join(args.splits)}) to {out}")
     return 0
 
 

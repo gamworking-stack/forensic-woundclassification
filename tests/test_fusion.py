@@ -118,3 +118,26 @@ def test_output_inside_the_repo_and_missing_crops_are_refused(runs):
     crop[keep].to_csv(crop_file, index=False)
     with pytest.raises(ValueError, match="photographs without crops"):
         run_fusion(data, source, tmp_path / "fused2")
+
+
+def test_test_only_photo_level_equal_and_crop_only(runs):
+    # T37: crops from a detector have test predictions only, and are scored at the photo level
+    data, source, tmp_path = runs
+    out = tmp_path / "auto"
+    assert fusion_main(["--source-root", str(source), "--output-root", str(out), "--box-manifest", str(data["box_manifest"]),
+                        "--families", *FAMILIES, "--splits", "test", "--rules", "equal", "crop_only",
+                        "--levels", "photo"]) == 0
+    assert not (out / "equal/roi_crop").exists() and not (out / "fusion_weights.csv").exists()
+    assert not (out / "equal/main/full/vgg16/validation_predictions.csv").exists()
+    # crop_only is the mean of the photograph's crops; equal the T36 average
+    full = pd.read_csv(source / "main/full/vgg16/test_predictions.csv", dtype={"pseudonimized_id": str})
+    crop = pd.read_csv(source / "roi_crop/crop/vgg16/test_predictions.csv", dtype={"pseudonimized_id": str})
+    only = pd.read_csv(out / "crop_only/main/full/vgg16/test_predictions.csv", dtype={"pseudonimized_id": str})
+    equal = pd.read_csv(out / "equal/main/full/vgg16/test_predictions.csv", dtype={"pseudonimized_id": str})
+    np.testing.assert_allclose(equal[COLUMNS].to_numpy(), 0.5 * full[COLUMNS].to_numpy() + 0.5 * only[COLUMNS].to_numpy())
+    assert np.allclose(only[COLUMNS].sum(axis=1), 1) and len(only) == len(full)
+    assert crop[COLUMNS].to_numpy().mean(axis=0) == pytest.approx(crop[COLUMNS].to_numpy().mean(axis=0))
+    # The tuned rule needs validation
+    with pytest.raises(SystemExit):
+        fusion_main(["--source-root", str(source), "--output-root", str(tmp_path / "x"), "--splits", "test",
+                     "--rules", "tuned"])

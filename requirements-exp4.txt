@@ -3,5 +3,5 @@
 # venv_exp4 (4Z, 4F, selection, crops):  python -m venv --system-site-packages; pip install -r requirements-exp4.txt
 transformers==4.52.4   # 4.57.x fails on the container's torch 2.6.0a0 pre-release (T19 §2.10)
 picklescan             # 4P: scan the Hanterdsith pickles before the one load
-# venv_exp4_yolo (4P only): pip install ultralytics==8.4.178, then pip uninstall -y opencv-python numpy
+# venv_exp4_yolo (4P, and T37 arm 4Y: YOLO11 training): pip install ultralytics==8.4.178, then pip uninstall -y opencv-python numpy
 # (use the container's OpenCV 4.10 and numpy 1.26.4; the wheel's OpenCV needs libxcb)

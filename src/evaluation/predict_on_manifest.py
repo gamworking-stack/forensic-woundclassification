@@ -11,7 +11,8 @@ predicts the test rows of ``--manifest`` (auto-box crops):
 
 Prediction runs as in training (bf16 autocast on GPU), so ``--check-manual`` can re-predict the
 model's own manual test crops and compare them with its reported ``test_predictions.csv``.
-Outputs go to ``<output-root>/<roi|box>/<family>/test_predictions.csv``.
+Outputs go to ``<output-root>/<roi|box|crop>/<family>/test_predictions.csv``. T37 adds the per-crop
+design (``--design crop``, the T18 run): one prediction per auto crop, for the full-image/crop vote.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from src.training.photo import PHOTO_INPUT_PATHS, manifest_photos, photo_weights
 from src.training.transforms import build_transforms  # noqa: E402
 
 
-DESIGN_PATHS = {"union": "roi", "box": "box"}
+DESIGN_PATHS = {"union": "roi", "box": "box", "crop": "crop"}  # crop: per-crop models S25-S32, one row per crop (T37)
 
 
 def manifest_rows(config: Dict[str, Any], input_path: str) -> pd.DataFrame:
@@ -168,7 +169,7 @@ def check_manual(root: Path, design: str, family: str, device: torch.device, wor
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Existing models predicting another manifest's test crops (T19).")
     parser.add_argument("--experiments-root", type=Path, required=True,
-                        help="The main run (union design) or the T17 run (box design).")
+                        help="The main run (union design), the T17 run (box design) or the T18 run (crop design).")
     parser.add_argument("--design", choices=tuple(DESIGN_PATHS), required=True)
     parser.add_argument("--manifest", type=Path, required=True, help="data/roi_auto/<arm>/<design>/roi_manifest.csv")
     parser.add_argument("--image-root", type=Path, required=True, help="The auto crops: derived_data/roi_auto_<arm>_<design>")

@@ -2,7 +2,7 @@
 """Choose one detector arm's configuration and threshold, and judge its recall gate (T19 §2.2–§2.4).
 
 Input: the arm's detections files, one per configuration (``<config>.csv``, see
-``evaluate_detection``), and the splits the arm selects on: ``validation`` for 4F, ``train`` and
+``evaluate_detection``), and the splits the arm selects on: ``validation`` for 4F and 4Y (T37), ``train`` and
 ``validation`` for 4Z and 4P. **Test photos are never read**: detections of test photos are dropped
 before anything is computed, and their count is recorded.
 
@@ -42,8 +42,9 @@ from src.training.data import GROUP_COLUMN  # noqa: E402
 from src.data.paths import DATA_DIR  # noqa: E402
 
 
-ARMS = ("4Z", "4P", "4F")
-SELECTION_SPLITS = {"4Z": ("train", "validation"), "4P": ("train", "validation"), "4F": ("validation",)}
+ARMS = ("4Z", "4P", "4F", "4Y")  # 4Y: YOLO11 fine-tuned like 4F (T37)
+SELECTION_SPLITS = {"4Z": ("train", "validation"), "4P": ("train", "validation"), "4F": ("validation",),
+                    "4Y": ("validation",)}
 
 
 def file_sha256(path: Path) -> str:
