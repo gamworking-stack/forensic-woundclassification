@@ -49,3 +49,31 @@ The researcher asked (2026-11-15) for scatter plots exploring whether the image 
 - **Crop size is U-shaped, not monotone**: the smallest fifth of crops (≤ 0.07 MP) is classified best (accuracy 0.89–0.95), the second and third fifths worst (0.66–0.82). Half the smallest fifth are gunshot wounds (28 of 56), the class the models get most right.
 - **Contrast**: the lowest-contrast fifth has the lowest accuracy (0.66–0.75), hence OR > 1; yet ρ is slightly negative, because that fifth also holds contusions and scratches (median SD of L* 5.7 and 5.0, against 10.6–15.0 for the other classes) that are classified correctly with high probability.
 - **Reading**: the signals line up with wound class (gunshot crops small, dark and high-contrast; contusion and scratch crops low-contrast), which this unadjusted analysis does not separate from image quality. Exploratory; 16 model × measure pairs, no multiplicity correction.
+
+## 6. Crop area as a share of the full photograph (added 2026-11-15)
+
+The researcher asked whether crops that cover a smaller part of their photograph are classified less accurately. New measure `area_fraction` = box area (padding included) / photograph area, from the manifest, and `--full-predictions-root`: each crop also gets the same family's full-image verdict on its photograph (matched by group and file stem), compared per crop and quintile. Run on the laptop (no images): `--measures area_fraction`, prediction files from `../discussion 29 oct/test_results/`. Outputs: `../results_figures/Crop area fraction vs accuracy/`. Tests: 5 passed.
+
+Area fraction: median 2.1% of the photograph (IQR 0.8–6.5%; 0.06% to 58%).
+
+| Model | ρ with P(true class) | OR per SD, crop model | OR per SD, full-image model on the same crops |
+|---|---|---|---|
+| VGG16 | +0.18 [+0.04, +0.32] | 1.07 [0.82, 1.47] | 0.96 [0.67, 1.50] |
+| ResNet152 | +0.17 [−0.09, +0.37] | 1.02 [0.73, 1.58] | 0.96 [0.66, 1.52] |
+| EfficientNet-B0 | +0.17 [−0.01, +0.31] | 0.93 [0.72, 1.24] | 0.95 [0.60, 1.51] |
+| MobileNetV3-Small | +0.12 [−0.06, +0.29] | 0.88 [0.64, 1.18] | 1.27 [0.75, 2.19] |
+
+Accuracy by fifth of area fraction (crop model / full-image model, per crop):
+
+| Fifth (area share) | VGG16 | ResNet152 | EfficientNet-B0 | MobileNetV3-Small |
+|---|---|---|---|---|
+| 1 (0.06–0.6%) | 0.91 / 0.89 | 0.93 / 0.96 | 0.88 / 0.95 | 0.89 / 0.71 |
+| 2 (0.6–1.4%) | 0.78 / 0.78 | 0.67 / 0.82 | 0.76 / 0.80 | 0.76 / 0.73 |
+| 3 (1.4–3.1%) | 0.71 / 0.73 | 0.80 / 0.84 | 0.84 / 0.80 | 0.69 / 0.60 |
+| 4 (3.1–8.2%) | 0.85 / 0.87 | 0.82 / 0.91 | 0.82 / 0.91 | 0.84 / 0.69 |
+| 5 (8.5–58%) | 0.91 / 0.85 | 0.87 / 0.91 | 0.82 / 0.87 | 0.76 / 0.85 |
+
+- **A smaller share of the photograph does not lower crop accuracy.** No odds ratio excludes 1; the smallest fifth is classified best by every crop model (0.88–0.93). Accuracy dips in the second and third fifths and recovers, the same U shape as crop size (§5).
+- **The full-image models show the same U shape on the same crops**, so the dip belongs to the wounds in those fifths, not to cropping. Crop minus full per fifth: one interval excludes 0, ResNet152 fifth 2, −0.145 [−0.300, −0.024]; 1 of 20, about the number expected by chance.
+- **Wound class again**: the smallest fifth is half gunshot wounds (27 of 56) and a quarter scratches (13); the largest is mostly graze wounds and contusions (35 of 55). Unadjusted, as asked.
+- Full-image accuracy here is per crop (a photograph with three crops counts three times), so it differs slightly from Table 2 (per photograph).

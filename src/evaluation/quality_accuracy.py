@@ -6,6 +6,8 @@ on the original images (T23 per-crop runs, no CLAHE). Quality measures per crop:
 
 - ``megapixels``: width x height of the crop as cut from the photograph (box manifest ``x1``-``y2``,
   padding included). Read from the manifest, so it needs no image.
+- ``area_fraction``: the crop's area as a share of its full photograph's area (manifest box and
+  ``source_width`` x ``source_height``); no image needed either.
 - With ``--image-root`` (the per-box crop folder; patient images, run on Raptor), on the crop resized
   so its longest side is ``--image-size`` (the scale the model sees, padding excluded):
   ``sharpness`` (variance of the Laplacian of CIELAB L*), ``brightness`` (mean L*, 0-100) and
@@ -16,8 +18,12 @@ class; the odds ratio of a correct prediction per 1 SD of the measure (log10 sca
 sharpness); accuracy within quintiles of the measure. 95% intervals from a patient-level bootstrap
 (a patient's crops are resampled together; the same resamples for every model and measure).
 
+With ``--full-predictions-root`` each crop also gets the full-image model's verdict on its photograph
+(same family), and the quintile table compares the two paired per crop (accuracy, crop minus full).
+
 Writes ``quality_per_crop.csv``, ``quality_correlation.csv``, ``quality_quintiles.csv``, one scatter
-figure per measure (``quality_scatter_<measure>.png``, a panel per model) and ``quality_summary.png``.
+figure per measure (``quality_scatter_<measure>.png``, a panel per model), ``quality_summary.png`` and,
+with the full-image runs, ``crop_vs_full_<measure>.png``.
 """
 
 from __future__ import annotations
@@ -40,6 +46,7 @@ from scipy import ndimage, stats  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.paths import DATA_DIR  # noqa: E402
 from src.evaluation.plots import FAMILY_LABELS, INK, MUTED  # noqa: E402
+from src.evaluation.single_box import photo_stem  # noqa: E402
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -47,6 +54,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 FAMILIES = ["vgg16", "resnet152", "efficientnet_b0", "mobilenet_v3_small"]
 MEASURES = {  # name: (axis label, log10 scale)
     "megapixels": ("Crop size (megapixels)", True),
+    "area_fraction": ("Crop area / full-photograph area", True),
     "sharpness": ("Sharpness (variance of the Laplacian of L*)", True),
     "brightness": ("Brightness (mean L*, 0-100)", False),
     "contrast": ("Contrast (SD of L*)", False),
@@ -65,6 +73,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--image-root", type=Path, default=None,
                         help="Per-box crop folder; adds sharpness, brightness and contrast.")
     parser.add_argument("--image-size", type=int, default=384, help="Longest side for the image measures.")
+    parser.add_argument("--full-predictions-root", type=Path, default=None,
+                        help="Folder with <family>/test_predictions.csv of the full-image runs: adds each crop's "
+                             "photograph verdict and crop vs full-image accuracy by quintile.")
+    parser.add_argument("--measures", nargs="+", default=None, choices=list(MEASURES),
+                        help="Measures to analyse (default: every one available).")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
@@ -121,6 +134,21 @@ def crop_table(args: argparse.Namespace) -> pd.DataFrame:
     table.insert(3, "crop_width", width)
     table.insert(4, "crop_height", height)
     table.insert(5, "megapixels", width * height / 1e6)
+    photo_area = box["source_width"].astype(int).to_numpy() * box["source_height"].astype(int).to_numpy()
+    table.insert(6, "area_fraction", width * height / photo_area)
+
+    if args.full_predictions_root is not None:
+        # The full-image model's verdict on each crop's photograph; full-image rows name the raw photo
+        # file, so they are matched by group and file stem (as in patient_rescore.py)
+        keys = list(zip(box["pseudonimized_id"], box["filename"].map(photo_stem)))
+        for family in args.families:
+            full = pd.read_csv(args.full_predictions_root / family / "test_predictions.csv", dtype={"pseudonimized_id": str})
+            verdict = dict(zip(zip(full["pseudonimized_id"], full["relative_path"].map(photo_stem)),
+                               full["true_class"] == full["predicted_class"]))
+            unmatched = [k for k in keys if k not in verdict]
+            if unmatched:
+                raise ValueError(f"{len(unmatched)} crops' photographs have no {family} full-image prediction: {unmatched[:3]}")
+            table[f"{family}_full_correct"] = [verdict[k] for k in keys]
 
     if args.image_root is not None:
         image = pd.DataFrame([image_measures(args.image_root / c, args.image_size) for c in table["crop"]])
@@ -179,31 +207,55 @@ def analyse(table: pd.DataFrame, families: List[str], measures: List[str], n_res
         for family in families:
             correct = table[f"{family}_correct"].to_numpy(dtype=float)
             prob = table[f"{family}_prob_true"].to_numpy(dtype=float)
+            full_column = f"{family}_full_correct"
+            full = table[full_column].to_numpy(dtype=float) if full_column in table.columns else None
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 rho = [stats.spearmanr(x[i], prob[i])[0] for i in resamples]
                 slope = [logistic_slope(z[i], correct[i]) for i in resamples]
-                acc = np.array([[correct[i][bins[i] == q].mean() if (bins[i] == q).any() else np.nan
-                                 for q in range(QUINTILES)] for i in resamples])
+                acc = quintile_draws(correct, bins, resamples)
+                if full is not None:
+                    full_slope = [logistic_slope(z[i], full[i]) for i in resamples]
+                    full_acc = quintile_draws(full, bins, resamples)
+                    diff = quintile_draws(correct - full, bins, resamples)
             observed_slope = logistic_slope(z, correct)
-            correlation.append({
+            row = {
                 "family": family, "measure": measure, "log10_scale": MEASURES[measure][1],
                 "crops": len(table), "patients": len(case_ids),
                 "spearman_rho": stats.spearmanr(x, prob)[0], **dict(zip(("rho_ci_low", "rho_ci_high"), interval(np.array(rho)))),
                 "odds_ratio_per_sd": np.exp(observed_slope),
                 **dict(zip(("or_ci_low", "or_ci_high"), np.exp(interval(np.array(slope))))),
                 "accuracy": correct.mean(),
-            })
+            }
+            if full is not None:
+                # The same odds ratio for the full-image model's verdict on each crop's photograph
+                row.update({"full_odds_ratio_per_sd": np.exp(logistic_slope(z, full)),
+                            **dict(zip(("full_or_ci_low", "full_or_ci_high"), np.exp(interval(np.array(full_slope))))),
+                            "full_accuracy": full.mean()})
+            correlation.append(row)
             for q in range(QUINTILES):
                 inside = bins == q
-                quintiles.append({
+                row = {
                     "family": family, "measure": measure, "quintile": q + 1,
                     "measure_low": table[measure].to_numpy()[inside].min(), "measure_high": table[measure].to_numpy()[inside].max(),
                     "measure_median": float(np.median(table[measure].to_numpy()[inside])),
                     "crops": int(inside.sum()), "patients": int(len(set(cases[inside]))), "accuracy": correct[inside].mean(),
                     **dict(zip(("ci_low", "ci_high"), interval(acc[:, q]))),
-                })
+                }
+                if full is not None:
+                    # Crop model on the crop vs full-image model on the crop's photograph, paired per crop
+                    row.update({"full_accuracy": full[inside].mean(),
+                                **dict(zip(("full_ci_low", "full_ci_high"), interval(full_acc[:, q]))),
+                                "crop_minus_full": (correct - full)[inside].mean(),
+                                **dict(zip(("diff_ci_low", "diff_ci_high"), interval(diff[:, q])))})
+                quintiles.append(row)
     return pd.DataFrame(correlation), pd.DataFrame(quintiles)
+
+
+def quintile_draws(values: np.ndarray, bins: np.ndarray, resamples: List[np.ndarray]) -> np.ndarray:
+    """Mean of ``values`` within each quintile, per resample (resamples x quintiles; NaN if empty)."""
+    return np.array([[values[i][bins[i] == q].mean() if (bins[i] == q).any() else np.nan
+                      for q in range(QUINTILES)] for i in resamples])
 
 
 def style(ax) -> None:
@@ -277,10 +329,49 @@ def plot_summary(correlation: pd.DataFrame, families: List[str], measures: List[
     plt.close(fig)
 
 
+def plot_crop_vs_full(quintiles: pd.DataFrame, families: List[str], measure: str, n_crops: int, path: Path) -> None:
+    """Accuracy by quintile of the measure: crop model on the crop vs full-image model on its photograph."""
+    label, log = MEASURES[measure]
+    cols = 2 if len(families) > 1 else 1
+    rows = int(np.ceil(len(families) / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(5.2 * cols, 3.8 * rows), squeeze=False, sharex=True, sharey=True)
+    for ax, family in zip(axes.flat, families):
+        q = quintiles[(quintiles["family"] == family) & (quintiles["measure"] == measure)]
+        x = q["measure_median"].to_numpy()
+        # Small horizontal offset so the two series' intervals do not overlap
+        shift = (lambda v, d: v * 10 ** d) if log else (lambda v, d: v + d * (x.max() - x.min()) * 0.5)
+        for column, low, high, colour, marker, name, d in (
+                ("accuracy", "ci_low", "ci_high", CORRECT, "o", "wound crop (crop model)", -0.03),
+                ("full_accuracy", "full_ci_low", "full_ci_high", WRONG, "s", "full photograph (full-image model)", 0.03)):
+            xs = shift(x, d)
+            ax.vlines(xs, q[low], q[high], color=colour, linewidth=1.3, zorder=2)
+            ax.plot(xs, q[column], color=colour, linewidth=2, marker=marker, markersize=6,
+                    markeredgecolor="white", label=name, zorder=3)
+        ax.set_title(FAMILY_LABELS.get(family, family), fontsize=10, color=INK, loc="left", fontweight="bold")
+        if log:
+            ax.set_xscale("log")
+        ax.set_ylim(0.3, 1.02)
+        style(ax)
+    for ax in axes.flat[len(families):]:
+        ax.set_visible(False)
+    for ax in axes[-1]:
+        ax.set_xlabel(f"{label} (median of each fifth of the crops)", fontsize=9, color=INK)
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Accuracy (95% CI)", fontsize=9, color=INK)
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=2, fontsize=8, frameon=False)
+    fig.suptitle(f"Accuracy on the {n_crops} test crops by {label.lower()}", fontsize=11, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0.05, 1, 0.97))
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     table = crop_table(args)
-    measures = [m for m in MEASURES if m in table.columns]
+    measures = [m for m in (args.measures or MEASURES) if m in table.columns]
+    if not measures:
+        raise ValueError(f"None of {args.measures} is available (image measures need --image-root)")
     correlation, quintiles = analyse(table, args.families, measures, args.bootstrap, args.seed)
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
@@ -289,6 +380,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     quintiles.to_csv(out / "quality_quintiles.csv", index=False)
     for measure in measures:
         plot_scatter(table, correlation, quintiles, args.families, measure, out / f"quality_scatter_{measure}.png")
+        if "full_accuracy" in quintiles.columns:
+            plot_crop_vs_full(quintiles, args.families, measure, len(table), out / f"crop_vs_full_{measure}.png")
     plot_summary(correlation, args.families, measures, out / "quality_summary.png")
     print(correlation.round(3).to_string(index=False))
     print(f"Wrote {len(table)} crops, {len(measures)} measures, {len(args.families)} models to {out}")
