@@ -46,6 +46,6 @@ The researcher asked (2026-11-15) for scatter plots exploring whether the image 
 | Contrast | −0.16 to −0.02, all include 0 | 1.10–1.67; ResNet152 1.46 [1.11, 1.97], EfficientNet-B0 1.67 [1.21, 2.26] |
 
 - **No measure goes with correctness in all four models.** 4 of 32 intervals exclude the null, against about 1.6 expected by chance.
-- **Crop size is U-shaped, not monotone**: the smallest fifth of crops (≤ 0.07 MP) is classified best (accuracy 0.89–0.95), the middle fifths worst (0.65–0.78). Half the smallest fifth are gunshot wounds (28 of 56), the class the models get most right.
+- **Crop size is U-shaped, not monotone**: the smallest fifth of crops (≤ 0.07 MP) is classified best (accuracy 0.89–0.95), the second and third fifths worst (0.66–0.82). Half the smallest fifth are gunshot wounds (28 of 56), the class the models get most right.
 - **Contrast**: the lowest-contrast fifth has the lowest accuracy (0.66–0.75), hence OR > 1; yet ρ is slightly negative, because that fifth also holds contusions and scratches (median SD of L* 5.7 and 5.0, against 10.6–15.0 for the other classes) that are classified correctly with high probability.
 - **Reading**: the signals line up with wound class (gunshot crops small, dark and high-contrast; contusion and scratch crops low-contrast), which this unadjusted analysis does not separate from image quality. Exploratory; 16 model × measure pairs, no multiplicity correction.
