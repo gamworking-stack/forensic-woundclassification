@@ -4,7 +4,7 @@
 - **Phase**: Extra experiment on the T23 data (ROADMAP §5 "Extra experiments")
 - **Spec Reference**: [T19](T19_auto_box_roi.md) (detector protocol, arms 4F and 4Z), [T23](T23_relabel_rerun.md) (data and runs), [T25](T25_patient_cases.md) (patients as cases), [T30](T30_more_contrast.md) (paired comparison), [T36](T36_fusion.md) (soft voting)
 - **Scenarios**: none new. Classifiers are the T23 full-image (S01–S15) and per-crop (S25–S32) models, unchanged.
-- **Status**: Running (decisions frozen 2026-11-15, before any YOLO run)
+- **Status**: Done (decisions frozen 2026-11-15 before any YOLO run; results 2026-11-16, §5)
 
 ---
 
@@ -76,6 +76,54 @@ Weights (SHA-256): `yolo11s.pt` `85a76fe8…`, `yolo11m.pt` `d5ffc1a6…`, `yolo
 
 - 2026-11-15 (laptop): `pytest tests/test_yolo_detection.py tests/test_fusion.py tests/test_auto_roi.py tests/test_detection_evaluation.py tests/test_detection.py tests/test_contrast_compare.py`: 56 passed (Python 3.11, CPU torch).
 
-## 5. Results
+- 2026-11-15 (Raptor, commit `c74a4e6`): `submit_t37.sh`, jobs 247206–247219. YOLO dataset 728 train photos / 1,310 boxes, 155 validation / 222. Training: yolo11s 13 min, m 26 min, l 33 min (H100). Selection, test detection, metrics (4Y, 4F, 4Z), report and 4Y crops completed.
+- Job 247217 (4Y crop predictions) failed: `load_manifest` requires every class in every split, and the 4Y manifest holds test only. Fixed in `ce0be57` (`read_auto_manifest`: a test-only manifest is checked for all 7 classes among its test rows); resubmitted as 247538 (predictions) and 247539 (vote). `--check-manual`: all 8 per-crop models reproduced their reported manual test predictions (same class 1.0 on 276 crops; max probability difference < 1e-7).
+- `3e55743`: precision-recall legend moved clear of the curves; report regenerated.
+- Fetched (summaries and figures only, no per-photo rows) to `../results_figures/YOLO detection/`: `detection_t37/` (metrics.json per arm, report table, per type, `froc_pr.png`), `auto_4Y/` (selection, crop summary, YOLO11m run config and epoch log), `compare/` (6 comparisons).
 
-Pending.
+## 5. Results (test: 149 photographs, 276 manual boxes, 55 patients; 95% patient-bootstrap CI)
+
+### 5.1 Selection (validation)
+
+AP@0.5 yolo11s 0.763, **yolo11m 0.783**, yolo11l 0.752: YOLO11m chosen. Threshold 0.367; recall at the threshold passed the gate (≥ 0.50). Test crops: 255 from 149 photos; 21 photos (14%) fell back to their top box, none to the whole photo.
+
+### 5.2 Detection (`detection_metrics_table.csv`)
+
+| Metric | YOLO11m (4Y) | Faster R-CNN (4F) | Grounding DINO (4Z) |
+|---|---|---|---|
+| Threshold (chosen on validation / train+val) | 0.367 | 0.930 | 0.286 |
+| IoU of matched boxes | 0.807 [0.789, 0.824] | 0.809 [0.795, 0.823] | 0.780 [0.766, 0.795] |
+| Best IoU per manual box (misses = 0) | 0.569 [0.484, 0.647] | 0.559 [0.481, 0.635] | 0.438 |
+| Precision | 0.725 [0.659, 0.793] | 0.763 [0.703, 0.815] | 0.671 [0.593, 0.735] |
+| Recall (sensitivity) | 0.670 [0.571, 0.765] | 0.652 [0.558, 0.750] | 0.547 [0.437, 0.656] |
+| F1 | 0.697 [0.616, 0.771] | 0.703 [0.629, 0.772] | 0.603 [0.506, 0.684] |
+| AP50 | 0.720 [0.617, 0.808] | 0.719 [0.616, 0.807] | 0.600 [0.491, 0.703] |
+| AP75 | 0.461 [0.364, 0.552] | 0.446 [0.355, 0.532] | 0.288 [0.216, 0.372] |
+| mAP50–95 | 0.421 [0.347, 0.491] | 0.425 [0.355, 0.489] | 0.307 [0.251, 0.364] |
+| False positives per image | 0.470 [0.336, 0.619] | 0.376 [0.282, 0.486] | 0.497 [0.394, 0.606] |
+| Sensitivity at 0.5 / **1** / 2 FP per image | 0.699 / **0.761** [0.657, 0.855] / 0.812 | 0.659 / **0.725** [0.625, 0.818] / 0.797 | 0.540 / **0.605** [0.487, 0.718] / 0.667 |
+| FROC score (mean, 1/8–8 FP per image) | 0.717 [0.614, 0.805] | 0.717 [0.612, 0.807] | 0.600 |
+| Photos with ≥ 1 / every wound found | 0.832 / 0.631 | 0.852 / 0.624 | 0.745 / 0.517 |
+
+- **YOLO11 and Faster R-CNN detect equally well**: AP50 0.72 vs 0.72, FROC score 0.72 vs 0.72, all intervals overlapping. YOLO finds slightly more wounds at its threshold (recall 0.67 vs 0.65) with more false alarms (0.47 vs 0.38 per photo); at 1 FP per photo it finds 76% vs 73%. Faster R-CNN is better at very low false-alarm rates (≤ 1/4 FP per photo). Zero-shot Grounding DINO is clearly worse (AP50 0.60).
+- **By wound type (YOLO AP50)**: gunshot 0.94, penetration 0.83, graze 0.72, laceration 0.72, cut 0.68, contusion 0.53, scratch 0.27 (12 photos, 6 patients). Contusions and scratches are hard for every detector.
+- These T23 numbers are lower than T19's original-label 4F (AP50 0.868): the 23 Oct annotations split many wounds into more, smaller boxes (1,972 vs 1,677).
+
+### 5.3 Vote with detector crops (photo level, equal weights; mean of 8 families)
+
+| Comparison | Accuracy | Macro-F1 |
+|---|---|---|
+| **YOLO vote − full image** | 0.791 → 0.846, **+0.055 [+0.031, +0.081]** | 0.683 → 0.738, **+0.055 [+0.018, +0.098]** |
+| Faster R-CNN vote − full image | 0.791 → 0.845, **+0.054 [+0.024, +0.084]** | 0.683 → 0.744, **+0.062 [+0.014, +0.094]** |
+| YOLO vote − manual-box vote (T36) | 0.862 → 0.846, −0.016 [−0.048, +0.014] | 0.777 → 0.738, −0.039 [−0.082, +0.016] |
+| Faster R-CNN vote − manual-box vote | 0.862 → 0.845, −0.018 [−0.034, −0.003] | 0.777 → 0.744, −0.033 [−0.072, −0.003] |
+| YOLO crops alone − full image | 0.791 → 0.799, +0.008 [−0.035, +0.050] | +0.007 [−0.077, +0.084] |
+| Faster R-CNN crops alone − full image | 0.791 → 0.823, +0.032 [−0.017, +0.078] | +0.041 [−0.060, +0.122] |
+
+YOLO vote accuracy per family (full image → vote; * Holm p < 0.05): EfficientNet-B0 0.866 → 0.879; ResNet152 0.893 → 0.879; MobileNetV3-Small 0.745 → 0.812; GoogLeNet 0.826 → 0.872; VGG16 0.819 → 0.879; ViT-B/16 0.792 → 0.859*; CNN-SVM 0.651 → 0.772*; AlexNet ensemble 0.738 → 0.819.
+
+- **The vote still helps without manual boxes.** With YOLO's boxes it keeps about three-quarters of the T36 gain (+0.055 of +0.071 accuracy); the remaining loss against manual boxes (−0.016) is not significant for YOLO, and small but significant for Faster R-CNN (−0.018).
+- **The vote matters more than the detector**: auto crops alone are no better than the full image (+0.008 YOLO, +0.032 Faster R-CNN, both n.s.), but averaging them with the full image gives +0.055. The two inputs make different mistakes.
+- **Per class** (YOLO vote − full image, pooled recall): graze +0.088 [+0.049, +0.131], laceration +0.094 [+0.048, +0.154] (both Holm-significant), gunshot +0.055 [+0.008, +0.114].
+- As in T36, the vote lifts the weaker models (CNN-SVM +0.121, AlexNet ensemble +0.081, ViT +0.067); the best model (ResNet152, 0.893) does not improve (0.879).
+- **Limits**: the test set is used once more; one detector seed; the YOLO threshold and size were chosen on validation, which also chose the classifiers' settings; the detector still needs manual boxes on the training photos.
