@@ -299,7 +299,7 @@ def report(arms: Dict[str, Path], output_dir: Path) -> int:
         ax.set_ylim(0, 1.02)
         ax.grid(color=MUTED, alpha=0.25, linewidth=0.6)
         ax.spines[["top", "right"]].set_visible(False)
-        ax.legend(frameon=False, fontsize=8, loc="lower right")
+        ax.legend(frameon=False, fontsize=8, loc="lower right" if ax is froc_ax else "lower left")
     fig.text(0.01, 0.01, "Dots: operating point at each arm's validation-chosen threshold. Test photos.",
              color=MUTED, fontsize=8)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
