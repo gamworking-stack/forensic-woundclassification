@@ -204,3 +204,17 @@ def test_cli_evaluates_arms_refuses_a_failed_gate_and_reports(tmp_path):
     assert {"AP50", "AP75", "mAP50-95", "False positives per image", "Sensitivity at 1 FP/image"} <= set(table["metric"])
     assert (tmp_path / "report" / "froc_pr.png").is_file()
     assert set(pd.read_csv(tmp_path / "report" / "detection_by_type.csv")["wound_type"]) == {"cut wound", "scratch"}
+
+
+def test_a_test_only_crop_manifest_can_be_predicted(world, tmp_path):
+    from src.evaluation.predict_on_manifest import read_auto_manifest
+    rows = pd.read_csv(world["box_manifest"], dtype=str)
+    # Seven classes are required; give the synthetic test crops all seven labels
+    test = rows[rows["split"] == "test"].head(7).copy()
+    test["canonical_wound_label"] = ["contusion", "cut wound", "graze wound", "gunshot wound", "laceration",
+                                     "penetration wound", "scratch"]
+    test.to_csv(tmp_path / "test_only.csv", index=False)
+    assert set(read_auto_manifest(tmp_path / "test_only.csv", "crop")["split"]) == {"test"}
+    test.head(6).to_csv(tmp_path / "missing.csv", index=False)
+    with pytest.raises(ValueError, match="Expected 7 classes"):
+        read_auto_manifest(tmp_path / "missing.csv", "crop")

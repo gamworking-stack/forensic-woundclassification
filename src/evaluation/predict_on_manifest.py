@@ -34,7 +34,7 @@ from src.evaluation.evaluate import FAMILY_ORDER  # noqa: E402
 from src.evaluation.gradcam import checkpoint_folder  # noqa: E402
 from src.training.cnn_svm import extract, fit_svm  # noqa: E402
 from src.training.common import prediction_frame, resolve_device  # noqa: E402
-from src.training.data import ManifestImageDataset, load_manifest, prepare_rows  # noqa: E402
+from src.training.data import ManifestImageDataset, check_class_coverage, load_manifest, prepare_rows, read_csv  # noqa: E402
 from src.training.engine import load_checkpoint, predict  # noqa: E402
 from src.training.models import build_model, feature_extractor  # noqa: E402
 from src.training.photo import PHOTO_INPUT_PATHS, manifest_photos, photo_weights  # noqa: E402
@@ -50,10 +50,21 @@ def manifest_rows(config: Dict[str, Any], input_path: str) -> pd.DataFrame:
                          Path(config.get("roi_manifest", "data/roi/roi_manifest.csv")), bool(config.get("smoke", False)))
 
 
+def read_auto_manifest(manifest: Path, input_path: str) -> pd.DataFrame:
+    """A crop manifest to predict: the full checks, or, for a test-only manifest (T37 cuts the
+    detector's crops of the test photos only), every class present among the test rows."""
+    df = read_csv(manifest)
+    df["split"] = df["split"].str.strip().str.lower()
+    if set(df["split"]) == {"test"}:
+        check_class_coverage(df, ("test",))
+        return df
+    return load_manifest(manifest, input_path)
+
+
 def test_rows(manifest: Path, input_path: str, image_root: Path, classes: List[str],
               df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     # Resolve image paths and labels; the manifest's classes must match the model's, then keep test
-    df = load_manifest(manifest, input_path) if df is None else df
+    df = read_auto_manifest(manifest, input_path) if df is None else df
     df, found = prepare_rows(df, input_path, image_root)
     if found != classes:
         raise ValueError(f"{manifest}: classes {found} differ from the model's {classes}")
