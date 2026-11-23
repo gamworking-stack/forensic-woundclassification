@@ -66,6 +66,7 @@ Of the 1,134 photos, 979 are T23 photos and 155 are new; 98 new photos are not o
 | `src/evaluation/cv_summary.py` | `--paths` (default both): with one path, only `cv_table.csv`, no ROI-full comparison |
 | `src/evaluation/verify.py` | CV check reads the paths from `cv_table.csv`; with full only it skips the comparison and its figure (NOTE row) |
 | `tests/test_cv.py`, `tests/test_verify.py` | Full-only CV summary and verification |
+| `src/evaluation/subgroup.py` | `--box-root` optional, `--no-union` (T38 scores full and per crop only); `tests/test_subgroup.py` |
 
 No other code changes: every step reads `WOUND_DATA_DIR`.
 
@@ -81,3 +82,5 @@ No other code changes: every step reads `WOUND_DATA_DIR`.
 
 - 2026-11-23 (laptop): workbook decisions above; dataset prepared in `../datasets/relabel_2026_11_19/`, split reproduced, union (1,134) and per-box (1,925) dry-run manifests, CV folds, audit passed. `python -m src.detection.boxes` needs torch: run it on Raptor (runbook step 1).
 - 2026-11-23 (laptop → Raptor): commit `f8f41e1` (branch `t38-nov19-dataset`) synced; the 98 new photos added to the raw tree (cut 91 → 137, scratch 69 → 121, no file replaced), 19 Nov exports to `annotations/cvat_2026_11_19`, dataset to `datasets/relabel_2026_11_19`. Reference boxes on Raptor: 1,925 on 1,134 photos. Crop jobs 251033 (union, 1,134) and 251034 (per-box, 1,925) both `ROI comparison PASSED` (so the laptop's image sizes are right). Ready for training.
+- 2026-11-23 (Raptor): training 87/87 jobs (main 58, roi_crop 29); evaluation, `verify.py` (main: all PASS except Grad-CAM, not yet run) and `verify_crop.py` (all PASS). Researcher dropped union ROI as well; CV (full only), Grad-CAM, T36 and T37 (4Y only) submitted at `42dc3e8`.
+- 2026-11-23 (laptop): manuscript tables from the T38 results (T28 precision/recall, T29 threshold, T24 subgroups with `sheet.csv`, T32 confusion): `../08_Manuscript/19 Nov dataset (T38)/` Tables 1, 2, 2 (precision recall), 2b, 3, 4 and Figures 3-4, built by `../results_figures/relabel_2026_11_19/manuscript/build_tables.py` from the original Word files as templates (originals untouched). Tables 6, 7 and Figure 5 wait for T37; 2c (CLAHE) is not part of T38; Table 5 does not depend on the data.

@@ -74,8 +74,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                              "body_site and tattoo (e.g. ../thesis_data_26_oct.csv).")
     parser.add_argument("--main-root", type=Path, required=True,
                         help="Main run (full/ and roi/ for all 8 families), already evaluated.")
-    parser.add_argument("--box-root", type=Path, required=True,
-                        help="Per-box run laid out as box/<family>/photo/, already summarised (T17).")
+    parser.add_argument("--box-root", type=Path, default=None,
+                        help="Per-box run laid out as box/<family>/photo/, already summarised (T17); "
+                             "omit to leave out S17-S24 (T38 has none).")
+    parser.add_argument("--no-union", action="store_true",
+                        help="Leave out the union ROI models of the main run (T38: not reported).")
     parser.add_argument("--crop-root", type=Path, default=None,
                         help="Per-crop run laid out as crop/<family>/; omit to leave out S25-S32.")
     parser.add_argument("--output-dir", type=Path, required=True, help="Outside the repository.")
@@ -357,7 +360,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     photos = test_photos(args.sheet, args.split_manifest)
     keys = photo_keys(photos, args.roi_manifest, args.box_manifest)
-    roots = {"full": args.main_root, "roi": args.main_root, BOX_PATH: args.box_root, CROP_PATH: args.crop_root}
+    roots = {"full": args.main_root, "roi": None if args.no_union else args.main_root, BOX_PATH: args.box_root,
+             CROP_PATH: args.crop_root}
     by_path = {input_path: {f: labelled_predictions(prediction_file(root, input_path, f), input_path,
                                                     keys[input_path], photos) for f in FAMILY_ORDER}
                for input_path, root in roots.items() if root is not None}

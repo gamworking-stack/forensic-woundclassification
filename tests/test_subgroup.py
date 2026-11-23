@@ -171,6 +171,16 @@ def test_subgroup_tables(runs):
     assert crop.loc["MST 4", "test_rows"] == 2 and crop.loc["MST 4", "test_photos"] == 1
 
 
+def test_full_and_crop_only_without_box_or_union(runs):
+    # T38: no per-box run and union ROI not reported; only full and crop are scored
+    tmp_path, args = runs
+    i = args.index("--box-root")
+    args = args[:i] + args[i + 2:] + ["--no-union"]
+    assert subgroup_main(args) == 0
+    metrics = pd.read_csv(tmp_path / "out" / "subgroup_metrics.csv")
+    assert set(metrics["input_path"]) == {"full", "crop"}
+
+
 def test_output_inside_repository_is_refused(runs):
     _, args = runs
     args[args.index("--output-dir") + 1] = str(Path(__file__).resolve().parents[1] / "results" / "subgroup")
