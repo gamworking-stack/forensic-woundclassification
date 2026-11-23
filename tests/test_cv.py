@@ -1,6 +1,7 @@
 """T12b cross-validation: folds, CV mode in training, plan and summary (synthetic data, CPU)."""
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -198,6 +199,16 @@ def test_cv_summary_identical_paths(tmp_path):
     comparison = pd.read_csv(root / "summary" / "cv_full_vs_roi.csv")
     assert np.allclose(comparison["difference"], 0.0)
     assert (root / "summary" / "cv_full_vs_roi_macro_f1.png").is_file()
+
+
+def test_cv_summary_full_only(tmp_path):
+    # T38 runs CV on full images only: 8 scenarios, no ROI-full comparison; ROI fold files are not read
+    root = fake_cv_run(tmp_path)
+    shutil.rmtree(root / "roi")
+    assert cv_summary_main(["--cv-root", str(root), "--folds", "2", "--bootstrap", "50", "--paths", "full"]) == 0
+    table = pd.read_csv(root / "summary" / "cv_table.csv")
+    assert len(table) == 8 and set(table["input_path"]) == {"full"}
+    assert not (root / "summary" / "cv_full_vs_roi.csv").exists()
 
 
 def test_cv_summary_worse_roi_and_missing_fold(tmp_path):

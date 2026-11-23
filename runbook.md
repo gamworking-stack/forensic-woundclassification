@@ -655,7 +655,13 @@ sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=$DERIVED_DIR/roi_box_p008,EX
   scripts/slurm/t03_roi_crops.sbatch
 ```
 
-**2 onward.** As in the T23 section, steps 2–8 (training, evaluation, CV, Grad-CAM, verification), then T28 (precision/recall), T29 (threshold), T30 (CLAHE, with its own env built on these folders), T32 (confusion by subgroup), T37 (YOLO and the vote), always after `source scripts/hpc/nov19_env.sh`. Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
+**2 onward.** As in the T23 section, steps 2–8 (training, evaluation, CV, Grad-CAM, verification), then T28 (precision/recall), T29 (threshold), T32 (confusion by subgroup), T37 (YOLO and the vote), always after `source scripts/hpc/nov19_env.sh`. **T38 leaves out per box (S17–S24), CLAHE (T30) and union ROI** (decision 2026-11-23): train `main` and `PATHS=crop ... roi_crop` only; CV on full images only:
+```bash
+bash scripts/hpc/watch_jobs.sh $(PATHS=full bash scripts/hpc/submit_cv.sh)
+$C src/evaluation/cv_summary.py --cv-root $X/cv --paths full
+$C src/evaluation/verify.py --experiments-root $X/main --cv-root $X/cv
+```
+(The main run already holds union ROI models, trained before the decision; they are not reported.) Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
 
 ## Diagrams
 

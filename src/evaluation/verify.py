@@ -440,12 +440,19 @@ def check_cv(report: Report, cv_root: Path, cv_folds: Path, folds: int, assignme
                     if read_json(p).get("family") != "ensemble" and not read_json(p).get("cv_folds"))
     report.add("cv", "every CV run ran in CV mode (test rows dropped)", not not_cv, f"not CV: {not_cv[:5]}")
 
+    # The input paths run in CV: both in the original study, full only in T38 (no ROI-full comparison then)
+    saved_paths = set(pd.read_csv(cv_root / "summary" / "cv_table.csv", dtype=str)["input_path"])
+    paths = [p for p in INPUT_PATHS if p in saved_paths]
+    paired = len(paths) == len(INPUT_PATHS)
+
     # Recompute the CV table and the paired comparison from the fold predictions
     def run() -> None:
         saved = pd.read_csv(cv_root / "summary" / "cv_table.csv").set_index("scenario_id")
         pairs, off = {}, []
         with tempfile.TemporaryDirectory() as tmp:
             for scenario_id, input_path, family in scenarios():
+                if input_path not in paths:
+                    continue
                 frames, per_fold = [], []
                 # Per fold: cases must belong to that fold; keep the fold's metrics and rows
                 for k in range(1, folds + 1):
@@ -469,18 +476,23 @@ def check_cv(report: Report, cv_root: Path, cv_folds: Path, folds: int, assignme
                         off.append(f"{scenario_id} {m}")
                 pairs.setdefault(family, {})[input_path] = oof
         report.add("cv", "cv_table.csv (fold mean, SD, out of fold)", not off, f"differ: {off[:5]}" if off
-                   else f"16 scenarios x {folds} folds")
+                   else f"{8 * len(paths)} scenarios x {folds} folds")
         # All scenarios must cover the same development cases
         cases = {frozenset(p.cases) for d in pairs.values() for p in d.values()}
         report.add("cv", "every scenario covers the same development cases", len(cases) == 1,
                    f"{len(next(iter(cases)))} cases" if len(cases) == 1 else f"{len(cases)} different case sets")
         # Redo the paired full vs ROI comparison on the out-of-fold predictions
-        ordered = {f: tuple(pairs[f][p] for p in INPUT_PATHS) for f in FAMILY_ORDER}
-        compare_paired(report, "cv_full_vs_roi.csv", pd.read_csv(cv_root / "summary" / "cv_full_vs_roi.csv"),
-                       ordered, n_boot, seed)
+        if paired:
+            ordered = {f: tuple(pairs[f][p] for p in INPUT_PATHS) for f in FAMILY_ORDER}
+            compare_paired(report, "cv_full_vs_roi.csv", pd.read_csv(cv_root / "summary" / "cv_full_vs_roi.csv"),
+                           ordered, n_boot, seed)
     report.guard("cv", "recompute", run)
-    # The CV comparison figure must exist
-    report.add("cv", "cv_full_vs_roi_macro_f1.png", (cv_root / "summary" / "cv_full_vs_roi_macro_f1.png").is_file())
+    # The CV comparison figure must exist when both paths were run
+    if paired:
+        report.add("cv", "cv_full_vs_roi_macro_f1.png",
+                   (cv_root / "summary" / "cv_full_vs_roi_macro_f1.png").is_file())
+    else:
+        report.add("cv", "paths run in CV", None, f"{', '.join(paths)} only: no ROI-full comparison")
 
 
 def main(argv: Optional[List[str]] = None) -> int:

@@ -284,3 +284,17 @@ def test_cv_run_with_test_predictions_fails(copy):
     shutil.copy2(base / "main/full/vgg16/test_predictions.csv", base / "cv/full/vgg16/fold_1/test_predictions.csv")
     bad = failures(run_verify(base, cv_folds))
     assert bad["item"].tolist() == ["no CV run predicted test"]
+
+
+def test_cv_with_full_images_only_passes(copy):
+    base, cv_folds = copy
+    # T38: CV on full images only; the ROI folds and the ROI-full comparison are absent
+    shutil.rmtree(base / "cv" / "roi")
+    for name in ("cv_full_vs_roi.csv", "cv_full_vs_roi_macro_f1.png"):
+        (base / "cv" / "summary" / name).unlink()
+    assert cv_summary_main(["--cv-root", str(base / "cv"), "--folds", "2", "--bootstrap", str(BOOT),
+                            "--paths", "full"]) == 0
+    report = run_verify(base, cv_folds)
+    cv = report[report["check"] == "cv"]
+    assert not (cv["status"] == "FAIL").any()
+    assert "full only: no ROI-full comparison" in " ".join(cv["detail"])

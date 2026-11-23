@@ -30,6 +30,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize the 5-fold CV runs (T12b).")
     parser.add_argument("--cv-root", type=Path, required=True, help="CV run folder laid out as <full|roi>/<family>/fold_<k>/.")
     parser.add_argument("--folds", type=int, default=5)
+    parser.add_argument("--paths", nargs="+", choices=INPUT_PATHS, default=list(INPUT_PATHS),
+                        help="Input paths run in CV (T38: full only); with one path there is no ROI-full comparison.")
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args(argv)
@@ -66,10 +68,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     # Per family and input path: fold scores and pooled out-of-fold scores in one row
+    paths = [p for p in INPUT_PATHS if p in args.paths]
     rows, pairs = [], {}
     for family in FAMILY_ORDER:
         oof = []
-        for input_path in INPUT_PATHS:
+        for input_path in paths:
             per_fold, pred = out_of_fold(args.cv_root, input_path, family, args.folds)
             pooled = compute_metrics(pred)
             row = {"scenario_id": SCENARIO_IDS[(input_path, family)], "family": family, "input_path": input_path,
@@ -87,23 +90,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Pairing needs every scenario's out-of-fold file to cover the same cases
     reference = set(pairs[FAMILY_ORDER[0]][0].cases)
     for family, preds in pairs.items():
-        for input_path, p in zip(INPUT_PATHS, preds):
+        for input_path, p in zip(paths, preds):
             if set(p.cases) != reference:
                 raise ValueError(f"{input_path}/{family} out-of-fold cases differ from "
-                                 f"{INPUT_PATHS[0]}/{FAMILY_ORDER[0]}; paired comparison is undefined")
+                                 f"{paths[0]}/{FAMILY_ORDER[0]}; paired comparison is undefined")
 
     # CV table, paired ROI - full comparison and its macro-F1 forest plot
     table = pd.DataFrame(rows).sort_values("scenario_id")
     table.to_csv(out / "cv_table.csv", index=False)
+    for r in table.to_dict("records"):
+        print(f"{r['scenario_id']} {r['family']:<20} {r['input_path']:<4} macro-F1 {r['macro_f1_mean']:.3f} "
+              f"± {r['macro_f1_sd']:.3f} (out of fold {r['macro_f1_oof']:.3f}, {r['oof_cases']} cases)", flush=True)
+    if len(paths) < len(INPUT_PATHS):
+        print(f"Wrote cv_table.csv to {out} ({', '.join(paths)} only: no ROI-full comparison)")
+        return 0
     comparison = paired_comparison(pairs, args.bootstrap, args.seed)
     comparison.to_csv(out / "cv_full_vs_roi.csv", index=False)
     plot_full_vs_roi(comparison[comparison["metric"] == "macro_f1"], POOLED,
                      "CV out-of-fold macro-F1: ROI minus full image", out / "cv_full_vs_roi_macro_f1.png")
 
-    # Print each scenario's fold mean, then the paired macro-F1 differences
-    for r in table.to_dict("records"):
-        print(f"{r['scenario_id']} {r['family']:<20} {r['input_path']:<4} macro-F1 {r['macro_f1_mean']:.3f} "
-              f"± {r['macro_f1_sd']:.3f} (out of fold {r['macro_f1_oof']:.3f}, {r['oof_cases']} cases)", flush=True)
+    # Print the paired macro-F1 differences
     for r in comparison[comparison["metric"] == "macro_f1"].to_dict("records"):
         print(f"{r['family']:<22} ROI-full {r['difference']:+.3f} [{r['ci_low']:+.3f}, {r['ci_high']:+.3f}] "
               f"p={r['p_value']:.3f} holm={r['p_holm']:.3f}", flush=True)

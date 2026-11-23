@@ -26,6 +26,7 @@ The researcher annotated again in CVAT (19 Nov 2026 exports, `../19 Nov annotati
 | Split | New split of all photos, grouped by patient, with the T02 search (70/15/15, seed 42, 50,000 trials). The patient is the group of the split, CV folds and bootstrap (`pseudonimized_id`) |
 | Storage | File names of the new photos hold forensic case numbers, so the dataset's lists stay **outside the repository**: `../datasets/relabel_2026_11_19/` (laptop), `<project>/datasets/relabel_2026_11_19/` (Raptor). Runs: `<project>/experiments_relabel_2026_11_19/`, crops `<project>/derived_data/relabel_2026_11_19/`, results `../results_figures/relabel_2026_11_19/` |
 | Methods | Everything else as in T23 |
+| Experiments (2026-11-23) | Full image (S01, S03 … S15), per crop (S25–S32), the full-image 5-fold CV, YOLO and the vote (T37), and the CPU analyses (T28, T29, T24/T25, T32). **Not run on T38: per box (S17–S24, T17), CLAHE (T30) and union ROI (S02, S04 … S16).** The union ROI models had already been trained in the main run before this decision; they stay on Raptor but are not reported, and the CV runs full images only (`PATHS=full`, `cv_summary.py --paths full`) |
 
 A photo in no sheet has no sheet case; its `source_pseudonimized_id` is 10000 + its patient number (an integer no sheet case reaches).
 
@@ -62,6 +63,9 @@ Of the 1,134 photos, 979 are T23 photos and 155 are new; 98 new photos are not o
 | `scripts/hpc/sync_to_raptor.sh` | Also uploads the 19 Nov exports, the dataset folder and the new photos (into their raw label folder, never replacing a file) |
 | `tests/test_nov19.py` | Layout, patients as groups, cases for photos in no sheet, refusals, EXIF size, never inside `data/` |
 | `requirements.txt` | `openpyxl` (laptop only, reads the workbook) |
+| `src/evaluation/cv_summary.py` | `--paths` (default both): with one path, only `cv_table.csv`, no ROI-full comparison |
+| `src/evaluation/verify.py` | CV check reads the paths from `cv_table.csv`; with full only it skips the comparison and its figure (NOTE row) |
+| `tests/test_cv.py`, `tests/test_verify.py` | Full-only CV summary and verification |
 
 No other code changes: every step reads `WOUND_DATA_DIR`.
 
