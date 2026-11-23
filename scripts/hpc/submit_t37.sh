@@ -3,6 +3,7 @@
 # full-image/crop vote with detector crops. Run on Raptor from the repo root:
 #   source scripts/hpc/relabel_env.sh && bash scripts/hpc/submit_t37.sh
 # Every job waits for the jobs it reads from (afterok); test is touched only after selection.json exists.
+# T38 (no T19 arms on its data): COMPARE_ARMS="" FUSION_ARMS=4Y AFTER=<T36 fusion job> bash scripts/hpc/submit_t37.sh
 set -euo pipefail
 : "${EXPERIMENTS_DIR:?source scripts/hpc/relabel_env.sh first}"
 
@@ -15,6 +16,10 @@ PATIENTS=$WOUND_DATA_DIR/splits/patient_cases.csv
 S=scripts/slurm/t37.sbatch
 CPU=(-p compute --gres=none --cpus-per-task=4 --mem=16G)
 sub() { sbatch --parsable --export=ALL "$@"; }
+
+COMPARE_ARMS="${COMPARE_ARMS-4F 4Z}"  # T19 arms scored next to 4Y; empty when they were not run on this data
+FUSION_ARMS="${FUSION_ARMS:-4Y 4F}"   # detector arms whose crops vote with the full image
+AFTER="${AFTER:-}"                    # job the vote must also wait for (T36 fusion, when submitted together)
 
 mkdir -p logs
 
@@ -41,21 +46,22 @@ test=$(sub -J 4Y_test --time=3:00:00 --dependency=afterok:$sel --export=ALL,PY_A
 
 # 5. Detection metrics for 4Y, 4F and 4Z (patients resampled), then the comparison
 metric_jobs=()
-for A in 4Y 4F 4Z; do
+for A in 4Y $COMPARE_ARMS; do
   dep=(); [[ $A == 4Y ]] && dep=(--dependency=afterok:$test)
   metric_jobs+=("$(sub -J ${A}_t37_metrics "${CPU[@]}" --time=12:00:00 "${dep[@]}" --export=ALL,VENV=none,PY_ARGS="src/detection/detection_metrics.py evaluate --detections $X/auto_$A/detection/test/*.csv --selection $X/auto_$A/detection/selection.json --split test --patient-cases $PATIENTS --output-dir $X/detection_t37/$A" $S)")
 done
 sub -J t37_metrics_report "${CPU[@]}" --time=0:30:00 --dependency=afterok:$(IFS=:; echo "${metric_jobs[*]}") \
-  --export=ALL,VENV=none,PY_ARGS="src/detection/detection_metrics.py report --arm 4Y=$X/detection_t37/4Y 4F=$X/detection_t37/4F 4Z=$X/detection_t37/4Z --output-dir $X/detection_t37/report" $S
+  --export=ALL,VENV=none,PY_ARGS="src/detection/detection_metrics.py report --arm $(for A in 4Y $COMPARE_ARMS; do printf '%s=%s ' $A $X/detection_t37/$A; done)--output-dir $X/detection_t37/report" $S
 
 # 6. 4Y crops of the test photos (8% padding, T19 threshold/cap/fallback rules), CPU
 crops=$(sub -J 4Y_crops "${CPU[@]}" --time=2:00:00 --dependency=afterok:$test --export=ALL,VENV=none,PY_ARGS="src/data/create_auto_roi_dataset.py --selection $Y/detection/selection.json --detections $Y/detection/test/*.csv --splits test --output-dir $Y/roi --image-root $RAW --crop-root $DERIVED_DIR/roi_auto_4Y" $S)
 
 # 7. The per-crop models (S25-S32) on the auto crops; 4F crops already exist (T19 on T23 data)
 p4y=$(sub -J 4Y_crop_predict --time=3:00:00 --dependency=afterok:$crops --export=ALL,VENV=none,PY_ARGS="src/evaluation/predict_on_manifest.py --experiments-root $X/roi_crop --design crop --manifest $Y/roi/box/roi_manifest.csv --image-root ${DERIVED_DIR}/roi_auto_4Y_box --output-root $X/fusion_auto/source_4Y/roi_crop --check-manual" $S)
-p4f=$(sub -J 4F_crop_predict --time=3:00:00 --export=ALL,VENV=none,PY_ARGS="src/evaluation/predict_on_manifest.py --experiments-root $X/roi_crop --design crop --manifest $WOUND_DATA_DIR/roi_auto/4F/box/roi_manifest.csv --image-root ${DERIVED_DIR}/roi_auto_4F_box --output-root $X/fusion_auto/source_4F/roi_crop" $S)
+p4f=""
+[[ " $FUSION_ARMS " == *" 4F "* ]] && p4f=$(sub -J 4F_crop_predict --time=3:00:00 --export=ALL,VENV=none,PY_ARGS="src/evaluation/predict_on_manifest.py --experiments-root $X/roi_crop --design crop --manifest $WOUND_DATA_DIR/roi_auto/4F/box/roi_manifest.csv --image-root ${DERIVED_DIR}/roi_auto_4F_box --output-root $X/fusion_auto/source_4F/roi_crop" $S)
 
 # 8. Vote, rescore per patient, compare (CPU)
-fus=$(sbatch --parsable --export=ALL --dependency=afterok:$p4y:$p4f scripts/slurm/t37_fusion.sbatch)
+fus=$(sbatch --parsable --export=ALL,ARMS="$FUSION_ARMS" --dependency=afterok:$(IFS=:; echo $p4y $p4f $AFTER | tr ' ' ':') scripts/slurm/t37_fusion.sbatch)
 
 echo "prepare $prep | train ${trains[*]} | select $sel | test $test | metrics ${metric_jobs[*]} | crops $crops | predict $p4y $p4f | fusion $fus"

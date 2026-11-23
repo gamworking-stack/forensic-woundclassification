@@ -661,7 +661,14 @@ bash scripts/hpc/watch_jobs.sh $(PATHS=full bash scripts/hpc/submit_cv.sh)
 $C src/evaluation/cv_summary.py --cv-root $X/cv --paths full
 $C src/evaluation/verify.py --experiments-root $X/main --cv-root $X/cv
 ```
-(The main run already holds union ROI models, trained before the decision; they are not reported.) Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
+(The main run already holds union ROI models, trained before the decision; they are not reported.)
+YOLO and the vote (Tables 6–7) on T38: the T19 arms 4F/4Z do not exist on this data, so only 4Y is scored and votes; the vote also needs the manual-box vote (T36) first:
+```bash
+F=$(sbatch --parsable scripts/slurm/fusion.sbatch)                       # T36, CPU
+COMPARE_ARMS="" FUSION_ARMS=4Y AFTER=$F bash scripts/hpc/submit_t37.sh  # T37, 4Y only
+export TORCH_HOME=/project/a260012_FORWCL/torch_cache
+$C src/evaluation/gradcam.py --experiments-root $X/main                  # Grad-CAM examples (T14)
+``` Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
 
 ## Diagrams
 
