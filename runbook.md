@@ -670,6 +670,17 @@ export TORCH_HOME=/project/a260012_FORWCL/torch_cache
 $C src/evaluation/gradcam.py --experiments-root $X/main                  # Grad-CAM examples (T14)
 ``` Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
 
+## Sharp injury, 6 classes (T39)
+
+T38 with cut and penetration wounds merged into **sharp injury**, a new split, everything else as T38. Plan: `tickets/T39_sharp_injury.md`. **Source `scripts/hpc/sharp_env.sh` in every new shell** (it also sets `WOUND_N_CLASSES=6`).
+```bash
+source scripts/hpc/sharp_env.sh
+python src/data/prepare_nov19.py --merge "cut wound" "penetration wound" --into "sharp injury"
+python src/data/create_case_split.py                 # new split, 6 classes
+python src/data/prepare_nov19.py --patient-cases-from-split
+# then the T38 step 0 crops, CV folds and audit, the sync, and T38 steps 1 onward (same commands)
+```
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.

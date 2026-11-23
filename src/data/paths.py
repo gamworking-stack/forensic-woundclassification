@@ -12,3 +12,5 @@ from pathlib import Path
 
 
 DATA_DIR = Path(os.environ.get("WOUND_DATA_DIR", "data"))
+# Number of wound classes: 7, or 6 when cut and penetration wounds are merged into sharp injury (T39)
+EXPECTED_CLASSES = int(os.environ.get("WOUND_N_CLASSES", "7"))

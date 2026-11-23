@@ -91,3 +91,15 @@ def test_image_size_follows_the_exif_rotation(tmp_path):
 
 def test_main_never_writes_into_the_repository_data_folder():
     assert main(["--output-dir", "data/relabel_2026_11_19"]) == 1
+
+
+def test_merge_gives_sharp_injury_and_keeps_the_annotation_class():
+    # T39: cut and penetration wounds become one class; the annotation's class stays in source_label
+    rows = BASE + [(6, "No", "cut wound", "D6.JPG", 5, 9, "cut", "cut", f"{RAW}/cut/D6.JPG", "test", "arm")]
+    merge = {"cut wound": "sharp injury", "penetration wound": "sharp injury"}
+    meta = prepare(workbook(rows), photo_root=None, merge=merge)["metadata"].set_index("filename")
+    assert meta.loc["A2.JPG", "canonical_wound_label"] == "sharp injury"   # gsw relabelled to penetration
+    assert meta.loc["D6.JPG", "canonical_wound_label"] == "sharp injury"
+    assert meta.loc["D6.JPG", "relative_path"] == "sharp injury/D6.JPG"
+    assert meta.loc["D6.JPG", "source_label"] == "cut"
+    assert meta.loc["A1.JPG", "canonical_wound_label"] == "gunshot wound"

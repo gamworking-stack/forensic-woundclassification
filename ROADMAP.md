@@ -146,6 +146,7 @@ As built, the model builder is `src/training/models.py`, the figures are drawn i
 - **T32** Confusion matrices per subgroup: ResNet152, EfficientNet-B0, VGG16 and MobileNetV3-Small, full image and per crop, by age group, race/ethnicity, Monk Skin Tone, setting and body region (Table 3 subgroups); counts only, Word figures for the manuscript. Plan: `tickets/T32_subgroup_confusion.md`.
 - **T33** Computational cost: input size, parameters, FLOPs, GPU and CPU inference latency, GPU throughput and peak training GPU memory of the 8 models, measured on one H100; Word Table 5 for the manuscript. Plan: `tickets/T33_compute_cost.md`.
 - **T38** The 19 Nov 2026 dataset: the researcher's new CVAT annotation (crops from it), 155 new photos, photos without a 19 Nov box and one duplicate left out (1,134 photos, 471 patients), a new 70/15/15 split grouped by the anonymous patient number. Built from the researcher's workbook; the file lists stay outside the repository (new file names hold forensic case numbers). Every manuscript experiment then reruns on it as in T23. Plan: `tickets/T38_nov19_dataset.md`.
+- **T39** Six classes: T38 again with cut wounds and penetration wounds merged into **sharp injury**, a new split by patient for the 6 classes, everything else as T38 (`scripts/hpc/sharp_env.sh`, `WOUND_N_CLASSES=6`). Plan: `tickets/T39_sharp_injury.md`.
 
 ## 6. Risks to track
 
@@ -201,4 +202,5 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T31 Grad-CAM of the tattoo photos (train, validation, test; T23 and T30 models)
 - [x] T32 confusion matrices per subgroup (4 families, full image and per crop)
 - [x] T33 computational cost of the 8 models (Table 5)
+- [ ] T39 six classes: cut and penetration wounds merged into sharp injury, on the T38 data with a new split (prepared 2026-11-23; runs after T38)
 - [ ] T38 19 Nov 2026 dataset: new annotation, new photos, split by patient (prepared 2026-11-23; Raptor upload, crops and reruns pending)

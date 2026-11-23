@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.data.paths import DATA_DIR  # noqa: E402
+from src.data.paths import DATA_DIR, EXPECTED_CLASSES  # noqa: E402
 
 
 SPLIT_NAMES = ("train", "validation", "test")
@@ -67,8 +67,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--expected-classes",
         type=int,
-        default=7,
-        help="Expected number of unique wound classes.",
+        default=EXPECTED_CLASSES,
+        help="Expected number of unique wound classes (WOUND_N_CLASSES, default 7).",
     )
     return parser.parse_args()
 

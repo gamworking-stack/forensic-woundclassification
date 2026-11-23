@@ -20,7 +20,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.data.create_case_split import build_group_matrices  # noqa: E402
-from src.data.paths import DATA_DIR  # noqa: E402
+from src.data.paths import DATA_DIR, EXPECTED_CLASSES  # noqa: E402
 
 
 GROUP_COLUMN = "pseudonimized_id"
@@ -105,13 +105,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     test_cases = set(pd.read_csv(args.split_manifest, dtype=str, keep_default_na=False)
                      .query("split == 'test'")[GROUP_COLUMN])
     assert not test_cases & set(folds), "a test case was assigned to a fold"
-    # Report fold contents for both ROI and full-image rows; every fold must hold all 7 classes
+    # Report fold contents for both ROI and full-image rows; every fold must hold every class
     report = {"folds": args.folds, "seed": args.seed, "trials": args.trials,
               "development_cases": len(folds), "scored_on": str(args.roi_manifest),
               "roi_rows": fold_report(roi, folds), "full_rows": fold_report(full, folds), "frozen": True}
     for path_rows in ("roi_rows", "full_rows"):
         for f, part in report[path_rows].items():
-            if len(part["images_per_class"]) != 7:
+            if len(part["images_per_class"]) != EXPECTED_CLASSES:
                 raise AssertionError(f"fold {f} misses a class in {path_rows}")
 
     # Save the case-to-fold table and the report, then print each fold's ROI contents

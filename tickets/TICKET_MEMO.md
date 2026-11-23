@@ -590,3 +590,14 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `scripts/hpc/sync_to_raptor.sh`, `requirements.txt`, `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `../Current dataset T23 (1,032 photos).xlsx` (the researcher's workbook, the source), `../datasets/relabel_2026_11_19/` (the dataset's lists; file names hold forensic case numbers), `../19 Nov annotation/`, `~/Desktop/รูปตามประเภท/` (new photos), on Raptor `<project>/datasets/relabel_2026_11_19/`, `<project>/annotations/cvat_2026_11_19/`
+
+## T39: Six classes, sharp injury (cut + penetration)
+
+- **Commits**: see `git log --grep 'T39'`
+- **Used**
+  - everything of T38
+- **Created**
+  - `tickets/T39_sharp_injury.md`, `scripts/hpc/sharp_env.sh`, `tests/conftest.py`
+- **Changed**
+  - `src/data/paths.py` (`EXPECTED_CLASSES`), `src/training/data.py`, `src/data/create_cv_folds.py`, `src/data/create_case_split.py`, `src/data/prepare_nov19.py`, `src/evaluation/subgroup_confusion.py`, `scripts/hpc/sync_to_raptor.sh`, `tests/test_nov19.py`, `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../datasets/relabel_2026_11_19_sharp/`, on Raptor `<project>/datasets/relabel_2026_11_19_sharp/` and the T39 run folders

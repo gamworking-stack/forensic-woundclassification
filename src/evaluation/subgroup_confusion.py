@@ -36,7 +36,8 @@ LEVEL_LABELS = {"18-39": "18–39 years", "40-59": "40–59 years", "60+": "≥6
                 "MST 5-10": "MST 5–10", "autopsy": "Deceased (autopsy)"}
 PATH_LABELS = {"full": "Full image", CROP_PATH: "Per-crop ROI"}
 CLASS_SHORT = {"contusion": "CON", "cut wound": "CUT", "graze wound": "GRZ", "gunshot wound": "GSW",
-               "laceration": "LAC", "penetration wound": "PEN", "scratch": "SCR"}
+               "laceration": "LAC", "penetration wound": "PEN", "scratch": "SCR",
+               "sharp injury": "SHP"}
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:

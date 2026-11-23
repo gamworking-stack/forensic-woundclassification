@@ -11,7 +11,7 @@ from PIL import Image, ImageFile, ImageOps
 from torch.utils.data import Dataset
 
 from src.data.create_roi_dataset import find_source_image, verify_no_case_leakage
-from src.data.paths import DATA_DIR
+from src.data.paths import DATA_DIR, EXPECTED_CLASSES
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -19,7 +19,6 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPLIT_NAMES = ("train", "validation", "test")
 GROUP_COLUMN = "pseudonimized_id"
 LABEL_COLUMN = "canonical_wound_label"
-EXPECTED_CLASSES = 7
 
 
 def read_csv(path: Path) -> pd.DataFrame:

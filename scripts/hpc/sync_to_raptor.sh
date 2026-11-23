@@ -54,6 +54,12 @@ if [[ -f "$T38_LOCAL_DATA/validated_metadata.csv" ]]; then
   ssh "$DEST" "mkdir -p '$T38_REMOTE_DATA' '$T38_REMOTE_EXPORTS'"
   rsync -av "$T38_LOCAL_EXPORTS"/*.zip "$DEST:$T38_REMOTE_EXPORTS/"
   rsync -av --exclude '.DS_Store' "$T38_LOCAL_DATA/" "$DEST:$T38_REMOTE_DATA/"
+  # T39: the same photos and exports with cut and penetration merged (6 classes), its own lists
+  T39_LOCAL_DATA="${T39_LOCAL_DATA:-$REPO_ROOT/../datasets/relabel_2026_11_19_sharp}"
+  if [[ -f "$T39_LOCAL_DATA/validated_metadata.csv" ]]; then
+    ssh "$DEST" "mkdir -p '$T38_REMOTE_DATA/../relabel_2026_11_19_sharp'"
+    rsync -av --exclude '.DS_Store' "$T39_LOCAL_DATA/" "$DEST:$T38_REMOTE_DATA/../relabel_2026_11_19_sharp/"
+  fi
   # New photos go into the raw tree under their raw label folder; an existing file is never replaced.
   # They are staged as links in one folder per label, so one rsync sends them all
   STAGE="$(mktemp -d)"

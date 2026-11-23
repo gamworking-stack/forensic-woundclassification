@@ -22,6 +22,11 @@ step (split, crops, CV folds, boxes, training) runs unchanged with ``WOUND_DATA_
   of the dry-run crops (the Raptor crop job checks them against the photos there).
 - ``raptor_upload.csv``: the photos that are not on Raptor yet, with their local file and raw folder.
 - ``excluded_photos.csv`` and ``prepare_report.json``.
+
+T39: ``--merge "cut wound" "penetration wound" --into "sharp injury"`` gives the 6-class version (photos,
+patients and boxes unchanged; the annotation's own class stays in ``source_label``, so crops still find
+their boxes). Its split is searched again, so ``workbook_split.csv`` is not written and
+``--patient-cases-from-split`` writes ``splits/patient_cases.csv`` after ``create_case_split.py``.
 """
 
 from __future__ import annotations
@@ -66,7 +71,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--photo-root", type=Path, default=Path.home() / "Desktop",
                         help="Folder the workbook's 'Image file (from Desktop)' paths start from.")
     parser.add_argument("--output-dir", type=Path, default=DATA_DIR)
-    return parser.parse_args(argv)
+    parser.add_argument("--merge", nargs="+", default=[], metavar="CLASS",
+                        help="Canonical classes merged into --into (T39: 'cut wound' 'penetration wound').")
+    parser.add_argument("--into", default=None, help="Name of the merged class (T39: 'sharp injury').")
+    parser.add_argument("--patient-cases-from-split", action="store_true",
+                        help="Only write splits/patient_cases.csv from splits/case_level_split_manifest.csv.")
+    args = parser.parse_args(argv)
+    if bool(args.merge) != bool(args.into):
+        parser.error("--merge and --into go together")
+    return args
 
 
 def text(value: Any) -> str:
@@ -102,8 +115,14 @@ def image_size(path: Path) -> tuple:
     return width, height
 
 
-def prepare(workbook: pd.DataFrame, photo_root: Optional[Path]) -> Dict[str, Any]:
-    """All outputs as data frames plus the report; ``photo_root=None`` skips the image sizes."""
+def prepare(workbook: pd.DataFrame, photo_root: Optional[Path],
+            merge: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """All outputs as data frames plus the report; ``photo_root=None`` skips the image sizes.
+
+    ``merge`` maps canonical classes to a merged class (T39); labels and checks follow it.
+    """
+    merge = merge or {}
+    merged = lambda label: merge.get(label, label)  # noqa: E731
     split = workbook["New split (by patient)"].map(text)
     kept = workbook[split.isin(SPLITS)].copy()
     excluded = workbook[~split.isin(SPLITS)]
@@ -116,8 +135,8 @@ def prepare(workbook: pd.DataFrame, photo_root: Optional[Path]) -> Dict[str, Any
         folder_label = text(r["Folder / CVAT label"])
         sheet_label = text(r["Label in sheet"]) or folder_label  # photos in no sheet: the annotation's class
         case = text(r["Case in sheet"]) or str(NEW_SOURCE_OFFSET + int(patient))
-        cls = text(r["Class"])
-        if canonical(folder_label) is None or canonical(sheet_label) != cls:
+        cls = merged(text(r["Class"]))
+        if canonical(folder_label) is None or merged(canonical(sheet_label) or "") != cls:
             raise ValueError(f"No. {text(r['No.'])} ({r['File name']}): labels {sheet_label!r}/{folder_label!r} "
                              f"do not give class {cls!r}")
         rows.append({"pseudonimized_id": patient, "wound_id": text(r["Wound ID"]), "filename": text(r["File name"]),
@@ -181,6 +200,7 @@ def prepare(workbook: pd.DataFrame, photo_root: Optional[Path]) -> Dict[str, Any
         "photos_by_class": dict(sorted(Counter(photos["canonical_wound_label"]).items())),
         "excluded": dict(sorted(Counter(excluded["New split (by patient)"].map(text)).items())),
         "relabelled_photos": int((photos["wound_label"].map(canonical) != photos["source_label"].map(canonical)).sum()),
+        "merged_classes": {k: v for k, v in merge.items()},
         "photos_to_upload": len(upload),
     }
     excluded_out = pd.DataFrame({"filename": excluded["File name"].map(text), "class": excluded["Class"].map(text),
@@ -191,6 +211,13 @@ def prepare(workbook: pd.DataFrame, photo_root: Optional[Path]) -> Dict[str, Any
             "excluded": excluded_out, "report": report}
 
 
+def patient_cases_from_split(out: Path) -> pd.DataFrame:
+    """T25 layout from the final split manifest: the patient number is the group."""
+    manifest = pd.read_csv(out / "splits/case_level_split_manifest.csv", dtype=str, keep_default_na=False)
+    return manifest[["pseudonimized_id", SOURCE_ID, "filename", "canonical_wound_label", "relative_path",
+                     "split"]].assign(patient_case=manifest["pseudonimized_id"].astype(int))
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     out = args.output_dir
@@ -198,11 +225,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"Refusing to write {out}: the T38 lists hold case numbers and stay outside the repository "
               "(source scripts/hpc/nov19_env.sh first).", file=sys.stderr)
         return 1
-    result = prepare(read_workbook(args.workbook, args.sheet_name), args.photo_root)
+    if args.patient_cases_from_split:
+        patient_cases_from_split(out).to_csv(out / "splits/patient_cases.csv", index=False)
+        print(f"Wrote {out / 'splits/patient_cases.csv'}")
+        return 0
+    merge = {c: args.into for c in args.merge}
+    result = prepare(read_workbook(args.workbook, args.sheet_name), args.photo_root, merge)
     (out / "splits").mkdir(parents=True, exist_ok=True)
     result["metadata"].to_csv(out / "validated_metadata.csv", index=False)
-    result["workbook_split"].to_csv(out / "workbook_split.csv", index=False)
-    result["patient_cases"].to_csv(out / "splits/patient_cases.csv", index=False)
+    if not merge:  # the workbook's split is the 7-class one; a merged version is split again
+        result["workbook_split"].to_csv(out / "workbook_split.csv", index=False)
+        result["patient_cases"].to_csv(out / "splits/patient_cases.csv", index=False)
     result["sheet"].to_csv(out / "sheet.csv", index=False)
     result["image_sizes"].to_csv(out / "image_sizes.csv", index=False)
     result["raptor_upload"].to_csv(out / "raptor_upload.csv", index=False)
