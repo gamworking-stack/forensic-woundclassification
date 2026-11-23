@@ -42,3 +42,36 @@ if [[ -d "$T23_LOCAL_EXPORTS" ]]; then
   ssh "$DEST" "mkdir -p '$T23_REMOTE_EXPORTS'"
   rsync -av "$T23_LOCAL_EXPORTS"/*.zip "$DEST:$T23_REMOTE_EXPORTS/"
 fi
+
+# T38: the 19 Nov 2026 exports, the dataset lists (kept outside the repo: file names hold case numbers)
+# and the photos that are not on Raptor yet, when the dataset folder has been prepared
+T38_LOCAL_DATA="${T38_LOCAL_DATA:-$REPO_ROOT/../datasets/relabel_2026_11_19}"
+T38_LOCAL_EXPORTS="${T38_LOCAL_EXPORTS:-$REPO_ROOT/../19 Nov annotation}"
+T38_REMOTE_DATA="${T38_REMOTE_DATA:-/project/a260012_FORWCL/datasets/relabel_2026_11_19}"
+T38_REMOTE_EXPORTS="${T38_REMOTE_EXPORTS:-/project/a260012_FORWCL/annotations/cvat_2026_11_19}"
+RAW_TREE="${RAW_TREE:-/project/a260012_FORWCL/raw_data/wound_ml_7classes}"
+if [[ -f "$T38_LOCAL_DATA/validated_metadata.csv" ]]; then
+  ssh "$DEST" "mkdir -p '$T38_REMOTE_DATA' '$T38_REMOTE_EXPORTS'"
+  rsync -av "$T38_LOCAL_EXPORTS"/*.zip "$DEST:$T38_REMOTE_EXPORTS/"
+  rsync -av --exclude '.DS_Store' "$T38_LOCAL_DATA/" "$DEST:$T38_REMOTE_DATA/"
+  # New photos go into the raw tree under their raw label folder; an existing file is never replaced.
+  # They are staged as links in one folder per label, so one rsync sends them all
+  STAGE="$(mktemp -d)"
+  trap 'rm -rf "$STAGE"' EXIT
+  python3 - "$T38_LOCAL_DATA/raptor_upload.csv" "$HOME/Desktop" "$STAGE" <<'PY'
+import csv, os, sys
+listing, root, stage = sys.argv[1:]
+for row in csv.DictReader(open(listing, encoding="utf-8")):
+    src = os.path.join(root, row["local_file"])
+    if not os.path.isfile(src):
+        sys.exit(f"Photo not found: {src}")
+    folder = os.path.join(stage, row["source_label"])
+    os.makedirs(folder, exist_ok=True)
+    os.symlink(src, os.path.join(folder, os.path.basename(src)))
+PY
+  for folder in "$STAGE"/*/; do
+    label="$(basename "$folder")"
+    ssh "$DEST" "test -d '$RAW_TREE/$label'" || { echo "No raw folder $RAW_TREE/$label on Raptor" >&2; exit 1; }
+    rsync -avL --ignore-existing "$folder" "$DEST:$RAW_TREE/$label/"
+  done
+fi

@@ -626,6 +626,37 @@ rsync -a preenapun.s@raptor.med.cmu.ac.th:$EXPERIMENTS_DIR/compute_cost/ "../res
 ```
 Outputs: `compute_cost.csv` (per family), `svm_cost.csv` (both CNN-SVM runs), `compute_cost.json` (settings, environment).
 
+## 19 Nov 2026 dataset (T38)
+
+Every manuscript experiment again on the 19 Nov 2026 CVAT annotation (`../19 Nov annotation/`), with the new photos and a new split by patient. Plan, decisions and counts: `tickets/T38_nov19_dataset.md`. **Source `scripts/hpc/nov19_env.sh` (not `relabel_env.sh`) in every new shell.** The dataset's lists are outside the repo (`../datasets/relabel_2026_11_19/` on the laptop, `<project>/datasets/relabel_2026_11_19/` on Raptor) because the new file names hold forensic case numbers; never copy them into `data/`.
+
+**0. Dataset (laptop, done 2026-11-23).** The researcher's workbook is the source; re-run all of this after any change to it:
+```bash
+source scripts/hpc/nov19_env.sh
+python src/data/prepare_nov19.py          # ../Current dataset T23 (1,032 photos).xlsx -> $WOUND_DATA_DIR
+python src/data/create_case_split.py      # must reproduce workbook_split.csv (patients as groups)
+EXPORTS="../19 Nov annotation"
+python src/data/create_roi_dataset.py --exports "$EXPORTS" --reference-manifest $WOUND_DATA_DIR/image_sizes.csv --dry-run \
+  --output-dir $WOUND_DATA_DIR/roi
+python src/data/create_roi_dataset.py --exports "$EXPORTS" --reference-manifest $WOUND_DATA_DIR/image_sizes.csv --dry-run \
+  --crop-mode individual --output-dir $WOUND_DATA_DIR/roi_box
+python src/data/create_cv_folds.py
+python src/data/audit_full_vs_roi.py
+```
+Then commit the code and `bash scripts/hpc/sync_to_raptor.sh`: it also uploads the 19 Nov exports to `EXPORTS_DIR`, the dataset folder and the new photos in `raptor_upload.csv` into `raw_data/wound_ml_7classes/<label>/` (an existing file is never replaced).
+
+**1. Boxes and crops (Raptor, CPU).** The reference boxes need torch, so they are made here; the crop jobs check the laptop's manifests (1,134 union crops, 1,925 per-box crops) and so the image sizes:
+```bash
+cd ~/forensic-woundclassification && source scripts/hpc/nov19_env.sh && module load apptainer/1.3.5
+srun -p compute -c 4 --mem=16G -t 1:00:00 apptainer exec --bind /project/a260012_FORWCL /common/sif/pytorch-24.11-py3.sif \
+  python -m src.detection.boxes --exports $EXPORTS_DIR
+sbatch scripts/slurm/t03_roi_crops.sbatch
+sbatch --export=ALL,CROP_MODE=individual,OUTPUT_DIR=$DERIVED_DIR/roi_box_p008,EXPECTED_MANIFEST=$WOUND_DATA_DIR/roi_box/roi_manifest.csv \
+  scripts/slurm/t03_roi_crops.sbatch
+```
+
+**2 onward.** As in the T23 section, steps 2–8 (training, evaluation, CV, Grad-CAM, verification), then T28 (precision/recall), T29 (threshold), T30 (CLAHE, with its own env built on these folders), T32 (confusion by subgroup), T37 (YOLO and the vote), always after `source scripts/hpc/nov19_env.sh`. Subgroup scripts take `--sheet $WOUND_DATA_DIR/sheet.csv`; the patient-level scoring of T25 uses `$WOUND_DATA_DIR/splits/patient_cases.csv` as it is (the split groups are already patients). T33 (computational cost) does not depend on the data and is not rerun.
+
 ## Diagrams
 
 `docs/diagrams/` holds eight Archify diagrams of this pipeline. Open the `.html` files in a browser; each `.json` beside it is the source. Every node links to the code lines it describes at the commit pinned in `meta.repository.revision`.

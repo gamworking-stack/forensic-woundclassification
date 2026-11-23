@@ -579,3 +579,14 @@ git log --reverse --format='%h %s' --name-status --grep 'T08'
 - **Changed**
   - `runbook.md`, `ROADMAP.md`
 - **Outside Git**: `<project>/experiments_relabel_2026_10_23/compute_cost/`, `../results_figures/Computational resources/`, `../08_Manuscript/Table 5 (computational cost).docx`
+
+## T38: The 19 Nov 2026 dataset (new annotation, new photos, split by patient)
+
+- **Commits**: see `git log --grep 'T38'`
+- **Used**
+  - `src/data/prepare_relabel.py` (`OUTPUT_COLUMNS`, `SOURCE_ID`), `src/data/validate_metadata.py` (`LABEL_NORMALIZATION_MAP`), `src/data/create_case_split.py`, `src/data/create_roi_dataset.py`, `src/data/create_cv_folds.py`, `src/data/audit_full_vs_roi.py`
+- **Created**
+  - `tickets/T38_nov19_dataset.md`, `src/data/prepare_nov19.py`, `tests/test_nov19.py`, `scripts/hpc/nov19_env.sh`
+- **Changed**
+  - `scripts/hpc/sync_to_raptor.sh`, `requirements.txt`, `runbook.md`, `ROADMAP.md`
+- **Outside Git**: `../Current dataset T23 (1,032 photos).xlsx` (the researcher's workbook, the source), `../datasets/relabel_2026_11_19/` (the dataset's lists; file names hold forensic case numbers), `../19 Nov annotation/`, `~/Desktop/รูปตามประเภท/` (new photos), on Raptor `<project>/datasets/relabel_2026_11_19/`, `<project>/annotations/cvat_2026_11_19/`

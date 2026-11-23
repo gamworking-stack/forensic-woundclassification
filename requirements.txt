@@ -8,5 +8,6 @@ numpy>=1.24.0
 matplotlib>=3.7.0
 pillow>=9.5.0
 pycocotools>=2.0.7  # T19 detection metrics (already in the Raptor container)
+openpyxl>=3.1  # T38: reads the researcher's workbook (laptop only)
 # Tests
 pytest>=7.0.0
