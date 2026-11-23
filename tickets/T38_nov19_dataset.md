@@ -76,3 +76,4 @@ No other code changes: every step reads `WOUND_DATA_DIR`.
 ## 7. Run log
 
 - 2026-11-23 (laptop): workbook decisions above; dataset prepared in `../datasets/relabel_2026_11_19/`, split reproduced, union (1,134) and per-box (1,925) dry-run manifests, CV folds, audit passed. `python -m src.detection.boxes` needs torch: run it on Raptor (runbook step 1).
+- 2026-11-23 (laptop → Raptor): commit `f8f41e1` (branch `t38-nov19-dataset`) synced; the 98 new photos added to the raw tree (cut 91 → 137, scratch 69 → 121, no file replaced), 19 Nov exports to `annotations/cvat_2026_11_19`, dataset to `datasets/relabel_2026_11_19`. Reference boxes on Raptor: 1,925 on 1,134 photos. Crop jobs 251033 (union, 1,134) and 251034 (per-box, 1,925) both `ROI comparison PASSED` (so the laptop's image sizes are right). Ready for training.
