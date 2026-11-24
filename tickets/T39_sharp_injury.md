@@ -3,7 +3,7 @@
 - **Ticket ID**: `T39`
 - **Phase**: Variant of T38 for the manuscript (ROADMAP §5)
 - **Spec Reference**: [T38](T38_nov19_dataset.md) (photos, annotation, patients, experiments), [T23](T23_relabel_rerun.md) (run order)
-- **Status**: Dataset prepared 2026-11-23; Raptor runs queued behind T38
+- **Status**: Done 2026-11-24 (§5, §6)
 
 ---
 
@@ -60,3 +60,14 @@ With `WOUND_N_CLASSES` unset, every script behaves as before.
 ## 5. Run log
 
 - 2026-11-23 (laptop): dataset prepared with `--merge "cut wound" "penetration wound" --into "sharp injury"`, new split, patient cases, union (1,134) and per-box (1,925) dry-run crops, CV folds, audit passed.
+- 2026-11-23/24 (Raptor): crops PASSED (1,134 union, 1,925 per box), reference boxes 1,925; full test suite in the container with `WOUND_N_CLASSES=6`: 257 passed. Training started automatically after T38 (2026-11-24 00:30), 87/87 jobs; evaluation, Grad-CAM, `verify_crop.py` all PASS; CV (full only) 55 jobs, `verify.py` with CV all PASS; T36 and T37 (4Y only; YOLO11m chosen on validation, AP50 0.826) done.
+- 2026-11-24 (laptop): T28, T29, T24 (`--no-union`), T32 on the T39 predictions; manuscript files in `../08_Manuscript/19 Nov dataset, sharp injury (T39)/` (Tables 1, 2, 2 precision recall, 2b, 3, 4, 6, 7, Figures 3-5) by the T38 builders in `../results_figures/relabel_2026_11_19/manuscript/` (`build_tables.py --results/--out`, `build_yolo.py`).
+
+## 6. Results (test: 161 photographs, 294 crops, 70 patients)
+
+| | Full image, macro-F1 | Per crop, macro-F1 |
+|---|---|---|
+| Best family | EfficientNet-B0 0.877 [0.808, 0.935] | ViT-B/16 0.867 [0.810, 0.903] |
+| Mean of the 8 | 0.807 (T38: 0.764) | 0.834 (T38: 0.777) |
+
+CV (full image, fold mean): best ResNet152 0.835 and EfficientNet-B0 0.833 (T38: 0.768, 0.759). YOLO11m test AP50 0.660 [0.565, 0.769]. Vote with YOLO crops, mean of 8: accuracy 0.883 (+0.063 [+0.037, +0.091] over the full image); best pipeline EfficientNet-B0 + YOLO11m: accuracy 0.932, macro-F1 0.920. T38 and T39 have different splits, so the T38 values are descriptive context, not a paired comparison.

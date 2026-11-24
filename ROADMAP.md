@@ -202,5 +202,5 @@ All 16 scenarios finished under identical split, seed, and budget policy; summar
 - [x] T31 Grad-CAM of the tattoo photos (train, validation, test; T23 and T30 models)
 - [x] T32 confusion matrices per subgroup (4 families, full image and per crop)
 - [x] T33 computational cost of the 8 models (Table 5)
-- [ ] T39 six classes: cut and penetration wounds merged into sharp injury, on the T38 data with a new split (prepared 2026-11-23; runs after T38)
-- [ ] T38 19 Nov 2026 dataset: new annotation, new photos, split by patient (prepared 2026-11-23; Raptor upload, crops and reruns pending)
+- [x] T39 six classes: cut and penetration wounds merged into sharp injury (done 2026-11-24; manuscript files in 08_Manuscript/19 Nov dataset, sharp injury (T39))
+- [x] T38 19 Nov 2026 dataset: new annotation, new photos, split by patient (done 2026-11-24; manuscript files in 08_Manuscript/19 Nov dataset (T38))
